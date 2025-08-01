@@ -1,17 +1,14 @@
 import React, { useState, useRef } from 'react'
-import { useFrame, useLoader, useThree } from '@react-three/fiber'
-import { Box, Cylinder, Cone, Text, Html, useGLTF } from '@react-three/drei'
+import { useFrame, useThree } from '@react-three/fiber'
+import { Box, Cone, Html, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { projects } from '../data/projects'
 import { Project } from '../types/Project'
-import { forEachChild } from 'typescript'
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
-import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js'
 
 const ProjectBuildings: React.FC = () => {
     const [hoveredProject, setHoveredProject] = useState<string | null>(null)
     const [selectedProject, setSelectedProject] = useState<Project | null>(null)
-    const { camera, gl } = useThree()
+    const { camera } = useThree()
     const buildingsRef = useRef<THREE.Group>(null)
 
     useFrame((state) => {
@@ -34,6 +31,18 @@ const ProjectBuildings: React.FC = () => {
                 building.getWorldPosition(worldPos)
                 const angle = Math.atan2(worldPos.x, worldPos.z)
                 building.rotation.y = angle
+            })
+        }
+    })
+    selectedProject && useFrame(() => {
+        if (buildingsRef.current) {
+            buildingsRef.current.children.forEach((building, index) => {
+                const project = projects[index]
+                if (project && selectedProject.id === project.id) {
+                    building.scale.set(1.1, 1.1, 1.1)
+                } else if (project) {
+                    building.scale.set(1, 1, 1)
+                }
             })
         }
     })

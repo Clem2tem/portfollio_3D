@@ -1,5 +1,4 @@
 import React, { useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
 import { OrbitControls, Environment, Sky } from '@react-three/drei'
 import * as THREE from 'three'
 import Island from './Island'
