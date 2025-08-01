@@ -37,9 +37,15 @@ const Scene: React.FC = () => {
   
   // Synchronize spotlight position with camera
   useFrame(() => {
-    if (lightRef.current) {
-  const targetRef = useRef<THREE.Object3D>(null)
+    if (lightRef.current && targetRef.current) {
       lightRef.current.position.copy(camera.position)
+      // Place la cible sous la caméra (vers le bas)
+      targetRef.current.position.set(
+        camera.position.x,
+        camera.position.y - 5,
+        camera.position.z
+      )
+      lightRef.current.target = targetRef.current
     }
   })
 
