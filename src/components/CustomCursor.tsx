@@ -77,26 +77,26 @@ const CustomCursor: React.FC = () => {
   if (!isVisible) return null
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-50" style={{ cursor: 'none' }}>
+    <div className="pointer-events-none fixed inset-0 z-[9999]" style={{ cursor: 'none' }}>
       {/* Curseur principal */}
-    <div
-      className={`absolute transform -translate-x-1/2 -translate-y-1/2`}
-      style={{
-        left: mousePosition.x,
-        top: mousePosition.y,
-        transition: 'width 0.1s, height 0.1s',
-        width: isMoving ? 40 : 32,
-        height: isMoving ? 40 : 32,
-      }}
-    >
-      {/* Cercle extérieur */}
-      <div className="w-full h-full rounded-full border-2 border-blue-400/60 bg-blue-400/10 backdrop-blur-sm relative">
-        {/* Point central */}
-        <div className="w-2 h-2 bg-blue-400 rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 shadow-lg shadow-blue-400/50" />
-        {/* Ring animé */}
-        <div className={`absolute inset-0 rounded-full border border-blue-300/40 ${isMoving ? 'animate-ping' : ''}`} />
+      <div
+        className={`absolute transform -translate-x-1/2 -translate-y-1/2`}
+        style={{
+          left: mousePosition.x,
+          top: mousePosition.y,
+          transition: 'width 0.1s, height 0.1s',
+          width: isMoving ? 40 : 32,
+          height: isMoving ? 40 : 32,
+        }}
+      >
+        {/* Cercle extérieur */}
+        <div className="w-full h-full rounded-full border-2 border-blue-400/60 bg-blue-400/10 backdrop-blur-sm relative">
+          {/* Point central */}
+          <div className="w-2 h-2 bg-blue-400 rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 shadow-lg shadow-blue-400/50" />
+          {/* Ring animé */}
+          <div className={`absolute inset-0 rounded-full border border-blue-300/40 ${isMoving ? 'animate-ping' : ''}`} />
+        </div>
       </div>
-    </div>
 
       {/* Particules */}
       {particles.map(particle => (

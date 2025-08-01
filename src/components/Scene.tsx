@@ -1,14 +1,17 @@
 import React, { useRef, useEffect } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { OrbitControls, Environment, Sky } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import Island from './Island'
 import ProjectBuildings from './ProjectBuildings'
 
+const targetRef = React.createRef<THREE.Object3D>()
+
 const Scene: React.FC = () => {
   const sceneRef = useRef<THREE.Group>(null)
   const lightRef = useRef<THREE.SpotLight>(null)
-  const { gl } = useThree()
+  const { gl, camera } = useThree()
 
   // Empêcher le comportement de drag du canvas
   useEffect(() => {
@@ -31,6 +34,14 @@ const Scene: React.FC = () => {
       canvas.oncontextmenu = null
     }
   }, [gl])
+  
+  // Synchronize spotlight position with camera
+  useFrame(() => {
+    if (lightRef.current) {
+  const targetRef = useRef<THREE.Object3D>(null)
+      lightRef.current.position.copy(camera.position)
+    }
+  })
 
   return (
     <>
@@ -77,12 +88,11 @@ const Scene: React.FC = () => {
         shadow-camera-top={4}
         shadow-camera-bottom={-4}
         angle={Math.PI / 6} // Angle du cône de lumière
-        penumbra={0.5} // Douceur des bords
+        penumbra={0.2} // Douceur des bords
         distance={20}
         decay={2}
+        position={[0, 0, 0]} // Position initiale, sera synchronisée avec la caméra
       />
-
-      {/* L'île et les bâtiments dans le groupe qui tourne */}
       <group ref={sceneRef}>
         {/* L'île principale */}
         <Island />
@@ -116,6 +126,8 @@ const Scene: React.FC = () => {
 
       {/* Fog pour l'atmosphère plus sombre */}
       <fog attach="fog" args={['#1e293b', 8, 25]} />
+      {/* Objet cible invisible pour la lumière spot */}
+      <object3D ref={targetRef} />
     </>
   )
 }
