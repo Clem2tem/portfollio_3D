@@ -1,5 +1,6 @@
-import React, { useRef } from 'react'
+import React, { useRef, useEffect } from 'react'
 import { OrbitControls, Environment, Sky } from '@react-three/drei'
+import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import Island from './Island'
 import ProjectBuildings from './ProjectBuildings'
@@ -7,6 +8,29 @@ import ProjectBuildings from './ProjectBuildings'
 const Scene: React.FC = () => {
   const sceneRef = useRef<THREE.Group>(null)
   const lightRef = useRef<THREE.SpotLight>(null)
+  const { gl } = useThree()
+
+  // Empêcher le comportement de drag du canvas
+  useEffect(() => {
+    const canvas = gl.domElement
+    
+    // Désactiver le drag and drop sur le canvas
+    canvas.ondragstart = () => false
+    canvas.onselectstart = () => false
+    canvas.oncontextmenu = (e) => e.preventDefault()
+    
+    // Empêcher la sélection du canvas
+    canvas.style.userSelect = 'none'
+    canvas.style.webkitUserSelect = 'none'
+    ;(canvas.style as any).mozUserSelect = 'none'
+    ;(canvas.style as any).msUserSelect = 'none'
+    
+    return () => {
+      canvas.ondragstart = null
+      canvas.onselectstart = null
+      canvas.oncontextmenu = null
+    }
+  }, [gl])
 
   return (
     <>
@@ -15,12 +39,25 @@ const Scene: React.FC = () => {
         enablePan={false}
         enableZoom={true}
         enableRotate={true}
-        minDistance={8}
-        maxDistance={800}
-        minPolarAngle={Math.PI / 13.2}
-        maxPolarAngle={Math.PI / 1.2}
+        enableDamping={true}
+        dampingFactor={0.05}
+        rotateSpeed={0.5}
+        zoomSpeed={0.5}
+        minDistance={6}
+        maxDistance={12}
+        minPolarAngle={Math.PI / 2.8}
+        maxPolarAngle={Math.PI / 2.1}
         autoRotate={false}
         autoRotateSpeed={0}
+        mouseButtons={{
+          LEFT: THREE.MOUSE.ROTATE,
+          MIDDLE: THREE.MOUSE.DOLLY,
+          RIGHT: THREE.MOUSE.PAN
+        }}
+        touches={{
+          ONE: THREE.TOUCH.ROTATE,
+          TWO: THREE.TOUCH.DOLLY_PAN
+        }}
       />
 
       {/* Éclairage de base très sombre */}

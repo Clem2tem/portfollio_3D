@@ -3,10 +3,11 @@ import { Suspense } from 'react'
 import Scene from './components/Scene'
 import UI from './components/UI'
 import LoadingScreen from './components/LoadingScreen'
+import CustomCursor from './components/CustomCursor'
 
 function App() {
   return (
-    <div className="w-full h-screen relative overflow-hidden">
+    <div className="w-full h-screen relative overflow-hidden" style={{ cursor: 'none' }}>
       {/* Canvas 3D */}
       <Canvas
         camera={{ 
@@ -17,6 +18,12 @@ function App() {
         }}
         shadows
         className="absolute inset-0"
+        gl={{
+          antialias: true,
+          alpha: false,
+          powerPreference: "high-performance"
+        }}
+        dpr={[1, 2]}
       >
         <Suspense fallback={null}>
           <Scene />
@@ -25,6 +32,9 @@ function App() {
 
       {/* Interface utilisateur overlay */}
       <UI />
+
+      {/* Curseur personnalisé */}
+      <CustomCursor />
 
       {/* Loading screen */}
       <Suspense fallback={<LoadingScreen />}>

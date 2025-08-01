@@ -293,11 +293,97 @@ const ProjectBuildings: React.FC = () => {
     });
 
     return (
-        <group ref={buildingsRef}>
-            {projects.map((project) => (
-                <BuildingComponent key={project.id} project={project} />
-            ))}
-        </group>
+        <>
+            <group ref={buildingsRef}>
+                {projects.map((project) => (
+                    <BuildingComponent key={project.id} project={project} />
+                ))}
+            </group>
+            
+            {/* Popup pour le projet sélectionné */}
+            {selectedProject && (
+                <Html
+                    position={[0, 0, 0]}
+                    center
+                    distanceFactor={1}
+                    transform={false}
+                    occlude={false}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100vw',
+                        height: '100vh',
+                        pointerEvents: 'auto',
+                        zIndex: 1000
+                    }}
+                >
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+                        <div className="bg-gray-900 border border-gray-700 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-auto shadow-2xl">
+                            {/* Header */}
+                            <div className="p-6 border-b border-gray-700">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-white mb-2">{selectedProject.title}</h2>
+                                        <p className="text-gray-300">{selectedProject.description}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setSelectedProject(null)}
+                                        className="text-gray-400 hover:text-white transition-colors ml-4"
+                                    >
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-6">
+                                {/* Technologies */}
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold text-white mb-3">Technologies utilisées</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedProject.technologies.map((tech, index) => (
+                                            <span
+                                                key={index}
+                                                className="px-3 py-1 bg-blue-600/20 border border-blue-500/30 text-blue-300 rounded-full text-sm"
+                                            >
+                                                {tech}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Links */}
+                                <div className="flex flex-wrap gap-3">
+                                    {selectedProject.githubUrl && (
+                                        <a
+                                            href={selectedProject.githubUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                                        >
+                                            GitHub
+                                        </a>
+                                    )}
+                                    {selectedProject.liveUrl && (
+                                        <a
+                                            href={selectedProject.liveUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                                        >
+                                            Voir le projet
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Html>
+            )}
+        </>
     )
 }
 
