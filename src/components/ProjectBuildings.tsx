@@ -35,16 +35,16 @@ const ProjectBuildings: React.FC = () => {
         }
     })
     selectedProject && useFrame(() => {
-        if (buildingsRef.current) {
-            buildingsRef.current.children.forEach((building, index) => {
-                const project = projects[index]
-                if (project && selectedProject.id === project.id) {
-                    building.scale.set(1.1, 1.1, 1.1)
-                } else if (project) {
-                    building.scale.set(1, 1, 1)
-                }
-            })
-        }
+        // if (buildingsRef.current) {
+        //     buildingsRef.current.children.forEach((building, index) => {
+        //         const project = projects[index]
+        //         if (project && selectedProject.id === project.id) {
+        //             building.scale.set(1.1, 1.1, 1.1)
+        //         } else if (project) {
+        //             building.scale.set(1, 1, 1)
+        //         }
+        //     })
+        // }
     })
 
     const BuildingComponent: React.FC<{ project: Project }> = ({ project }) => {
@@ -74,7 +74,7 @@ const ProjectBuildings: React.FC = () => {
         const handleClick = (event: any) => {
             if (!isVisible) return
             event.stopPropagation()
-            setSelectedProject(project)
+            // setSelectedProject(project)
             console.log('Project clicked:', project.title)
         }
 
