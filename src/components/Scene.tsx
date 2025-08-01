@@ -1,8 +1,9 @@
 import React, { useRef, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { OrbitControls, Environment, Sky } from '@react-three/drei'
+import { OrbitControls, Environment} from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
+import StarField from './StarField'
 import Island from './Island'
 import ProjectBuildings from './ProjectBuildings'
 
@@ -120,64 +121,8 @@ const Scene: React.FC = () => {
       <ProjectBuildings />
       </group>
 
-      {/* Ciel nocturne avec effet de fog vertical (shader) */}
-      <mesh scale={[200, 200, 200]}>
-        <sphereGeometry args={[1, 32, 32]} />
-        <shaderMaterial
-          attach="material"
-          args={[{
-            uniforms: {
-              colorTop: { value: new THREE.Color('#0d0022') },
-              colorBottom: { value: new THREE.Color('#0d0022') },
-              fogColor: { value: new THREE.Color('#0d0022') },
-              fogStart: { value: 0.1 },
-              fogEnd: { value: 0.7 }
-            },
-            vertexShader: `
-              varying vec3 vWorldPosition;
-              void main() {
-                vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-                vWorldPosition = worldPosition.xyz;
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-              }
-            `,
-            fragmentShader: `
-              uniform vec3 colorTop;
-              uniform vec3 colorBottom;
-              uniform vec3 fogColor;
-              uniform float fogStart;
-              uniform float fogEnd;
-              varying vec3 vWorldPosition;
-              // Simple hash for star placement
-              float hash(vec2 p) {
-                return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123);
-              }
-              void main() {
-                float h = normalize(vWorldPosition).y;
-                vec3 baseColor = mix(colorBottom, colorTop, smoothstep(-0.2, 1.0, h));
-                float fogFactor = smoothstep(fogStart, fogEnd, h);
-                vec3 finalColor = mix(baseColor, fogColor, fogFactor);
-
-              // Génération d'étoiles plus visibles
-                vec3 dir = normalize(vWorldPosition);
-                float star = 0.0;
-                float density = 0.15; // plus petit = plus d'étoiles
-                for (float i = 0.0; i < 80.0; i++) {
-                  float a = i * 0.123 + 1.234;
-                  float b = i * 0.456 + 4.321;
-                  float rnd = hash(dir.xy * a + b);
-                  float d = distance(dir.xy, vec2(cos(a), sin(b)));
-                  star += smoothstep(0.0, 0.03, 0.03 - d) * step(1.0-density, rnd);
-                }
-                if (h > 0.2) {
-                  finalColor += vec3(1.0, 1.0, 1.0) * star * 2.5;
-                }
-                gl_FragColor = vec4(finalColor, 1.0);
-              }
-            `
-          }]}
-        />
-      </mesh>
+      {/* Nuage d'étoiles 3D dans le ciel */}
+      <StarField count={1200} radius={180} color="#fff" size={8} />
 
       {/* Environnement HDR pour les réflections */}
       <Environment preset="night" />
