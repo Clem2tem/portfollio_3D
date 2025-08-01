@@ -1,0 +1,94 @@
+{ x: 2.5, y: 0.30000000000000004, z: 1 }
+ProjectBuildings.tsx:55:19
+cameraPosition: 
+Object { x: -6.550928050973552, y: 1.1385187061862827, z: -4.448496018502407 }
+ProjectBuildings.tsx:56:19
+buildingPosition: 
+Object { x: -2, y: 0.30000000000000004, z: 1.5 }
+ProjectBuildings.tsx:55:19
+cameraPosition: 
+Object { x: -6.550928050973552, y: 1.1385187061862827, z: -4.448496018502407 }
+ProjectBuildings.tsx:56:19
+buildingPosition: 
+Object { x: 0, y: 0.30000000000000004, z: -2.5 }
+ProjectBuildings.tsx:55:19
+cameraPosition: 
+Object { x: -6.550928050973552, y: 1.1385187061862827, z: -4.448496018502407 }
+ProjectBuildings.tsx:56:19
+buildingPosition: 
+Object { x: 1.8, y: 0.30000000000000004, z: -1.8 }
+ProjectBuildings.tsx:55:19
+cameraPosition: 
+Object { x: -6.550928050973552, y: 1.1385187061862827, z: -4.448496018502407 }
+ProjectBuildings.tsx:56:19
+buildingPosition: 
+Object { x: 2.5, y: 0.30000000000000004, z: 1 }
+ProjectBuildings.tsx:55:19
+cameraPosition: 
+Object { x: 7.586114981641344, y: 1.1385187061862827, z: -2.270382047361339 }
+ProjectBuildings.tsx:56:19
+buildingPosition: 
+Object { x: -2, y: 0.30000000000000004, z: 1.5 }
+ProjectBuildings.tsx:55:19
+cameraPosition: 
+Object { x: 7.586114981641344, y: 1.1385187061862827, z: -2.270382047361339 }
+ProjectBuildings.tsx:56:19
+buildingPosition: 
+Object { x: 0, y: 0.30000000000000004, z: -2.5 }
+ProjectBuildings.tsx:55:19
+cameraPosition: 
+Object { x: 7.586114981641344, y: 1.1385187061862827, z: -2.270382047361339 }
+ProjectBuildings.tsx:56:19
+buildingPosition: 
+Object { x: 1.8, y: 0.30000000000000004, z: -1.8 }
+ProjectBuildings.tsx:55:19
+cameraPosition: 
+Object { x: 7.586114981641344, y: 1.1385187061862827, z: -2.270382047361339 }
+ProjectBuildings.tsx:56:19
+buildingPosition: 
+Object { x: 2.5, y: 0.30000000000000004, z: 1 }
+ProjectBuildings.tsx:55:19
+cameraPosition: 
+Object { x: -1.075297242587027, y: 1.1385187061862827, z: 7.845222176315254 }
+ProjectBuildings.tsx:56:19
+buildingPosition: 
+Object { x: -2, y: 0.30000000000000004, z: 1.5 }
+ProjectBuildings.tsx:55:19
+cameraPosition: 
+Object { x: -1.075297242587027, y: 1.1385187061862827, z: 7.845222176315254 }
+ProjectBuildings.tsx:56:19
+buildingPosition: 
+Object { x: 0, y: 0.30000000000000004, z: -2.5 }
+ProjectBuildings.tsx:55:19
+cameraPosition: 
+Object { x: -1.075297242587027, y: 1.1385187061862827, z: 7.845222176315254 }
+ProjectBuildings.tsx:56:19
+buildingPosition: 
+Object { x: 1.8, y: 0.30000000000000004, z: -1.8 }
+ProjectBuildings.tsx:55:19
+cameraPosition: 
+Object { x: -1.075297242587027, y: 1.1385187061862827, z: 7.845222176315254 }
+ProjectBuildings.tsx:56:19
+buildingPosition: 
+Object { x: 2.5, y: 0.30000000000000004, z: 1 }
+ProjectBuildings.tsx:55:19
+cameraPosition: 
+Object { x: -4.866985386353289, y: 1.1385187061862827, z: -6.246297175502254 }
+ProjectBuildings.tsx:56:19
+buildingPosition: 
+Object { x: -2, y: 0.30000000000000004, z: 1.5 }
+ProjectBuildings.tsx:55:19
+cameraPosition: 
+Object { x: -4.866985386353289, y: 1.1385187061862827, z: -6.246297175502254 }
+ProjectBuildings.tsx:56:19
+buildingPosition: 
+Object { x: 0, y: 0.30000000000000004, z: -2.5 }
+ProjectBuildings.tsx:55:19
+cameraPosition: 
+Object { x: -4.866985386353289, y: 1.1385187061862827, z: -6.246297175502254 }
+ProjectBuildings.tsx:56:19
+buildingPosition: 
+Object { x: 1.8, y: 0.30000000000000004, z: -1.8 }
+ProjectBuildings.tsx:55:19
+cameraPosition: 
+Object { x: -4.866985386353289, y: 1.1385187061862827, z: -6.246297175502254 }
