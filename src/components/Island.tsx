@@ -1,6 +1,6 @@
 import React, { JSX, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Cone, Cylinder, Sphere } from '@react-three/drei'
+import { Cone, Cylinder, Sphere, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 
 const Island: React.FC = () => {
@@ -66,51 +66,35 @@ const Island: React.FC = () => {
             </Sphere>
         )
     }
+    const gltf = useGLTF('models/Island/Island.gltf')
 
-    return (
-        <group>
-            {/* Base de l'île (terre) */}
-            <Cylinder args={[8, 4.5, 9, 16]} position={[0, -4.5, 0]}>
-                <meshStandardMaterial color="#8B4513" />
-            </Cylinder>
+                        // Patch matériaux pour cohérence visuelle et ombres
+                        React.useEffect(() => {
+                            gltf.scene.traverse((child: any) => {
+                                if (child.isMesh) {
+                                    // Matériau partagé pour le thème
+                                    if (!child.material || !child.material.color) {
+                                        child.material = new THREE.MeshStandardMaterial({
+                                            color: '#b0b0b0',
+                                            metalness: 0.5,
+                                            roughness: 0.6
+                                        })
+                                    }
+                                    child.castShadow = true
+                                    child.receiveShadow = true
+                                }
+                            })
+                        }, [gltf])
+    
+                        return (
+                            <primitive
+                                object={gltf.scene}
+                                scale={[0.4, 0.4, 0.4]}
+                                position={[0, -0.5, 0]}
+                                rotation={[0, -Math.PI / 3, 0]}
+                            />
+                        )
 
-            {/* Surface de l'île (herbe) */}
-            <Cylinder args={[7, 4.2, 0.1, 16]} position={[0, 0.05, 0]}>
-                <meshStandardMaterial color="#228B22" />
-            </Cylinder>
-
-            {/* Chemin circulaire */}
-            <Cylinder args={[5.2, 2.8, 0.12, 32]} position={[0, 0.06, 0]}>
-                <meshStandardMaterial color="#D2B48C" roughness={0.8} />
-            </Cylinder>
-
-            {/* Centre de l'île (plus élevé) */}
-            <Cylinder args={[2.5, 4.8, 0.3, 12]} position={[0, 0.15, 0]}>
-                <meshStandardMaterial color="#32CD32" />
-            </Cylinder>
-
-            {/* Arbres */}
-            <group ref={treesRef}>
-                {trees}
-            </group>
-
-            {/* Patches d'herbe */}
-            <group ref={grassRef}>
-                {grassPatches}
-            </group>
-
-            {/* Rochers décoratifs */}
-            <Sphere args={[0.15, 6, 4]} position={[2, 0.08, 1]}>
-                <meshStandardMaterial color="#696969" />
-            </Sphere>
-            <Sphere args={[0.12, 5, 4]} position={[-1.5, 0.06, 2.5]}>
-                <meshStandardMaterial color="#778899" />
-            </Sphere>
-            <Sphere args={[0.1, 4, 3]} position={[1.2, 0.05, -2.8]}>
-                <meshStandardMaterial color="#696969" />
-            </Sphere>
-        </group>
-    )
 }
 
 export default Island

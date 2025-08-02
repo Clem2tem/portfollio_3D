@@ -6,6 +6,7 @@ import * as THREE from 'three'
 import StarField from './StarField'
 import Island from './Island'
 import ProjectBuildings from './ProjectBuildings'
+import Portal from './Portal'
 
 const Scene: React.FC = () => {
   const sceneRef = useRef<THREE.Group>(null)
@@ -127,8 +128,11 @@ const Scene: React.FC = () => {
       {/* Environnement HDR pour les réflections */}
       <Environment preset="night" />
 
+      <Portal />
+
+
       {/* Océan infini */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
       <planeGeometry args={[500, 500]} />
       <meshStandardMaterial
         color="#0f172a"
