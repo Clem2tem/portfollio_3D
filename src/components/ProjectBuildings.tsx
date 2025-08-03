@@ -1,3 +1,90 @@
+// Composant persistant pour l'excavator animé
+const ExcavatorGLTF: React.FC<{ position: [number, number, number] }> = ({ position }) => {
+    const gltf = useGLTF('models/Excavator/Excavator.gltf');
+    const anims = useAnimations(gltf.animations, gltf.scene);
+    const mixerRef = React.useRef<any>(null);
+    const actionsRef = React.useRef<any>(null);
+    const lastLoopTimeRef = React.useRef(0);
+    const pauseBetweenLoopsRef = React.useRef(false);
+    const eventListenerAddedRef = React.useRef(false);
+
+    React.useEffect(() => {
+        if (!anims || !gltf || !anims.actions || Object.keys(anims.actions).length === 0) return;
+        if (!mixerRef.current) mixerRef.current = anims.mixer;
+        if (!actionsRef.current) actionsRef.current = anims.actions;
+        if (!eventListenerAddedRef.current && mixerRef.current) {
+            mixerRef.current.addEventListener('finished', () => {
+                pauseBetweenLoopsRef.current = true;
+                lastLoopTimeRef.current = Date.now();
+            });
+            eventListenerAddedRef.current = true;
+        }
+        // Lance l'animation si aucune n'est en cours (au tout premier montage)
+        const actions = anims.actions;
+        let anyPlaying = false;
+        Object.values(actions).forEach((action: any) => {
+            if (action.isRunning()) anyPlaying = true;
+        });
+        if (!anyPlaying && !pauseBetweenLoopsRef.current) {
+            Object.values(actions).forEach((action: any) => {
+                action.reset();
+                action.setLoop(THREE.LoopOnce, 1);
+                action.clampWhenFinished = true;
+                action.play();
+            });
+        }
+    }, [anims, gltf]);
+
+    useFrame((_, delta) => {
+        if (mixerRef.current) {
+            if (pauseBetweenLoopsRef.current) {
+                const now = Date.now();
+                const pauseDuration = 1000;
+                if (now - lastLoopTimeRef.current >= pauseDuration) {
+                    Object.values(actionsRef.current || {}).forEach((action: any) => {
+                        action.reset();
+                        action.play();
+                    });
+                    pauseBetweenLoopsRef.current = false;
+                }
+            } else {
+                mixerRef.current.update(delta * 0.5);
+            }
+        }
+    });
+
+    React.useEffect(() => {
+        // Patch matériaux pour cohérence visuelle et ombres (une seule fois)
+        if (!gltf) return;
+        gltf.scene.traverse((child: any) => {
+            if (child.isMesh) {
+                const originalMaterial = child.material;
+                const newMaterial = new THREE.MeshStandardMaterial({
+                    map: originalMaterial?.map || null,
+                    normalMap: originalMaterial?.normalMap || null,
+                    color: originalMaterial?.color || new THREE.Color('#a0a0a0'),
+                    metalness: 0.1,
+                    roughness: 0.8,
+                    emissive: new THREE.Color('#000000'),
+                    emissiveIntensity: 0
+                });
+                child.material = newMaterial;
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+    }, [gltf]);
+
+    if (!gltf) return null;
+    return (
+        <primitive
+            object={gltf.scene}
+            scale={[0.4, 0.4, 0.4]}
+            position={position}
+            rotation={[0, -Math.PI / 3, 0]}
+        />
+    );
+};
 // Composant pour gérer l'affichage du logo techno avec fallback texte
 type TechLogoProps = {
     tech: string;
@@ -36,7 +123,7 @@ const TechLogo: React.FC<TechLogoProps> = ({ tech }) => {
 import React, { useState, useRef } from 'react'
 
 import { useFrame, useThree } from '@react-three/fiber'
-import { Box, Cone, Html, useGLTF } from '@react-three/drei'
+import { Box, Cone, Html, useGLTF, useAnimations } from '@react-three/drei'
 import * as THREE from 'three'
 import { projects } from '../data/projects'
 import { Project } from '../types/Project'
@@ -47,20 +134,10 @@ const ProjectBuildings: React.FC = () => {
     const { camera } = useThree()
     const buildingsRef = useRef<THREE.Group>(null)
 
-    useFrame((state) => {
+    useFrame(() => {
         // Animation de flottement pour les bâtiments survolés
         if (buildingsRef.current) {
-            buildingsRef.current.children.forEach((building, index) => {
-                const project = projects[index]
-                if (project && hoveredProject === project.id) {
-                    building.position.y = project.position[1] + Math.sin(state.clock.elapsedTime * 2) * 0.1
-                } else if (project) {
-                    building.position.y = THREE.MathUtils.lerp(
-                        building.position.y,
-                        project.position[1],
-                        0.1
-                    )
-                }
+            buildingsRef.current.children.forEach((building) => {
 
                 // Orientation des bâtiments pour qu'ils regardent vers l'extérieur
                 const worldPos = new THREE.Vector3()
@@ -86,24 +163,17 @@ const ProjectBuildings: React.FC = () => {
     const BuildingComponent: React.FC<{ project: Project }> = ({ project }) => {
         const meshRef = useRef<THREE.Group>(null)
         const [isVisible, setIsVisible] = useState(true)
-
+        // Calcul de la visibilité, mais ne doit pas impacter l'animation
         useFrame((state) => {
             if (meshRef.current) {
-                // Calculer si le bâtiment est visible depuis la caméra
                 const worldPos = new THREE.Vector3()
                 meshRef.current.getWorldPosition(worldPos)
-
                 const cameraDirection = new THREE.Vector3()
                 state.camera.getWorldDirection(cameraDirection)
-
                 const toBuildingDirection = new THREE.Vector3()
                 toBuildingDirection.subVectors(worldPos, state.camera.position).normalize()
-
-                // Calculer l'angle entre la direction de la caméra et la direction vers le bâtiment
                 const dot = cameraDirection.dot(toBuildingDirection)
-
-                // Si l'angle est > 90 degrés (dot < 0), le bâtiment est derrière
-                setIsVisible(dot > -0.3) // Petit buffer pour plus de souplesse
+                setIsVisible(dot > -0.3)
             }
         })
 
@@ -115,170 +185,126 @@ const ProjectBuildings: React.FC = () => {
         }
 
         const renderBuilding = () => {
-            const isHovered = hoveredProject === project.id && isVisible
-            const baseColor = isHovered ? '#3b82f6' : (isVisible ? '#374151' : '#1f2937')
-            const roofColor = isHovered ? '#1d4ed8' : (isVisible ? '#1f2937' : '#111827')
-            const hospitalColor = isHovered ? '#3b82f6' : (isVisible ? '#A1C2E8' : '#374151')
-            const hospitalRoofColor = isHovered ? '#1d4ed8' : (isVisible ? '#9ca3af' : '#111827')
-            const emissiveIntensity = isHovered && isVisible ? 0.3 : 0
+            // Ne pas changer l'apparence du bâtiment lors du hover
+            const baseColor = isVisible ? '#374151' : '#1f2937';
+            const roofColor = isVisible ? '#1f2937' : '#111827';
+            const hospitalColor = isVisible ? '#A1C2E8' : '#374151';
+            const hospitalRoofColor = isVisible ? '#9ca3af' : '#111827';
+            const emissiveIntensity = 0;
 
-            switch (project.buildingType) {
-                case 'hospital':
-                    return (
-                        <>
-                            {/* Corps principal */}
-                            <Box args={[0.8, 1.2, 0.8]} position={[0, 0.6, 0]}>
-                                <meshStandardMaterial
-                                    color={hospitalColor}
-                                    emissive={hospitalColor}
-                                    emissiveIntensity={emissiveIntensity}
-                                />
-                            </Box>
-                            {/* Croix rouge */}
-                            <Box args={[0.1, 0.4, 0.05]} position={[0, 0.9, 0.41]}>
-                                <meshStandardMaterial
-                                    color="#ef4444"
-                                    emissive="#ef4444"
-                                    emissiveIntensity={isHovered ? 0.5 : 0.2}
-                                />
-                            </Box>
-                            <Box args={[0.4, 0.1, 0.05]} position={[0, 0.9, 0.41]}>
-                                <meshStandardMaterial
-                                    color="#ef4444"
-                                    emissive="#ef4444"
-                                    emissiveIntensity={isHovered ? 0.5 : 0.2}
-                                />
-                            </Box>
-                            {/* Toit */}
-                            <Box args={[0.9, 0.2, 0.9]} position={[0, 1.3, 0]}>
-                                <meshStandardMaterial
-                                    color={hospitalRoofColor}
-                                    emissive={hospitalRoofColor}
-                                    emissiveIntensity={emissiveIntensity}
-                                />
-                            </Box>
-                        </>
-                    )
 
-                case 'office':
-                    return (
-                        <>
-                            {/* Tour principale */}
-                            <Box args={[0.6, 1.5, 0.6]} position={[0, 0.75, 0]}>
-                                <meshStandardMaterial
-                                    color={baseColor}
-                                    emissive={baseColor}
-                                    emissiveIntensity={emissiveIntensity}
-                                />
-                            </Box>
-                            {/* Fenêtres */}
-                            {Array.from({ length: 6 }).map((_, i) => (
-                                <Box key={i} args={[0.15, 0.15, 0.02]} position={[-0.2, 0.3 + i * 0.2, 0.31]}>
-                                    <meshStandardMaterial
-                                        color="#fbbf24"
-                                        emissive="#fbbf24"
-                                        emissiveIntensity={isHovered ? 0.8 : 0.4}
-                                    />
-                                </Box>
-                            ))}
-                            {Array.from({ length: 6 }).map((_, i) => (
-                                <Box key={i + 6} args={[0.15, 0.15, 0.02]} position={[0.2, 0.3 + i * 0.2, 0.31]}>
-                                    <meshStandardMaterial
-                                        color="#fbbf24"
-                                        emissive="#fbbf24"
-                                        emissiveIntensity={isHovered ? 0.8 : 0.4}
-                                    />
-                                </Box>
-                            ))}
-                        </>
-                    )
-
-                case 'school':
-                    return (
-                        <>
-                            {/* Bâtiment principal */}
-                            <Box args={[1, 0.8, 0.8]} position={[0, 0.4, 0]}>
-                                <meshStandardMaterial
-                                    color={baseColor}
-                                    emissive={baseColor}
-                                    emissiveIntensity={emissiveIntensity}
-                                />
-                            </Box>
-                            {/* Toit en pente */}
-                            <Cone args={[0.8, 0.4, 4]} position={[0, 1, 0]} rotation={[0, Math.PI / 4, 0]}>
-                                <meshStandardMaterial
-                                    color={roofColor}
-                                    emissive={roofColor}
-                                    emissiveIntensity={emissiveIntensity}
-                                />
-                            </Cone>
-                            {/* Clocher */}
-                            <Box args={[0.2, 0.6, 0.2]} position={[0.3, 1, 0]}>
-                                <meshStandardMaterial
-                                    color={baseColor}
-                                    emissive={baseColor}
-                                    emissiveIntensity={emissiveIntensity}
-                                />
-                            </Box>
-                        </>
-                    )
-
-                case 'factory': {
-                    // Charge le modèle GLTF avec le hook dédié
-                    const gltf = useGLTF('models/Excavator.glb')
-
-                    // Patch matériaux pour cohérence visuelle et ombres
-                    React.useEffect(() => {
-                        gltf.scene.traverse((child: any) => {
-                            if (child.isMesh) {
-                                // Forcer l'utilisation de MeshStandardMaterial pour une meilleure réactivité à la lumière
-                                const originalMaterial = child.material;
-
-                                // Créer un nouveau matériau standard qui réagit bien aux lumières colorées
-                                const newMaterial = new THREE.MeshStandardMaterial({
-                                    // Préserver la texture diffuse si elle existe
-                                    map: originalMaterial?.map || null,
-                                    // Préserver la texture normale si elle existe
-                                    normalMap: originalMaterial?.normalMap || null,
-                                    // Couleur de base plus neutre pour mieux recevoir les lumières colorées
-                                    color: originalMaterial?.color || new THREE.Color('#a0a0a0'),
-                                    // Réduire la métallicité pour une meilleure diffusion de la lumière
-                                    metalness: 0.1,
-                                    // Augmenter la rugosité pour un rendu plus mat
-                                    roughness: 0.8,
-                                    // Pas d'émission par défaut
-                                    emissive: new THREE.Color('#000000'),
-                                    emissiveIntensity: 0
-                                });
-
-                                child.material = newMaterial;
-                                child.castShadow = true;
-                                child.receiveShadow = true;
-                            }
-                        })
-                    }, [gltf])
-
-                    return (
-                        <primitive
-                            object={gltf.scene}
-                            scale={[0.4, 0.4, 0.4]}
-                            position={[0, 0, 0]}
-                            rotation={[0, -Math.PI / 3, 0]}
-                        />
-                    )
-                }
-
-                default:
-                    return (
-                        <Box args={[0.8, 1, 0.8]} position={[0, 0.5, 0]}>
+        switch (project.buildingType) {
+            case 'hospital':
+                return (
+                    <>
+                        {/* Corps principal */}
+                        <Box args={[0.8, 1.2, 0.8]} position={[0, 0.6, 0]}>
+                            <meshStandardMaterial
+                                color={hospitalColor}
+                                emissive={hospitalColor}
+                                emissiveIntensity={emissiveIntensity}
+                            />
+                        </Box>
+                        {/* Croix rouge */}
+                        <Box args={[0.1, 0.4, 0.05]} position={[0, 0.9, 0.41]}>
+                            <meshStandardMaterial
+                                color="#ef4444"
+                                emissive="#ef4444"
+                                emissiveIntensity={0.2}
+                            />
+                        </Box>
+                        <Box args={[0.4, 0.1, 0.05]} position={[0, 0.9, 0.41]}>
+                            <meshStandardMaterial
+                                color="#ef4444"
+                                emissive="#ef4444"
+                                emissiveIntensity={0.2}
+                            />
+                        </Box>
+                        {/* Toit */}
+                        <Box args={[0.9, 0.2, 0.9]} position={[0, 1.3, 0]}>
+                            <meshStandardMaterial
+                                color={hospitalRoofColor}
+                                emissive={hospitalRoofColor}
+                                emissiveIntensity={emissiveIntensity}
+                            />
+                        </Box>
+                    </>
+                )
+            case 'office':
+                return (
+                    <>
+                        {/* Tour principale */}
+                        <Box args={[0.6, 1.5, 0.6]} position={[0, 0.75, 0]}>
                             <meshStandardMaterial
                                 color={baseColor}
                                 emissive={baseColor}
                                 emissiveIntensity={emissiveIntensity}
                             />
                         </Box>
-                    )
-            }
+                        {/* Fenêtres */}
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <Box key={i} args={[0.15, 0.15, 0.02]} position={[-0.2, 0.3 + i * 0.2, 0.31]}>
+                                <meshStandardMaterial
+                                    color="#fbbf24"
+                                    emissive="#fbbf24"
+                                    emissiveIntensity={0.4}
+                                />
+                            </Box>
+                        ))}
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <Box key={i + 6} args={[0.15, 0.15, 0.02]} position={[0.2, 0.3 + i * 0.2, 0.31]}>
+                                <meshStandardMaterial
+                                    color="#fbbf24"
+                                    emissive="#fbbf24"
+                                    emissiveIntensity={0.4}
+                                />
+                            </Box>
+                        ))}
+                    </>
+                )
+            case 'school':
+                return (
+                    <>
+                        {/* Bâtiment principal */}
+                        <Box args={[1, 0.8, 0.8]} position={[0, 0.4, 0]}>
+                            <meshStandardMaterial
+                                color={baseColor}
+                                emissive={baseColor}
+                                emissiveIntensity={emissiveIntensity}
+                            />
+                        </Box>
+                        {/* Toit en pente */}
+                        <Cone args={[0.8, 0.4, 4]} position={[0, 1, 0]} rotation={[0, Math.PI / 4, 0]}>
+                            <meshStandardMaterial
+                                color={roofColor}
+                                emissive={roofColor}
+                                emissiveIntensity={emissiveIntensity}
+                            />
+                        </Cone>
+                        {/* Clocher */}
+                        <Box args={[0.2, 0.6, 0.2]} position={[0.3, 1, 0]}>
+                            <meshStandardMaterial
+                                color={baseColor}
+                                emissive={baseColor}
+                                emissiveIntensity={emissiveIntensity}
+                            />
+                        </Box>
+                    </>
+                )
+            case 'factory':
+                // On ne rend rien ici, le modèle animé est monté globalement
+                return null;
+            default:
+                return (
+                    <Box args={[0.8, 1, 0.8]} position={[0, 0.5, 0]}>
+                        <meshStandardMaterial
+                            color={baseColor}
+                            emissive={baseColor}
+                            emissiveIntensity={emissiveIntensity}
+                        />
+                    </Box>
+                )
+        }
         }
 
         return (
@@ -293,9 +319,11 @@ const ProjectBuildings: React.FC = () => {
     }
 
     useFrame(() => {
+        // Gestion du hover pour tous les bâtiments SAUF l'usine (factory)
         if (buildingsRef.current) {
             buildingsRef.current.children.forEach((building, index) => {
                 const project = projects[index];
+                if (project.buildingType === 'factory') return; // On gère l'usine à part
                 let hovered = false;
                 building.traverse((child: any) => {
                     if (child.isMesh) {
@@ -317,6 +345,30 @@ const ProjectBuildings: React.FC = () => {
                 }
             });
         }
+
+        // Gestion du hover pour l'excavator (usine)
+        const factory = projects.find(p => p.buildingType === 'factory');
+        if (factory) {
+            // Centre de la scène (0,0,0)
+            const center = new THREE.Vector3(0, 0, 0);
+            const excavatorPos = new THREE.Vector3(...factory.position);
+            // Vecteur du centre vers excavator
+            const dirToExcavator = excavatorPos.clone().sub(center).setY(0).normalize();
+            // Vecteur du centre vers la caméra
+            const camPos = camera.position.clone();
+            const dirToCamera = camPos.clone().sub(center).setY(0).normalize();
+            // Calcul de l'angle entre les deux vecteurs
+            const angle = dirToExcavator.angleTo(dirToCamera); // en radians
+            const angleThreshold = Math.PI / 12; // ~15°
+            if (angle < angleThreshold) {
+                if (hoveredProject !== factory.id) {
+                    setTechIndex(0);
+                }
+                setHoveredProject(factory.id);
+            } else if (hoveredProject === factory.id) {
+                setHoveredProject(null);
+            }
+        }
     });
 
     // Affichage de la bulle d'infos projet survolé en haut de l'écran
@@ -333,6 +385,8 @@ const ProjectBuildings: React.FC = () => {
         }
     }, [hoveredProject]);
 
+    // Chercher la position du projet factory
+    const factoryProject = projects.find(p => p.buildingType === 'factory');
     return (
         <>
             <group ref={buildingsRef}>
@@ -340,6 +394,8 @@ const ProjectBuildings: React.FC = () => {
                     <BuildingComponent key={project.id} project={project} />
                 ))}
             </group>
+            {/* On monte le modèle excavator animé une seule fois, à la bonne position */}
+            {factoryProject && <ExcavatorGLTF position={factoryProject.position} />}
 
             {/* Bulle d'infos projet survolé, statique en haut de l'écran */}
             <Html
