@@ -41,7 +41,7 @@ const Scene: React.FC = () => {
     if (lightRef.current && targetRef.current) {
       // Distance fixe du centre (0,0,0)
       const camPos = camera.position.clone()
-      const radius = 3 // distance fixe
+      const radius = 3.5 // distance fixe
       const fixedHeight = 3// hauteur fixe pour la lumière
 
       // Calculer l'angle polaire de la caméra autour du centre
@@ -91,12 +91,12 @@ const Scene: React.FC = () => {
       />
 
       {/* Éclairage de base très sombre */}
-      <ambientLight intensity={0.05} color="#1a1a2e" />
+      <ambientLight intensity={0.1} color="#FFFFFF" />
 
       {/* Lumière spot qui suit la caméra et forme un cône */}
       <spotLight
       ref={lightRef}
-      intensity={5}
+      intensity={8}
       color="#ffffff"
       castShadow
       shadow-mapSize-width={2048}
@@ -107,7 +107,7 @@ const Scene: React.FC = () => {
       shadow-camera-top={4}
       shadow-camera-bottom={-4}
       angle={Math.PI / 4} // Angle du cône de lumière
-      penumbra={0.2} // Douceur des bords
+      penumbra={1} // Douceur des bords
       distance={20}
       decay={2}
       position={[0, 0, 0]} // Position initiale, sera synchronisée avec la caméra
@@ -125,9 +125,6 @@ const Scene: React.FC = () => {
       {/* Nuage d'étoiles 3D dans le ciel */}
       <StarField count={1200} radius={180} color="#fff" size={8} />
 
-      {/* Environnement HDR pour les réflections */}
-      <Environment preset="night" />
-
       <Portal />
 
 
@@ -135,16 +132,22 @@ const Scene: React.FC = () => {
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
       <planeGeometry args={[500, 500]} />
       <meshStandardMaterial
-        color="#0f172a"
+        color="#050510"
         transparent
-        opacity={0.8}
-        roughness={0.1}
-        metalness={0.1}
+        opacity={0.9}
+        roughness={0.8}
+        metalness={0.0}
       />
       </mesh>
 
       {/* Fog pour l'atmosphère plus sombre */}
-      <fog attach="fog" args={['#0d0022', 1, 12]} />
+      <fog attach="fog" args={['#000005', 8, 25]} />
+
+      <pointLight 
+        position={[0, 2, 0]}
+        intensity={4.5}
+        color="#8844ff"
+      />
     </>
   )
 }

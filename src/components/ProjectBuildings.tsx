@@ -195,16 +195,29 @@ const ProjectBuildings: React.FC = () => {
                     React.useEffect(() => {
                         gltf.scene.traverse((child: any) => {
                             if (child.isMesh) {
-                                // Matériau partagé pour le thème
-                                if (!child.material || !child.material.color) {
-                                    child.material = new THREE.MeshStandardMaterial({
-                                        color: '#b0b0b0',
-                                        metalness: 0.5,
-                                        roughness: 0.6
-                                    })
-                                }
-                                child.castShadow = true
-                                child.receiveShadow = true
+                                // Forcer l'utilisation de MeshStandardMaterial pour une meilleure réactivité à la lumière
+                                const originalMaterial = child.material;
+                                
+                                // Créer un nouveau matériau standard qui réagit bien aux lumières colorées
+                                const newMaterial = new THREE.MeshStandardMaterial({
+                                    // Préserver la texture diffuse si elle existe
+                                    map: originalMaterial?.map || null,
+                                    // Préserver la texture normale si elle existe
+                                    normalMap: originalMaterial?.normalMap || null,
+                                    // Couleur de base plus neutre pour mieux recevoir les lumières colorées
+                                    color: originalMaterial?.color || new THREE.Color('#a0a0a0'),
+                                    // Réduire la métallicité pour une meilleure diffusion de la lumière
+                                    metalness: 0.1,
+                                    // Augmenter la rugosité pour un rendu plus mat
+                                    roughness: 0.8,
+                                    // Pas d'émission par défaut
+                                    emissive: new THREE.Color('#000000'),
+                                    emissiveIntensity: 0
+                                });
+                                
+                                child.material = newMaterial;
+                                child.castShadow = true;
+                                child.receiveShadow = true;
                             }
                         })
                     }, [gltf])
