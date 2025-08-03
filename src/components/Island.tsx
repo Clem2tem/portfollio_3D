@@ -5,7 +5,6 @@ import * as THREE from 'three'
 
 const Island: React.FC = () => {
     const treesRef = useRef<THREE.Group>(null)
-    const grassRef = useRef<THREE.Group>(null)
 
     useFrame((state) => {
         // Animation subtile des arbres
