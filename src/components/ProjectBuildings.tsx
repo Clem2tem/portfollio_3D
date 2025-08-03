@@ -1,4 +1,40 @@
+// Composant pour gérer l'affichage du logo techno avec fallback texte
+type TechLogoProps = {
+    tech: string;
+};
+
+const TechLogo: React.FC<TechLogoProps> = ({ tech }) => {
+    const techKey = tech.replace(/\s+/g, "_");
+    const pngPath = `/logos/${techKey}.png`;
+    const jpgPath = `/logos/${techKey}.jpg`;
+    const svgPath = `/logos/${techKey}.svg`;
+    const [imgSrc, setImgSrc] = React.useState<string | null>(pngPath);
+    React.useEffect(() => {
+        setImgSrc(pngPath);
+    }, [tech]);
+    if (imgSrc) {
+        return (
+            <img
+                src={imgSrc}
+                alt={tech}
+                className="w-8 h-8 object-contain rounded shadow cursor-none min-w-[70px] max-w-[70px] min-h-[70px] max-h-[70px] p-1"
+                onError={() => {
+                    if (imgSrc === pngPath) setImgSrc(jpgPath);
+                    else if (imgSrc === jpgPath) setImgSrc(svgPath);
+                    else setImgSrc(null);
+                }}
+                style={{ display: imgSrc ? 'inline-block' : 'none' }}
+            />
+        );
+    }
+    return (
+        <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded cursor-none min-w-[70px] w-[70px] max-w-[70px] text-center">
+            {tech}
+        </span>
+    );
+};
 import React, { useState, useRef } from 'react'
+
 import { useFrame, useThree } from '@react-three/fiber'
 import { Box, Cone, Html, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
@@ -197,7 +233,7 @@ const ProjectBuildings: React.FC = () => {
                             if (child.isMesh) {
                                 // Forcer l'utilisation de MeshStandardMaterial pour une meilleure réactivité à la lumière
                                 const originalMaterial = child.material;
-                                
+
                                 // Créer un nouveau matériau standard qui réagit bien aux lumières colorées
                                 const newMaterial = new THREE.MeshStandardMaterial({
                                     // Préserver la texture diffuse si elle existe
@@ -214,7 +250,7 @@ const ProjectBuildings: React.FC = () => {
                                     emissive: new THREE.Color('#000000'),
                                     emissiveIntensity: 0
                                 });
-                                
+
                                 child.material = newMaterial;
                                 child.castShadow = true;
                                 child.receiveShadow = true;
@@ -252,31 +288,6 @@ const ProjectBuildings: React.FC = () => {
                 onClick={handleClick}
             >
                 {renderBuilding()}
-
-                {/* Bulle de dialogue au survol */}
-                {hoveredProject === project.id && isVisible && (
-                    <Html
-                        position={[1, 1, 0]}
-                        center
-                        distanceFactor={10}
-                        occlude={false}
-                    >
-                        <div className="bg-gray-900 text-white px-4 py-2 rounded-lg shadow-lg border border-gray-600 max-w-xs">
-                            <div className="text-sm font-semibold mb-1">{project.title}</div>
-                            <div className="text-xs text-gray-300 mb-2">{project.description}</div>
-                            <div className="flex flex-wrap gap-1">
-                                {project.technologies.slice(0, 3).map((tech, i) => (
-                                    <span key={i} className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
-                                        {tech}
-                                    </span>
-                                ))}
-                                {project.technologies.length > 3 && (
-                                    <span className="text-xs text-gray-400">+{project.technologies.length - 3}</span>
-                                )}
-                            </div>
-                        </div>
-                    </Html>
-                )}
             </group>
         )
     }
@@ -297,6 +308,9 @@ const ProjectBuildings: React.FC = () => {
                     }
                 });
                 if (hovered) {
+                    if (hoveredProject !== project.id) {
+                        setTechIndex(0); // Reset tech index when hovering a new project
+                    }
                     setHoveredProject(project.id);
                 } else if (hoveredProject === project.id) {
                     setHoveredProject(null);
@@ -305,96 +319,182 @@ const ProjectBuildings: React.FC = () => {
         }
     });
 
+    // Affichage de la bulle d'infos projet survolé en haut de l'écran
+
+    // On garde en mémoire le dernier hoveredProjectData et techIndex valides
+    const [techIndex, setTechIndex] = useState(0);
+    const [lastHoveredProjectData, setLastHoveredProjectData] = useState<Project | null>(null);
+    const hoveredProjectData = projects.find(p => p.id === hoveredProject) || lastHoveredProjectData;
+
+    React.useEffect(() => {
+        const found = projects.find(p => p.id === hoveredProject);
+        if (found) {
+            setLastHoveredProjectData(found);
+        }
+    }, [hoveredProject]);
+
     return (
         <>
             <group ref={buildingsRef}>
-            {projects.map((project) => (
-                <BuildingComponent key={project.id} project={project} />
-            ))}
+                {projects.map((project) => (
+                    <BuildingComponent key={project.id} project={project} />
+                ))}
             </group>
-            
-            {/* Popup pour le projet sélectionné */}
-            {selectedProject && (
+
+            {/* Bulle d'infos projet survolé, statique en haut de l'écran */}
             <Html
-                position={[0, 0, 0]}
+                as="div"
                 center
-                distanceFactor={1}
-                transform={false}
                 occlude={false}
+                className="cursor-none"
                 style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                width: '100vw',
-                height: '100vh',
-                pointerEvents: 'auto',
-                zIndex: 50
+                    position: 'fixed',
+                    top: "-45vh",
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 100,
+                    pointerEvents: 'auto',
+                    width: 'auto',
+                    opacity: hoveredProject ? 1 : 0,
+                    transition: 'opacity 0.2s ease-in-out',
                 }}
             >
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-                <div className="bg-gray-900 border border-gray-700 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-auto shadow-2xl">
-                    {/* Header */}
-                    <div className="p-6 border-b border-gray-700">
-                    <div className="flex justify-between items-start">
-                        <div>
-                        <h2 className="text-2xl font-bold text-white mb-2">{selectedProject.title}</h2>
-                        <p className="text-gray-300">{selectedProject.description}</p>
-                        </div>
-                        <button
-                        onClick={() => setSelectedProject(null)}
-                        className="text-gray-400 hover:text-white transition-colors ml-4"
-                        >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        </button>
-                    </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-6">
-                    {/* Technologies */}
-                    <div className="mb-6">
-                        <h3 className="text-lg font-semibold text-white mb-3">Technologies utilisées</h3>
-                        <div className="flex flex-wrap gap-2">
-                        {selectedProject.technologies.map((tech, index) => (
-                            <span
-                            key={index}
-                            className="px-3 py-1 bg-blue-600/20 border border-blue-500/30 text-blue-300 rounded-full text-sm"
+                    <div className="text-white max-w-xl cursor-none">
+                        <div className='flex inline-flex items-center gap-2'>
+                            <div
+                                className="flex items-center gap-2 absolute w-[140px] -left-[140px] top-1/2 -translate-y-1/2 pointer-events-auto"
+                                style={{ width: 120 }}
                             >
-                            {tech}
-                            </span>
-                        ))}
+                                <button
+                                    className="text-gray-400 hover:text-white transition-colors px-1 cursor-none"
+                                    onClick={e => {
+                                        e.stopPropagation();
+                                        setTechIndex((prev) => {
+                                            if (!hoveredProjectData || !hoveredProjectData.technologies) return 0;
+                                            return prev === 0
+                                                ? hoveredProjectData.technologies.length - 1
+                                                : prev - 1;
+                                        });
+                                    }}
+                                    tabIndex={-1}
+                                    aria-label="Précédent"
+                                >
+                                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                </button>
+                                {hoveredProjectData && hoveredProjectData.technologies ? (
+                                    <TechLogo tech={hoveredProjectData.technologies[techIndex] || hoveredProjectData.technologies[0]} />
+                                ) : null}
+                                <button
+                                    className="text-gray-400 hover:text-white transition-colors px-1 cursor-none"
+                                    onClick={e => {
+                                        e.stopPropagation();
+                                        setTechIndex((prev) => {
+                                            if (!hoveredProjectData || !hoveredProjectData.technologies) return 0;
+                                            return prev === hoveredProjectData.technologies.length - 1
+                                                ? 0
+                                                : prev + 1;
+                                        });
+                                    }}
+                                    tabIndex={-1}
+                                    aria-label="Suivant"
+                                >
+                                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div>
+                                <div className="text-white text-lg font-oswald font-bold leading-tight mb-1 w-[250px]">{hoveredProjectData ? hoveredProjectData.title : ''}</div>
+                                <div className="text-sm text-gray-300 font-oswald mb-2 w-[250px] tracking-wider">{hoveredProjectData ? hoveredProjectData.description : ''}</div>
+                            </div>
                         </div>
                     </div>
-
-                    {/* Links */}
-                    <div className="flex flex-wrap gap-3">
-                        {selectedProject.githubUrl && (
-                        <a
-                            href={selectedProject.githubUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
-                        >
-                            GitHub
-                        </a>
-                        )}
-                        {selectedProject.liveUrl && (
-                        <a
-                            href={selectedProject.liveUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                        >
-                            Voir le projet
-                        </a>
-                        )}
-                    </div>
-                    </div>
-                </div>
-                </div>
             </Html>
+
+            {/* Popup pour le projet sélectionné */}
+            {selectedProject && (
+                <Html
+                    position={[0, 0, 0]}
+                    center
+                    distanceFactor={1}
+                    transform={false}
+                    occlude={false}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100vw',
+                        height: '100vh',
+                        pointerEvents: 'auto',
+                        zIndex: 50
+                    }}
+                >
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+                        <div className="bg-gray-900 border border-gray-700 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-auto shadow-2xl">
+                            {/* Header */}
+                            <div className="p-6 border-b border-gray-700">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-white mb-2">{selectedProject.title}</h2>
+                                        <p className="text-gray-300">{selectedProject.description}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setSelectedProject(null)}
+                                        className="text-gray-400 hover:text-white transition-colors ml-4"
+                                    >
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-6">
+                                {/* Technologies */}
+                                <div className="mb-6">
+                                    <h3 className="text-lg font-semibold text-white mb-3">Technologies utilisées</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedProject.technologies.map((tech, index) => (
+                                            <span
+                                                key={index}
+                                                className="px-3 py-1 bg-blue-600/20 border border-blue-500/30 text-blue-300 rounded-full text-sm"
+                                            >
+                                                {tech}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Links */}
+                                <div className="flex flex-wrap gap-3">
+                                    {selectedProject.githubUrl && (
+                                        <a
+                                            href={selectedProject.githubUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                                        >
+                                            GitHub
+                                        </a>
+                                    )}
+                                    {selectedProject.liveUrl && (
+                                        <a
+                                            href={selectedProject.liveUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                                        >
+                                            Voir le projet
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Html>
             )}
         </>
     )
