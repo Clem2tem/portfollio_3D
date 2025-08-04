@@ -47,7 +47,7 @@ const HospitalGLTF: React.FC<{ position: [number, number, number] }> = ({ positi
                 object={gltf.scene}
                 scale={[0.2, 0.2, 0.2]}
                 position={position}
-                rotation={[0, -Math.PI / 3, 0]}
+                rotation={[0, -Math.PI / 1.85, 0]}
             />
             {/* Logo medchem flottant */}
             <mesh
@@ -55,7 +55,7 @@ const HospitalGLTF: React.FC<{ position: [number, number, number] }> = ({ positi
                 onPointerOver={() => setHovered(true)}
                 onPointerOut={() => setHovered(false)}
                 ref={logoRef}
-                position={[1.6, 0, 1.7]}
+                position={[position[0]+0.5, 0, position[2]+0.9]}
                 onClick={() => window.open('https://www.medchemstructuregenius.eu/', '_blank')}
             >
                 <boxGeometry args={[0.25, 0.25, 0.04]} />

@@ -2,7 +2,12 @@ import React, { useState } from 'react'
 import ProjectPopup from './ProjectPopup'
 import { Project } from '../types/Project'
 
-const UI: React.FC = () => {
+interface UIProps {
+  isNightMode: boolean
+  setIsNightMode: (value: boolean) => void
+}
+
+const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode }) => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
 
   return (
@@ -19,7 +24,26 @@ const UI: React.FC = () => {
             </p>
           </div>
           
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
+            {/* Bouton jour/nuit */}
+            <button 
+              onClick={() => setIsNightMode(!isNightMode)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 hover:scale-105"
+              style={{
+                background: isNightMode 
+                  ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+                  : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+              }}
+            >
+              <span className="text-lg">
+                {isNightMode ? '☀️' : '🌙'}
+              </span>
+              <span className="text-white font-semibold">
+                {isNightMode ? 'Mode Jour' : 'Mode Nuit'}
+              </span>
+            </button>
+            
             <button className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-colors">
               À propos
             </button>

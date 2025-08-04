@@ -91,6 +91,18 @@ const Island: React.FC = () => {
                                         emissiveIntensity: 0
                                     });
                                     
+                                    // Réduire la taille des textures en augmentant la répétition
+                                    if (newMaterial.map) {
+                                        newMaterial.map.wrapS = THREE.RepeatWrapping;
+                                        newMaterial.map.wrapT = THREE.RepeatWrapping;
+                                        newMaterial.map.repeat.set(10, 10); // Réduit la taille des textures
+                                    }
+                                    if (newMaterial.normalMap) {
+                                        newMaterial.normalMap.wrapS = THREE.RepeatWrapping;
+                                        newMaterial.normalMap.wrapT = THREE.RepeatWrapping;
+                                        newMaterial.normalMap.repeat.set(10, 10); // Réduit la taille des textures normales
+                                    }
+                                    
                                     child.material = newMaterial;
                                     child.castShadow = true;
                                     child.receiveShadow = true;

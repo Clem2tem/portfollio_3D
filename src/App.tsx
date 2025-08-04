@@ -1,11 +1,13 @@
 import { Canvas } from '@react-three/fiber'
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
 import Scene from './components/Scene'
 import UI from './components/UI'
 import LoadingScreen from './components/LoadingScreen'
 import CustomCursor from './components/CustomCursor'
 
 function App() {
+  const [isNightMode, setIsNightMode] = useState(false)
+
   return (
     <div className="w-full h-screen relative overflow-hidden" style={{ cursor: 'none' }}>
       {/* Canvas 3D */}
@@ -26,12 +28,12 @@ function App() {
         dpr={[1, 2]}
       >
         <Suspense fallback={null}>
-          <Scene />
+          <Scene isNightMode={isNightMode} />
         </Suspense>
       </Canvas>
 
       {/* Interface utilisateur overlay */}
-      <UI />
+      <UI isNightMode={isNightMode} setIsNightMode={setIsNightMode} />
 
       {/* Curseur personnalisé */}
       <CustomCursor />
