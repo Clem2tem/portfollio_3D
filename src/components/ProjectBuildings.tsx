@@ -1,90 +1,5 @@
-// Composant persistant pour l'excavator animé
-const ExcavatorGLTF: React.FC<{ position: [number, number, number] }> = ({ position }) => {
-    const gltf = useGLTF('models/Excavator/Excavator.gltf');
-    const anims = useAnimations(gltf.animations, gltf.scene);
-    const mixerRef = React.useRef<any>(null);
-    const actionsRef = React.useRef<any>(null);
-    const lastLoopTimeRef = React.useRef(0);
-    const pauseBetweenLoopsRef = React.useRef(false);
-    const eventListenerAddedRef = React.useRef(false);
+import ExcavatorGLTF from './ExcavatorGLTF';
 
-    React.useEffect(() => {
-        if (!anims || !gltf || !anims.actions || Object.keys(anims.actions).length === 0) return;
-        if (!mixerRef.current) mixerRef.current = anims.mixer;
-        if (!actionsRef.current) actionsRef.current = anims.actions;
-        if (!eventListenerAddedRef.current && mixerRef.current) {
-            mixerRef.current.addEventListener('finished', () => {
-                pauseBetweenLoopsRef.current = true;
-                lastLoopTimeRef.current = Date.now();
-            });
-            eventListenerAddedRef.current = true;
-        }
-        // Lance l'animation si aucune n'est en cours (au tout premier montage)
-        const actions = anims.actions;
-        let anyPlaying = false;
-        Object.values(actions).forEach((action: any) => {
-            if (action.isRunning()) anyPlaying = true;
-        });
-        if (!anyPlaying && !pauseBetweenLoopsRef.current) {
-            Object.values(actions).forEach((action: any) => {
-                action.reset();
-                action.setLoop(THREE.LoopOnce, 1);
-                action.clampWhenFinished = true;
-                action.play();
-            });
-        }
-    }, [anims, gltf]);
-
-    useFrame((_, delta) => {
-        if (mixerRef.current) {
-            if (pauseBetweenLoopsRef.current) {
-                const now = Date.now();
-                const pauseDuration = 1000;
-                if (now - lastLoopTimeRef.current >= pauseDuration) {
-                    Object.values(actionsRef.current || {}).forEach((action: any) => {
-                        action.reset();
-                        action.play();
-                    });
-                    pauseBetweenLoopsRef.current = false;
-                }
-            } else {
-                mixerRef.current.update(delta * 0.5);
-            }
-        }
-    });
-
-    React.useEffect(() => {
-        // Patch matériaux pour cohérence visuelle et ombres (une seule fois)
-        if (!gltf) return;
-        gltf.scene.traverse((child: any) => {
-            if (child.isMesh) {
-                const originalMaterial = child.material;
-                const newMaterial = new THREE.MeshStandardMaterial({
-                    map: originalMaterial?.map || null,
-                    normalMap: originalMaterial?.normalMap || null,
-                    color: originalMaterial?.color || new THREE.Color('#a0a0a0'),
-                    metalness: 0.1,
-                    roughness: 0.8,
-                    emissive: new THREE.Color('#000000'),
-                    emissiveIntensity: 0
-                });
-                child.material = newMaterial;
-                child.castShadow = true;
-                child.receiveShadow = true;
-            }
-        });
-    }, [gltf]);
-
-    if (!gltf) return null;
-    return (
-        <primitive
-            object={gltf.scene}
-            scale={[0.4, 0.4, 0.4]}
-            position={position}
-            rotation={[0, -Math.PI / 3, 0]}
-        />
-    );
-};
 // Composant pour gérer l'affichage du logo techno avec fallback texte
 type TechLogoProps = {
     tech: string;
@@ -123,7 +38,8 @@ const TechLogo: React.FC<TechLogoProps> = ({ tech }) => {
 import React, { useState, useRef } from 'react'
 
 import { useFrame, useThree } from '@react-three/fiber'
-import { Box, Cone, Html, useGLTF, useAnimations } from '@react-three/drei'
+import { Box, Cone, Html} from '@react-three/drei'
+import HospitalGLTF from './HospitalGLTF';
 import * as THREE from 'three'
 import { projects } from '../data/projects'
 import { Project } from '../types/Project'
@@ -188,123 +104,89 @@ const ProjectBuildings: React.FC = () => {
             // Ne pas changer l'apparence du bâtiment lors du hover
             const baseColor = isVisible ? '#374151' : '#1f2937';
             const roofColor = isVisible ? '#1f2937' : '#111827';
-            const hospitalColor = isVisible ? '#A1C2E8' : '#374151';
-            const hospitalRoofColor = isVisible ? '#9ca3af' : '#111827';
+            // hospitalColor et hospitalRoofColor inutiles avec le modèle GLTF
             const emissiveIntensity = 0;
 
 
-        switch (project.buildingType) {
-            case 'hospital':
-                return (
-                    <>
-                        {/* Corps principal */}
-                        <Box args={[0.8, 1.2, 0.8]} position={[0, 0.6, 0]}>
-                            <meshStandardMaterial
-                                color={hospitalColor}
-                                emissive={hospitalColor}
-                                emissiveIntensity={emissiveIntensity}
-                            />
-                        </Box>
-                        {/* Croix rouge */}
-                        <Box args={[0.1, 0.4, 0.05]} position={[0, 0.9, 0.41]}>
-                            <meshStandardMaterial
-                                color="#ef4444"
-                                emissive="#ef4444"
-                                emissiveIntensity={0.2}
-                            />
-                        </Box>
-                        <Box args={[0.4, 0.1, 0.05]} position={[0, 0.9, 0.41]}>
-                            <meshStandardMaterial
-                                color="#ef4444"
-                                emissive="#ef4444"
-                                emissiveIntensity={0.2}
-                            />
-                        </Box>
-                        {/* Toit */}
-                        <Box args={[0.9, 0.2, 0.9]} position={[0, 1.3, 0]}>
-                            <meshStandardMaterial
-                                color={hospitalRoofColor}
-                                emissive={hospitalRoofColor}
-                                emissiveIntensity={emissiveIntensity}
-                            />
-                        </Box>
-                    </>
-                )
-            case 'office':
-                return (
-                    <>
-                        {/* Tour principale */}
-                        <Box args={[0.6, 1.5, 0.6]} position={[0, 0.75, 0]}>
-                            <meshStandardMaterial
-                                color={baseColor}
-                                emissive={baseColor}
-                                emissiveIntensity={emissiveIntensity}
-                            />
-                        </Box>
-                        {/* Fenêtres */}
-                        {Array.from({ length: 6 }).map((_, i) => (
-                            <Box key={i} args={[0.15, 0.15, 0.02]} position={[-0.2, 0.3 + i * 0.2, 0.31]}>
+            switch (project.buildingType) {
+                case 'hospital':
+                    // Affiche le modèle GLTF CHU
+                    return <HospitalGLTF position={project.position} />;
+                case 'office':
+                    return (
+                        <>
+                            {/* Tour principale */}
+                            <Box args={[0.6, 1.5, 0.6]} position={[0, 0.75, 0]}>
                                 <meshStandardMaterial
-                                    color="#fbbf24"
-                                    emissive="#fbbf24"
-                                    emissiveIntensity={0.4}
+                                    color={baseColor}
+                                    emissive={baseColor}
+                                    emissiveIntensity={emissiveIntensity}
                                 />
                             </Box>
-                        ))}
-                        {Array.from({ length: 6 }).map((_, i) => (
-                            <Box key={i + 6} args={[0.15, 0.15, 0.02]} position={[0.2, 0.3 + i * 0.2, 0.31]}>
+                            {/* Fenêtres */}
+                            {Array.from({ length: 6 }).map((_, i) => (
+                                <Box key={i} args={[0.15, 0.15, 0.02]} position={[-0.2, 0.3 + i * 0.2, 0.31]}>
+                                    <meshStandardMaterial
+                                        color="#fbbf24"
+                                        emissive="#fbbf24"
+                                        emissiveIntensity={0.4}
+                                    />
+                                </Box>
+                            ))}
+                            {Array.from({ length: 6 }).map((_, i) => (
+                                <Box key={i + 6} args={[0.15, 0.15, 0.02]} position={[0.2, 0.3 + i * 0.2, 0.31]}>
+                                    <meshStandardMaterial
+                                        color="#fbbf24"
+                                        emissive="#fbbf24"
+                                        emissiveIntensity={0.4}
+                                    />
+                                </Box>
+                            ))}
+                        </>
+                    )
+                case 'school':
+                    return (
+                        <>
+                            {/* Bâtiment principal */}
+                            <Box args={[1, 0.8, 0.8]} position={[0, 0.4, 0]}>
                                 <meshStandardMaterial
-                                    color="#fbbf24"
-                                    emissive="#fbbf24"
-                                    emissiveIntensity={0.4}
+                                    color={baseColor}
+                                    emissive={baseColor}
+                                    emissiveIntensity={emissiveIntensity}
                                 />
                             </Box>
-                        ))}
-                    </>
-                )
-            case 'school':
-                return (
-                    <>
-                        {/* Bâtiment principal */}
-                        <Box args={[1, 0.8, 0.8]} position={[0, 0.4, 0]}>
+                            {/* Toit en pente */}
+                            <Cone args={[0.8, 0.4, 4]} position={[0, 1, 0]} rotation={[0, Math.PI / 4, 0]}>
+                                <meshStandardMaterial
+                                    color={roofColor}
+                                    emissive={roofColor}
+                                    emissiveIntensity={emissiveIntensity}
+                                />
+                            </Cone>
+                            {/* Clocher */}
+                            <Box args={[0.2, 0.6, 0.2]} position={[0.3, 1, 0]}>
+                                <meshStandardMaterial
+                                    color={baseColor}
+                                    emissive={baseColor}
+                                    emissiveIntensity={emissiveIntensity}
+                                />
+                            </Box>
+                        </>
+                    )
+                case 'factory':
+                    // On ne rend rien ici, le modèle animé est monté globalement
+                    return null;
+                default:
+                    return (
+                        <Box args={[0.8, 1, 0.8]} position={[0, 0.5, 0]}>
                             <meshStandardMaterial
                                 color={baseColor}
                                 emissive={baseColor}
                                 emissiveIntensity={emissiveIntensity}
                             />
                         </Box>
-                        {/* Toit en pente */}
-                        <Cone args={[0.8, 0.4, 4]} position={[0, 1, 0]} rotation={[0, Math.PI / 4, 0]}>
-                            <meshStandardMaterial
-                                color={roofColor}
-                                emissive={roofColor}
-                                emissiveIntensity={emissiveIntensity}
-                            />
-                        </Cone>
-                        {/* Clocher */}
-                        <Box args={[0.2, 0.6, 0.2]} position={[0.3, 1, 0]}>
-                            <meshStandardMaterial
-                                color={baseColor}
-                                emissive={baseColor}
-                                emissiveIntensity={emissiveIntensity}
-                            />
-                        </Box>
-                    </>
-                )
-            case 'factory':
-                // On ne rend rien ici, le modèle animé est monté globalement
-                return null;
-            default:
-                return (
-                    <Box args={[0.8, 1, 0.8]} position={[0, 0.5, 0]}>
-                        <meshStandardMaterial
-                            color={baseColor}
-                            emissive={baseColor}
-                            emissiveIntensity={emissiveIntensity}
-                        />
-                    </Box>
-                )
-        }
+                    )
+            }
         }
 
         return (
@@ -415,58 +297,58 @@ const ProjectBuildings: React.FC = () => {
                     transition: 'opacity 0.2s ease-in-out',
                 }}
             >
-                    <div className="text-white max-w-xl cursor-none">
-                        <div className='flex inline-flex items-center gap-2'>
-                            <div
-                                className="flex items-center gap-2 absolute w-[140px] -left-[140px] top-1/2 -translate-y-1/2 pointer-events-auto"
-                                style={{ width: 120 }}
+                <div className="text-white max-w-xl cursor-none">
+                    <div className='flex inline-flex items-center gap-2'>
+                        <div
+                            className="flex items-center gap-2 absolute w-[140px] -left-[140px] top-1/2 -translate-y-1/2 pointer-events-auto"
+                            style={{ width: 120 }}
+                        >
+                            <button
+                                className="text-gray-400 hover:text-white transition-colors px-1 cursor-none"
+                                onClick={e => {
+                                    e.stopPropagation();
+                                    setTechIndex((prev) => {
+                                        if (!hoveredProjectData || !hoveredProjectData.technologies) return 0;
+                                        return prev === 0
+                                            ? hoveredProjectData.technologies.length - 1
+                                            : prev - 1;
+                                    });
+                                }}
+                                tabIndex={-1}
+                                aria-label="Précédent"
                             >
-                                <button
-                                    className="text-gray-400 hover:text-white transition-colors px-1 cursor-none"
-                                    onClick={e => {
-                                        e.stopPropagation();
-                                        setTechIndex((prev) => {
-                                            if (!hoveredProjectData || !hoveredProjectData.technologies) return 0;
-                                            return prev === 0
-                                                ? hoveredProjectData.technologies.length - 1
-                                                : prev - 1;
-                                        });
-                                    }}
-                                    tabIndex={-1}
-                                    aria-label="Précédent"
-                                >
-                                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                    </svg>
-                                </button>
-                                {hoveredProjectData && hoveredProjectData.technologies ? (
-                                    <TechLogo tech={hoveredProjectData.technologies[techIndex] || hoveredProjectData.technologies[0]} />
-                                ) : null}
-                                <button
-                                    className="text-gray-400 hover:text-white transition-colors px-1 cursor-none"
-                                    onClick={e => {
-                                        e.stopPropagation();
-                                        setTechIndex((prev) => {
-                                            if (!hoveredProjectData || !hoveredProjectData.technologies) return 0;
-                                            return prev === hoveredProjectData.technologies.length - 1
-                                                ? 0
-                                                : prev + 1;
-                                        });
-                                    }}
-                                    tabIndex={-1}
-                                    aria-label="Suivant"
-                                >
-                                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </button>
-                            </div>
-                            <div>
-                                <div className="text-white text-lg font-oswald font-bold leading-tight mb-1 w-[250px]">{hoveredProjectData ? hoveredProjectData.title : ''}</div>
-                                <div className="text-sm text-gray-300 font-oswald mb-2 w-[250px] tracking-wider">{hoveredProjectData ? hoveredProjectData.description : ''}</div>
-                            </div>
+                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </button>
+                            {hoveredProjectData && hoveredProjectData.technologies ? (
+                                <TechLogo tech={hoveredProjectData.technologies[techIndex] || hoveredProjectData.technologies[0]} />
+                            ) : null}
+                            <button
+                                className="text-gray-400 hover:text-white transition-colors px-1 cursor-none"
+                                onClick={e => {
+                                    e.stopPropagation();
+                                    setTechIndex((prev) => {
+                                        if (!hoveredProjectData || !hoveredProjectData.technologies) return 0;
+                                        return prev === hoveredProjectData.technologies.length - 1
+                                            ? 0
+                                            : prev + 1;
+                                    });
+                                }}
+                                tabIndex={-1}
+                                aria-label="Suivant"
+                            >
+                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div>
+                            <div className="text-white text-lg font-oswald font-bold leading-tight mb-1 w-[250px]">{hoveredProjectData ? hoveredProjectData.title : ''}</div>
+                            <div className="text-sm text-gray-300 font-oswald mb-2 w-[250px] tracking-wider">{hoveredProjectData ? hoveredProjectData.description : ''}</div>
                         </div>
                     </div>
+                </div>
             </Html>
 
             {/* Popup pour le projet sélectionné */}

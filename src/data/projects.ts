@@ -7,7 +7,7 @@ export const projects: Project[] = [
     description: 'Application complète pour la gestion des patients, rendez-vous et dossiers médicaux.',
     technologies: ['React', 'Node.js', 'PostgreSQL', 'Express', 'JWT', 'Socket.io'],
     category: 'fullstack',
-    position: [2.5, 0.3, 1],
+    position: [0.6, -0.01, 1.2],
     buildingType: 'hospital',
     details: {
       challenge: 'Créer un système sécurisé et efficient pour gérer les données sensibles des patients tout en respectant les normes HIPAA.',
@@ -86,12 +86,12 @@ export const projects: Project[] = [
     githubUrl: 'https://github.com/user/learning-app'
   },
   {
-    id: 'iot-dashboard',
+    id: 'SAAS-ERP-EGS',
     title: 'SAAS ERP EGS',
     description: 'SaaS pour la gestion de chantiers et la création de devis automatiques',
     technologies: ['React', 'TypeScript', 'Firebase', 'Git', 'Google Cloud'],
     category: 'web',
-    position: [1.8, 0.3, -1.8],
+    position: [1.8, 0.20, -1.8],
     buildingType: 'factory',
     details: {
       challenge: 'Visualiser en temps réel des milliers de points de données provenant de capteurs industriels.',
