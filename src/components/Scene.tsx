@@ -219,7 +219,7 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimat
         <Island />
 
         {/* Les bâtiments représentant les projets */}
-        <ProjectBuildings />
+        <ProjectBuildings isNightMode={isNightMode} />
       </group>
 
       /* Nuage d'étoiles 3D dans le ciel - seulement en mode nuit */

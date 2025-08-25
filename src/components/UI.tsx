@@ -15,15 +15,15 @@ const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode }) => {
   return (
     <>
       {/* Header */}
-      <header className="absolute top-0 left-0 right-0 z-40 p-6">
+      <header className="absolute top-0 left-0 right-0 z-40 p-4">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-white drop-shadow-lg">
-              Mon Portfolio 3D
+            <h1
+              className={`text-2xl font-bold leading-tight ${isNightMode ? 'text-gray-100 ' : 'text-gray-200'} drop-shadow-lg`}
+              style={{ lineHeight: '1' }}
+            >
+              Clement's <br />Island
             </h1>
-            <p className="text-white/80 text-sm drop-shadow">
-              Explorez mes projets dans cet univers interactif
-            </p>
           </div>
           
           <div className="flex gap-4 items-center">

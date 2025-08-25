@@ -19,7 +19,7 @@ const TechLogo: React.FC<TechLogoProps> = ({ tech }) => {
             <img
                 src={imgSrc}
                 alt={tech}
-                className="w-8 h-8 object-contain rounded shadow cursor-none min-w-[70px] max-w-[70px] min-h-[70px] max-h-[70px] p-1"
+                className="w-8 h-8 object-contain rounded cursor-none min-w-[70px] max-w-[70px] min-h-[70px] max-h-[70px] p-1"
                 onError={() => {
                     if (imgSrc === pngPath) setImgSrc(jpgPath);
                     else if (imgSrc === jpgPath) setImgSrc(svgPath);
@@ -44,7 +44,11 @@ import * as THREE from 'three'
 import { projects } from '../data/projects'
 import { Project } from '../types/Project'
 
-const ProjectBuildings: React.FC = () => {
+interface ProjectBuildingsProps {
+  isNightMode?: boolean
+}
+
+const ProjectBuildings: React.FC<ProjectBuildingsProps> = ({ isNightMode = false }) => {
     const [hoveredProject, setHoveredProject] = useState<string | null>(null)
     const [selectedProject, setSelectedProject] = useState<Project | null>(null)
     const { camera } = useThree()
@@ -297,14 +301,14 @@ const ProjectBuildings: React.FC = () => {
                     transition: 'opacity 0.2s ease-in-out',
                 }}
             >
-                <div className="text-white max-w-xl cursor-none">
-                    <div className='flex inline-flex items-center gap-2'>
+                <div className={`${isNightMode ? 'text-white' : 'text-gray-900'} max-w-xl cursor-none`}>
+                    <div className={`flex inline-flex items-center gap-2 rounded-lg p-3`}>
                         <div
                             className="flex items-center gap-2 absolute w-[140px] -left-[140px] top-1/2 -translate-y-1/2 pointer-events-auto"
                             style={{ width: 120 }}
                         >
                             <button
-                                className="text-gray-400 hover:text-white transition-colors px-1 cursor-none"
+                                className={`${isNightMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-800'} transition-colors px-1 cursor-none`}
                                 onClick={e => {
                                     e.stopPropagation();
                                     setTechIndex((prev) => {
@@ -325,7 +329,7 @@ const ProjectBuildings: React.FC = () => {
                                 <TechLogo tech={hoveredProjectData.technologies[techIndex] || hoveredProjectData.technologies[0]} />
                             ) : null}
                             <button
-                                className="text-gray-400 hover:text-white transition-colors px-1 cursor-none"
+                                className={`${isNightMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors px-1 cursor-none`}
                                 onClick={e => {
                                     e.stopPropagation();
                                     setTechIndex((prev) => {
@@ -344,8 +348,8 @@ const ProjectBuildings: React.FC = () => {
                             </button>
                         </div>
                         <div>
-                            <div className="text-white text-lg font-oswald font-bold leading-tight mb-1 w-[250px]">{hoveredProjectData ? hoveredProjectData.title : ''}</div>
-                            <div className="text-sm text-gray-300 font-oswald mb-2 w-[250px] tracking-wider">{hoveredProjectData ? hoveredProjectData.description : ''}</div>
+                            <div className={`${isNightMode ? 'text-white' : 'text-gray-900'} text-lg font-oswald font-bold leading-tight mb-1 w-[250px]`}>{hoveredProjectData ? hoveredProjectData.title : ''}</div>
+                            <div className={`${isNightMode ? 'text-gray-300' : 'text-gray-600'} text-sm font-oswald mb-2 w-[250px] tracking-wider`}>{hoveredProjectData ? hoveredProjectData.description : ''}</div>
                         </div>
                     </div>
                 </div>
