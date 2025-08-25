@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import ProjectPopup from './ProjectPopup'
+import ContactModal from './ContactModal'
 import { Project } from '../types/Project'
 
 interface UIProps {
@@ -9,6 +10,7 @@ interface UIProps {
 
 const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode }) => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+  const [showContactModal, setShowContactModal] = useState(false)
 
   return (
     <>
@@ -47,7 +49,10 @@ const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode }) => {
             <button className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-colors">
               À propos
             </button>
-            <button className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-colors">
+            <button 
+              onClick={() => setShowContactModal(true)}
+              className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-colors"
+            >
               Contact
             </button>
           </div>
@@ -83,6 +88,11 @@ const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode }) => {
           project={selectedProject} 
           onClose={() => setSelectedProject(null)}
         />
+      )}
+
+      {/* Modal de contact */}
+      {showContactModal && (
+        <ContactModal onClose={() => setShowContactModal(false)} />
       )}
     </>
   )

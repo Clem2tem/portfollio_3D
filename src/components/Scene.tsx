@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { OrbitControls, Sky } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
@@ -10,13 +10,46 @@ import Portal from './Portal'
 
 interface SceneProps {
   isNightMode: boolean
+  isEntering?: boolean
+  onAnimationComplete?: () => void
 }
 
-const Scene: React.FC<SceneProps> = ({ isNightMode }) => {
+const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimationComplete }) => {
   const sceneRef = useRef<THREE.Group>(null)
   const lightRef = useRef<THREE.SpotLight>(null)
   const targetRef = useRef<THREE.Object3D>(null)
+  const controlsRef = useRef<any>(null)
   const { gl, camera } = useThree()
+
+  // Animation de caméra
+  const [animationState, setAnimationState] = useState<{
+    isAnimating: boolean
+    startTime: number
+    startPosition: THREE.Vector3
+    endPosition: THREE.Vector3
+  } | null>(null)
+  const [hasAnimated, setHasAnimated] = useState(false)
+
+  // Fonction easing
+  const easeOutCubic = (t: number): number => {
+    return 1 - Math.pow(1 - t, 3)
+  }
+
+  // Démarrer l'animation d'entrée
+  useEffect(() => {
+    if (isEntering && !animationState && !hasAnimated) {
+      const startPos = new THREE.Vector3(0, 2, 0) // Position du portail
+      const endPos = new THREE.Vector3(0, 6, 10) // Position finale optimale pour OrbitControls
+      
+      setAnimationState({
+        isAnimating: true,
+        startTime: Date.now(),
+        startPosition: startPos,
+        endPosition: endPos
+      })
+      setHasAnimated(true)
+    }
+  }, [isEntering, animationState, hasAnimated])
 
   // Empêcher le comportement de drag du canvas
   useEffect(() => {
@@ -40,8 +73,32 @@ const Scene: React.FC<SceneProps> = ({ isNightMode }) => {
     }
   }, [gl])
 
-  // Synchronize spotlight position with camera
+  // Synchronize spotlight position with camera + animation de caméra
   useFrame(() => {
+    // Gérer l'animation de caméra
+    if (animationState?.isAnimating) {
+      const elapsed = Date.now() - animationState.startTime
+      const duration = 3000 // 3 secondes
+      const progress = Math.min(elapsed / duration, 1)
+      const easedProgress = easeOutCubic(progress)
+
+      // Interpoler la position
+      const currentPos = animationState.startPosition.clone().lerp(
+        animationState.endPosition, 
+        easedProgress
+      )
+      camera.position.copy(currentPos)
+      camera.lookAt(0, 0, 0)
+
+      // Fin de l'animation
+      if (progress >= 1) {
+        setAnimationState(null)
+        if (onAnimationComplete) {
+          onAnimationComplete()
+        }
+      }
+    }
+
     if (lightRef.current && targetRef.current) {
       // Distance fixe du centre (0,0,0)
       const camPos = camera.position.clone()
@@ -70,6 +127,8 @@ const Scene: React.FC<SceneProps> = ({ isNightMode }) => {
     <>
       {/* Contrôles de caméra */}
       <OrbitControls
+        ref={controlsRef}
+        enabled={!animationState?.isAnimating}
         enablePan={false}
         enableZoom={true}
         enableRotate={true}
