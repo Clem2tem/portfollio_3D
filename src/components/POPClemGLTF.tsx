@@ -100,7 +100,8 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.2, maxSp
       // sensitivity tuning
       const SENS = 0.005
       camYawOffset.current -= dx * SENS
-      camPitch.current = Math.max(-Math.PI / 3, Math.min(Math.PI / 6, camPitch.current - dy * SENS))
+  // invert vertical drag: moving mouse up should increase elevation
+  camPitch.current = Math.max(-Math.PI / 3, Math.min(Math.PI / 6, camPitch.current + dy * SENS))
     }
     // wheel to zoom camera distance
     const onWheel = (e: WheelEvent) => {
@@ -316,22 +317,35 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.2, maxSp
   const totalYaw = camYawOffset.current
   // use wheel-controlled distance and clamp
   const r = Math.max(1, Math.min(12, cameraDistanceRef.current))
-  const px = camTarget.x - Math.sin(totalYaw) * r
-  const pz = camTarget.z - Math.cos(totalYaw) * r
-  // lower the camera when zooming in so it stays behind the player rather than above
-  const minR = 1
-  const maxR = 12
-  const rNorm = (r - minR) / (maxR - minR)
-  const minH = Math.max(0.6, cameraHeight * 0.35) // never go too low
-  const height = minH + (cameraHeight - minH) * Math.max(0, Math.min(1, rNorm))
-  const py = camTarget.y + height
-  // apply pitch by moving camera vertically and slightly forward/back
-  const camPos = new THREE.Vector3(px, py, pz)
+
+  // We want the camera to orbit around the player (pivot = player). To preserve the
+  // previous feel where the camera sits somewhat above the player at pitch=0, we
+  // compute a base elevation (atan2(baseHeight, r)) and then add the user pitch
+  // offset. This yields a spherical offset around the player's pivot so pitching
+  // up/down rotates the camera around the player rather than moving the lookAt
+  // point away from the player.
+  // reduce baseHeight so camera sits lower above the player by default
+  const baseHeight = cameraHeight * 0.55
+  const baseElevation = Math.atan2(baseHeight, r)
+  // clamp total elevation so extreme pitch can't place the camera too far above
+  const totalElevation = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, baseElevation + camPitch.current))
+  const sphereR = Math.sqrt(r * r + baseHeight * baseHeight)
+
+  const offsetX = -Math.sin(totalYaw) * Math.cos(totalElevation) * sphereR
+  const offsetZ = -Math.cos(totalYaw) * Math.cos(totalElevation) * sphereR
+  const offsetY = Math.sin(totalElevation) * sphereR
+
+  // pivot is the player's world position (optionally a small eye offset so the
+  // camera aims slightly above the player's origin). This ensures rotation is
+  // always around the player and they remain visible when looking up.
+  const pivot = camTarget.clone()
+  // smaller eyeOffset so pivot is closer to player's center (less top-down feel)
+  const eyeOffset = Math.min(0.6, Math.max(0.2, cameraHeight * 0.25))
+  pivot.y += eyeOffset
+
+  const camPos = pivot.clone().add(new THREE.Vector3(offsetX, offsetY, offsetZ))
   cam.position.lerp(camPos, Math.min(1, 8 * delta))
-  // look at target adjusted by pitch
-  const lookTarget = camTarget.clone()
-  lookTarget.y += Math.tan(camPitch.current) * 1.5
-  cam.lookAt(lookTarget)
+  cam.lookAt(pivot)
 
       return
     }
