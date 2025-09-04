@@ -28,7 +28,7 @@ type Props = {
  */
 const POPClemGLTF: React.FC<Props> = ({ 
   position = [0, 1, 1], 
-  scale = 0.2, 
+  scale = 0.05, 
   maxSpeed = 0.6, 
   playerControlled = false, 
   moveSpeed = 2, 

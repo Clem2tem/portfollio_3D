@@ -290,7 +290,7 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimat
 
   <POPClemGLTF 
     position={[0, 1, 1]} 
-    scale={0.05} 
+    scale={0.02} 
     playerControlled={PLAYER_CONTROLLED} 
     moveSpeed={2.2} 
     cameraDistance={4} 

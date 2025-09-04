@@ -24,7 +24,7 @@ export const HitboxVisualizer: React.FC<HitboxVisualizerProps> = ({
   return (
     <group>
       {/* Hitbox du joueur - Sphère ajustée pour être centrée sur le modèle */}
-      <mesh position={[playerPosition.x, playerPosition.y + playerRadius + 0.2, playerPosition.z]}>
+      <mesh position={[playerPosition.x, playerPosition.y + playerRadius, playerPosition.z]}>
         <sphereGeometry args={[playerRadius, 8, 8]} />
         <meshBasicMaterial
           color="green"
