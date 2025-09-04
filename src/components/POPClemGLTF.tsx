@@ -7,6 +7,10 @@ type Props = {
   position?: [number, number, number]
   scale?: number
   maxSpeed?: number // units per second
+  playerControlled?: boolean
+  moveSpeed?: number // units per second when player controlled
+  cameraDistance?: number
+  cameraHeight?: number
 }
 
 /**
@@ -17,7 +21,7 @@ type Props = {
  * - Plays 'Salut' once when clicked, then returns to Walk/Idle
  * - Uses smooth crossfades between animations
  */
-const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.2, maxSpeed = 0.4 }) => {
+const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.2, maxSpeed = 0.6, playerControlled = false, moveSpeed = 2, cameraDistance = 4, cameraHeight = 2.2 }) => {
   const group = useRef<THREE.Group | null>(null)
   // prefer unencoded path and encode once so bundler/browser can find it reliably
   const gltf = useGLTF('models/POP/POPClem2.glb')
@@ -32,6 +36,16 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.2, maxSp
   const lastMoveTime = useRef<number>(0)
   const movingRef = useRef(false)
   const moveAccum = useRef(0)
+  // player input state
+  const keys = useRef<Record<string, boolean>>({})
+  // mouse drag for camera control
+  const dragging = useRef(false)
+  const lastMouseX = useRef(0)
+  const lastMouseY = useRef(0)
+  const camYawOffset = useRef(0) // radians added to player yaw
+  const camPitch = useRef(-0.25) // initial pitch (radians), negative = look down
+  // camera distance ref so wheel can update it
+  const cameraDistanceRef = useRef(cameraDistance)
   const stopCounter = useRef(0)
   // keep an unwrapped camera angle so full rotations (±n * 2PI) are tracked
   const cameraUnwrapped = useRef<number | null>(null)
@@ -55,6 +69,60 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.2, maxSp
     salut: 1.6,
   }
   const idleConfirm = useRef<number | null>(null)
+
+  // register keyboard handlers only in playerControlled mode
+  useEffect(() => {
+    if (!playerControlled) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      keys.current[e.code] = true
+    }
+    const onKeyUp = (e: KeyboardEvent) => {
+      keys.current[e.code] = false
+    }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+  // mouse handlers for camera rotation while holding click
+    const onMouseDown = (e: MouseEvent) => {
+      if (e.button !== 0) return
+      dragging.current = true
+      lastMouseX.current = e.clientX
+      lastMouseY.current = e.clientY
+    }
+    const onMouseUp = (_e: MouseEvent) => {
+      dragging.current = false
+    }
+    const onMouseMove = (e: MouseEvent) => {
+      if (!dragging.current) return
+      const dx = e.clientX - lastMouseX.current
+      const dy = e.clientY - lastMouseY.current
+      lastMouseX.current = e.clientX
+      lastMouseY.current = e.clientY
+      // sensitivity tuning
+      const SENS = 0.005
+      camYawOffset.current -= dx * SENS
+      camPitch.current = Math.max(-Math.PI / 3, Math.min(Math.PI / 6, camPitch.current - dy * SENS))
+    }
+    // wheel to zoom camera distance
+    const onWheel = (e: WheelEvent) => {
+      // deltaY: positive -> wheel down -> zoom out
+      const ZS = 0.02
+      cameraDistanceRef.current = Math.max(1.0, Math.min(12, cameraDistanceRef.current + e.deltaY * ZS))
+      // prevent page scroll when adjusting
+      e.preventDefault()
+    }
+    window.addEventListener('mousedown', onMouseDown)
+    window.addEventListener('mouseup', onMouseUp)
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('wheel', onWheel, { passive: false } as AddEventListenerOptions)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('mousedown', onMouseDown)
+      window.removeEventListener('mouseup', onMouseUp)
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('wheel', onWheel as any)
+    }
+  }, [playerControlled])
   
 
   // helper: find action by name case-insensitive
@@ -189,6 +257,84 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.2, maxSp
   useFrame((state, delta) => {
     if (!state.camera) return
     const cam = state.camera
+    // player-controlled movement: WASD or ZQSD (Z/Q on AZERTY)
+    if (playerControlled && group.current) {
+      const forward = (keys.current['KeyW'] || keys.current['KeyZ']) ? 1 : 0
+      const back = keys.current['KeyS'] ? 1 : 0
+      const left = (keys.current['KeyA'] || keys.current['KeyQ']) ? 1 : 0
+      const right = keys.current['KeyD'] ? 1 : 0
+
+      const moveX = right - left
+      const moveZ = forward - back
+
+      // Build movement vector relative to the camera orientation
+      const camForward = new THREE.Vector3()
+      cam.getWorldDirection(camForward)
+      camForward.y = 0
+      if (camForward.lengthSq() > 1e-6) camForward.normalize()
+  // Right vector relative to camera; negate to match expected left/right input mapping
+  const camRight = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), camForward).normalize().negate()
+
+      const moveVec = new THREE.Vector3()
+      moveVec.addScaledVector(camForward, moveZ)
+      moveVec.addScaledVector(camRight, moveX)
+
+      if (moveVec.lengthSq() > 1e-6) {
+        moveVec.normalize()
+        const step = moveVec.multiplyScalar(moveSpeed * delta)
+        // move the model's world position
+        const worldPos = new THREE.Vector3()
+        group.current.getWorldPosition(worldPos)
+        worldPos.add(step)
+        // convert to parent local
+        if (group.current.parent) {
+          const inv = new THREE.Matrix4().copy(group.current.parent.matrixWorld).invert()
+          const local = worldPos.applyMatrix4(inv)
+          group.current.position.copy(local)
+        } else {
+          group.current.position.copy(worldPos)
+        }
+
+        // rotate player to face movement direction (world-space direction of step)
+        const desiredYaw = Math.atan2(step.x, step.z)
+        const curYaw = group.current.rotation.y || 0
+        let yawDelta = desiredYaw - curYaw
+        yawDelta = ((yawDelta + Math.PI) % (2 * Math.PI)) - Math.PI
+        const rotLerp = Math.min(1, 10 * delta)
+        group.current.rotation.y = curYaw + yawDelta * rotLerp
+
+        fadeTo('Walk')
+      } else {
+        fadeTo('Idle')
+      }
+
+      // camera follow behind the player
+      const camTarget = new THREE.Vector3()
+      group.current.getWorldPosition(camTarget)
+  // apply camera yaw/pitch offsets from mouse drag
+  // Camera yaw is independent from player yaw: use camYawOffset only so player movement doesn't rotate the camera
+  const totalYaw = camYawOffset.current
+  // use wheel-controlled distance and clamp
+  const r = Math.max(1, Math.min(12, cameraDistanceRef.current))
+  const px = camTarget.x - Math.sin(totalYaw) * r
+  const pz = camTarget.z - Math.cos(totalYaw) * r
+  // lower the camera when zooming in so it stays behind the player rather than above
+  const minR = 1
+  const maxR = 12
+  const rNorm = (r - minR) / (maxR - minR)
+  const minH = Math.max(0.6, cameraHeight * 0.35) // never go too low
+  const height = minH + (cameraHeight - minH) * Math.max(0, Math.min(1, rNorm))
+  const py = camTarget.y + height
+  // apply pitch by moving camera vertically and slightly forward/back
+  const camPos = new THREE.Vector3(px, py, pz)
+  cam.position.lerp(camPos, Math.min(1, 8 * delta))
+  // look at target adjusted by pitch
+  const lookTarget = camTarget.clone()
+  lookTarget.y += Math.tan(camPitch.current) * 1.5
+  cam.lookAt(lookTarget)
+
+      return
+    }
     // match Scene.tsx: use atan2(z, x) for wrapped angle
     const wrapped = Math.atan2(cam.position.z, cam.position.x)
 

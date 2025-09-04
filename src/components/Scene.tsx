@@ -26,6 +26,8 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimat
   const dirTargetRef = useRef<THREE.Object3D>(null)
   const controlsRef = useRef<any>(null)
   const { gl, camera } = useThree()
+  // Toggle third-person player control for POPClem (true => camera is driven behind the player)
+  const PLAYER_CONTROLLED = true
 
   // Animation de caméra
   const [animationState, setAnimationState] = useState<{
@@ -161,7 +163,7 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimat
       {/* Contrôles de caméra */}
       <OrbitControls
         ref={controlsRef}
-        enabled={!animationState?.isAnimating}
+  enabled={!animationState?.isAnimating && !PLAYER_CONTROLLED}
         enablePan={false}
         enableZoom={true}
         enableRotate={true}
@@ -286,7 +288,7 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimat
         />
       </mesh>
 
-      <POPClemGLTF position={[2, 0, -1]} scale={0.02} />
+  <POPClemGLTF position={[0, 0, 0]} scale={0.05} playerControlled={PLAYER_CONTROLLED} moveSpeed={2.2} cameraDistance={4} cameraHeight={2.2} />
 
       {/* Fog pour l'atmosphère adaptatif */}
       <fog attach="fog" args={[isNightMode ? '#000005' : '#87CEEB', 8, 25]} />
