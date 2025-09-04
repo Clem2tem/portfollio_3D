@@ -7,6 +7,7 @@ import StarField from './StarField'
 import Island from './Island'
 import ProjectBuildings from './ProjectBuildings'
 import Portal from './Portal'
+import POPClemGLTF from './POPClemGLTF'
 
 interface SceneProps {
   isNightMode: boolean
@@ -247,6 +248,8 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimat
           metalness={0.0}
         />
       </mesh>
+
+      <POPClemGLTF position={[2, 0, -1]} scale={0.3} />
 
       {/* Fog pour l'atmosphère adaptatif */}
       <fog attach="fog" args={[isNightMode ? '#000005' : '#87CEEB', 8, 25]} />
