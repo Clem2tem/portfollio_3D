@@ -249,7 +249,7 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimat
         />
       </mesh>
 
-      <POPClemGLTF position={[2, 0, -1]} scale={0.3} />
+      <POPClemGLTF position={[2, 0, -1]} scale={0.05} />
 
       {/* Fog pour l'atmosphère adaptatif */}
       <fog attach="fog" args={[isNightMode ? '#000005' : '#87CEEB', 8, 25]} />

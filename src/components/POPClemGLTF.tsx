@@ -17,7 +17,7 @@ type Props = {
  * - Plays 'Salut' once when clicked, then returns to Walk/Idle
  * - Uses smooth crossfades between animations
  */
-const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 1, maxSpeed = 3 }) => {
+const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.4, maxSpeed = 0.2 }) => {
   const group = useRef<THREE.Group | null>(null)
   // prefer unencoded path and encode once so bundler/browser can find it reliably
   const gltf = useGLTF('models/POP/POPClem2.glb')
@@ -165,8 +165,8 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 1, maxSpee
 
   // camera movement detection + follow target derived from camera angle (same circle as Scene)
   // Scene places the light on a circle radius=4.5, height=3
-  const FOLLOW_RADIUS = 4.5
-  const FOLLOW_HEIGHT = 3
+  const FOLLOW_RADIUS = 4.8
+  const FOLLOW_HEIGHT = 0.1 
 
   useFrame((state, delta) => {
     if (!state.camera) return
@@ -203,6 +203,10 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 1, maxSpee
         idleConfirm.current = now
       }
     }
+
+  // While Salut is playing, keep the model completely still (no position/rotation updates).
+  // We still update cameraUnwrapped above for continuity, but exit early to avoid movement.
+  if (salutPlaying.current) return
 
   // target position is the point on the circle at `angle` and FOLLOW_RADIUS (used implicitly below)
 
