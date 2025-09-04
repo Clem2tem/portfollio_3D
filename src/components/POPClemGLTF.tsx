@@ -674,8 +674,8 @@ const POPClemGLTF: React.FC<Props> = ({
       <HitboxVisualizer
         visible={showHitboxesState}
         playerPosition={playerPosition}
-        playerRadius={0.3}
-        collisionObjects={collisionObjects}
+        playerRadius={0.05}
+        colliders={collisionObjects}
       />
     </>
   )

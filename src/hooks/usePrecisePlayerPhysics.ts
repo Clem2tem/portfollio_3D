@@ -5,10 +5,10 @@ import { usePreciseCollisions } from './usePreciseCollisions'
 // === PARAMÈTRES AJUSTABLES ===
 const GRAVITY = -9.81 * 1.5          // Force de gravité
 const JUMP_FORCE = 4                  // Force du saut
-const MOVE_SPEED = 4                  // Vitesse de déplacement
+const MOVE_SPEED = 2                  // Vitesse de déplacement
 const GROUND_FRICTION = 0.98          // Friction au sol (plus proche de 1 = moins de friction)
-const PLAYER_RADIUS = 0.1             // Rayon du joueur pour les collisions
-const PLAYER_HEIGHT_OFFSET = -0.1      // **PARAMÈTRE PRINCIPAL** : Hauteur du joueur au-dessus du sol
+const PLAYER_RADIUS = 0.01             // Rayon du joueur pour les collisions
+const PLAYER_HEIGHT_OFFSET = 0      // **PARAMÈTRE PRINCIPAL** : Hauteur du joueur au-dessus du sol
 
 export const usePrecisePlayerPhysics = () => {
   const velocity = useRef(new THREE.Vector3())

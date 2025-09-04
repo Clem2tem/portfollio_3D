@@ -1,93 +1,125 @@
-import React from 'react'
+// HitboxVisualizer.tsx — adapté à la version BVH
+import React, { useMemo } from 'react'
 import * as THREE from 'three'
+
+type Collider = {
+  name: string
+  mesh: THREE.Mesh            // mesh invisible créé par le hook (géométrie déjà en world space)
+  boundingBox: THREE.Box3
+  isStatic: boolean
+}
 
 interface HitboxVisualizerProps {
   visible: boolean
   playerPosition: THREE.Vector3
   playerRadius?: number
-  collisionObjects?: Array<{
-    name: string
-    boundingBox?: THREE.Box3
-    meshPoints?: THREE.Vector3[]
-    usePreciseCollision?: boolean
-  }>
+  colliders?: Collider[]
+  showColliderMeshes?: boolean   // affiche la géométrie de collision précise (wireframe)
+  showBoundingBoxes?: boolean    // affiche aussi les AABB
 }
 
 export const HitboxVisualizer: React.FC<HitboxVisualizerProps> = ({
   visible,
   playerPosition,
-  playerRadius = 0.3,
-  collisionObjects = []
+  playerRadius = 0.05,
+  colliders = [],
+  showColliderMeshes = true,
+  showBoundingBoxes = false,
 }) => {
   if (!visible) return null
 
+  // Matériaux partagés (évite de recréer à chaque render)
+  const playerMat = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color('green'),
+        wireframe: true,
+        transparent: true,
+        opacity: 0.6,
+        depthWrite: false,
+      }),
+    []
+  )
+
+  const colliderMat = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color('red'),
+        wireframe: true,
+        transparent: true,
+        opacity: 0.35,
+        depthWrite: false,
+      }),
+    []
+  )
+
+  const boxMat = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color('yellow'),
+        wireframe: true,
+        transparent: true,
+        opacity: 0.25,
+        depthWrite: false,
+      }),
+    []
+  )
+
+  // Couleur optionnelle par nom d’objet (facultatif)
+  const colorFor = (name: string) => {
+    const n = name.toLowerCase()
+    if (n.includes('island')) return new THREE.Color('blue')
+    if (n.includes('hospital') || n.includes('chu')) return new THREE.Color('yellow')
+    if (n.includes('excavator')) return new THREE.Color('orange')
+    return new THREE.Color('red')
+  }
+
   return (
     <group>
-      {/* Hitbox du joueur - Sphère ajustée pour être centrée sur le modèle */}
+      {/* Sphère de collision du joueur (centrée à y + radius si c'est ta convention) */}
       <mesh position={[playerPosition.x, playerPosition.y + playerRadius, playerPosition.z]}>
-        <sphereGeometry args={[playerRadius, 8, 8]} />
-        <meshBasicMaterial
-          color="green"
-          wireframe
-          transparent
-          opacity={0.6}
-        />
+        <sphereGeometry args={[playerRadius, 12, 12]} />
+        <primitive object={playerMat} attach="material" />
       </mesh>
 
-      {/* Hitboxes des objets */}
-      {collisionObjects.map((obj, index) => {
-        if (!obj.boundingBox) return null
-
-        // Couleur selon le type d'objet
-        let color = "red"
-        if (obj.name?.toLowerCase().includes('island')) {
-          color = "blue"
-        } else if (obj.name?.toLowerCase().includes('hospital') || obj.name?.toLowerCase().includes('chu')) {
-          color = "yellow"
-        } else if (obj.name?.toLowerCase().includes('excavator')) {
-          color = "orange"
-        }
+      {/* Visualisation des colliders */}
+      {colliders.map((c, i) => {
+        const color = colorFor(c.name)
 
         return (
-          <group key={`hitbox-${obj.name}-${index}`}>
-            {obj.usePreciseCollision ? (
-              // Affichage précis pour l'île
-              obj.meshPoints && obj.meshPoints.length > 0 && (
-                <group>
-                  {/* Échantillonner les points pour éviter trop d'affichage */}
-                  {obj.meshPoints.filter((_, pointIdx) => pointIdx % 8 === 0).map((point, pointIndex) => (
-                    <mesh 
-                      key={`mesh-point-${index}-${pointIndex}`}
-                      position={[point.x, point.y, point.z]}
-                    >
-                      <sphereGeometry args={[0.01, 4, 4]} />
-                      <meshBasicMaterial
-                        color={color}
-                        transparent
-                        opacity={0.6}
-                      />
-                    </mesh>
-                  ))}
-                </group>
-              )
-            ) : (
-              // Bounding box simple pour les autres objets
-              obj.boundingBox && (() => {
-                const size = obj.boundingBox.getSize(new THREE.Vector3())
-                const center = obj.boundingBox.getCenter(new THREE.Vector3())
-                return (
-                  <mesh position={[center.x, center.y, center.z]}>
-                    <boxGeometry args={[size.x, size.y, size.z]} />
-                    <meshBasicMaterial
-                      color={color}
-                      wireframe
-                      transparent
-                      opacity={0.3}
-                    />
-                  </mesh>
-                )
-              })()
+          <group key={`collider-${c.name}-${i}`}>
+            {showColliderMeshes && c.mesh?.geometry && (
+              // ⚠️ La géométrie de collision a déjà été "baked" en world space dans le hook.
+              // On la rend donc avec matrixAutoUpdate={false} et sans transform supplémentaire.
+              <mesh
+                geometry={c.mesh.geometry}
+                matrixAutoUpdate={false}
+                frustumCulled={false}
+                renderOrder={-1}
+              >
+                {/* On clone le material wireframe en changeant juste la couleur */}
+                <meshBasicMaterial
+                  color={color}
+                  wireframe
+                  transparent
+                  opacity={0.35}
+                  depthWrite={false}
+                />
+              </mesh>
             )}
+
+            {showBoundingBoxes && c.boundingBox && (() => {
+              const size = new THREE.Vector3()
+              const center = new THREE.Vector3()
+              c.boundingBox.getSize(size)
+              c.boundingBox.getCenter(center)
+              return (
+                <mesh position={[center.x, center.y, center.z]}>
+                  <boxGeometry args={[size.x, size.y, size.z]} />
+                  <primitive object={boxMat} attach="material" />
+                </mesh>
+              )
+            })()}
           </group>
         )
       })}
