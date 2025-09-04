@@ -17,7 +17,7 @@ type Props = {
  * - Plays 'Salut' once when clicked, then returns to Walk/Idle
  * - Uses smooth crossfades between animations
  */
-const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.4, maxSpeed = 0.2 }) => {
+const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.4, maxSpeed = 0.6 }) => {
   const group = useRef<THREE.Group | null>(null)
   // prefer unencoded path and encode once so bundler/browser can find it reliably
   const gltf = useGLTF('models/POP/POPClem2.glb')
@@ -31,6 +31,7 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.4, maxSp
   // track camera angle to detect horizontal movement
   const lastMoveTime = useRef<number>(0)
   const movingRef = useRef(false)
+  const moveAccum = useRef(0)
   // keep an unwrapped camera angle so full rotations (±n * 2PI) are tracked
   const cameraUnwrapped = useRef<number | null>(null)
   const prevWrapped = useRef<number | null>(null)
@@ -41,10 +42,16 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.4, maxSp
 
   const BLEND = 0.35
   const MOVE_THRESHOLD = 0.004 // tune sensitivity
+  const MIN_START_ANGLE = (60 * Math.PI) / 180 // 60 degrees in radians
   const MOVE_IDLE_TIMEOUT = 300 // ms
   const ANGLE_EPS = 0.01 // radians threshold to consider angle reached
   const IDLE_CONFIRM_MS = 150 // require this much time after movement stops before switching to Idle
   const TWO_PI = Math.PI * 2
+  // animation speed multipliers (keys case-insensitive)
+  const ACTION_SPEEDS: Record<string, number> = {
+    walk: 2,
+    salut: 1.6,
+  }
   const idleConfirm = useRef<number | null>(null)
   
 
@@ -82,6 +89,15 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.4, maxSp
       next.reset()
       next.setLoop(THREE.LoopRepeat, Infinity)
       next.clampWhenFinished = false
+    }
+
+    // apply speed multiplier if configured for this action key
+    try {
+      const speed = ACTION_SPEEDS[key.toLowerCase()] ?? 1
+      // set timeScale (safe even if action not started yet)
+      next.timeScale = speed
+    } catch (e) {
+      // ignore if action doesn't support timeScale
     }
 
     // play next then crossfade from prev if exists
@@ -192,15 +208,29 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.4, maxSp
 
     const now = performance.now()
     if (absd > MOVE_THRESHOLD) {
-      lastMoveTime.current = now
-      if (!movingRef.current) movingRef.current = true
-      // cancel any pending idle confirmation when movement resumes
-      idleConfirm.current = null
+      // accumulate absolute rotation to require a deliberate turn before starting Walk
+      moveAccum.current += absd
+      // when accumulated rotation exceeds MIN_START_ANGLE we mark as moving
+      if (!movingRef.current && moveAccum.current >= MIN_START_ANGLE) {
+        movingRef.current = true
+        // cancel any pending idle confirmation when movement resumes
+        idleConfirm.current = null
+        lastMoveTime.current = now
+      }
+      // if already moving, update lastMoveTime
+      if (movingRef.current) lastMoveTime.current = now
     } else {
+      // small/no rotation this frame
+      // if we're not moving yet, decay accumulation slowly so tiny shakes don't persist
+      if (!movingRef.current) {
+        moveAccum.current = Math.max(0, moveAccum.current - Math.min(moveAccum.current, 0.01))
+      }
       if (movingRef.current && now - lastMoveTime.current > MOVE_IDLE_TIMEOUT) {
         movingRef.current = false
         // start idle confirmation timer
         idleConfirm.current = now
+        // reset accumulator
+        moveAccum.current = 0
       }
     }
 
