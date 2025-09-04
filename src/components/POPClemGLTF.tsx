@@ -17,7 +17,7 @@ type Props = {
  * - Plays 'Salut' once when clicked, then returns to Walk/Idle
  * - Uses smooth crossfades between animations
  */
-const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.4, maxSpeed = 0.6 }) => {
+const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.2, maxSpeed = 0.4 }) => {
   const group = useRef<THREE.Group | null>(null)
   // prefer unencoded path and encode once so bundler/browser can find it reliably
   const gltf = useGLTF('models/POP/POPClem2.glb')
@@ -32,6 +32,7 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.4, maxSp
   const lastMoveTime = useRef<number>(0)
   const movingRef = useRef(false)
   const moveAccum = useRef(0)
+  const stopCounter = useRef(0)
   // keep an unwrapped camera angle so full rotations (±n * 2PI) are tracked
   const cameraUnwrapped = useRef<number | null>(null)
   const prevWrapped = useRef<number | null>(null)
@@ -44,6 +45,7 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.4, maxSp
   const MOVE_THRESHOLD = 0.004 // tune sensitivity
   const MIN_START_ANGLE = (60 * Math.PI) / 180 // 60 degrees in radians
   const MOVE_IDLE_TIMEOUT = 300 // ms
+  const STOP_FRAMES = 8 // require this many stable frames before considering stop
   const ANGLE_EPS = 0.01 // radians threshold to consider angle reached
   const IDLE_CONFIRM_MS = 150 // require this much time after movement stops before switching to Idle
   const TWO_PI = Math.PI * 2
@@ -210,6 +212,8 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.4, maxSp
     if (absd > MOVE_THRESHOLD) {
       // accumulate absolute rotation to require a deliberate turn before starting Walk
       moveAccum.current += absd
+      // reset stable stop counter while camera is actively moving
+      stopCounter.current = 0
       // when accumulated rotation exceeds MIN_START_ANGLE we mark as moving
       if (!movingRef.current && moveAccum.current >= MIN_START_ANGLE) {
         movingRef.current = true
@@ -225,12 +229,16 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.4, maxSp
       if (!movingRef.current) {
         moveAccum.current = Math.max(0, moveAccum.current - Math.min(moveAccum.current, 0.01))
       }
-      if (movingRef.current && now - lastMoveTime.current > MOVE_IDLE_TIMEOUT) {
-        movingRef.current = false
-        // start idle confirmation timer
-        idleConfirm.current = now
-        // reset accumulator
-        moveAccum.current = 0
+      // increment stable-frame counter; once it reaches STOP_FRAMES we consider the camera stopped
+      stopCounter.current = (stopCounter.current ?? 0) + 1
+      if (stopCounter.current >= STOP_FRAMES) {
+        if (movingRef.current && now - lastMoveTime.current > MOVE_IDLE_TIMEOUT) {
+          movingRef.current = false
+          // start idle confirmation timer
+          idleConfirm.current = now
+          // reset accumulator
+          moveAccum.current = 0
+        }
       }
     }
 

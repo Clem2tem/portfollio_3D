@@ -19,6 +19,11 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimat
   const sceneRef = useRef<THREE.Group>(null)
   const lightRef = useRef<THREE.SpotLight>(null)
   const targetRef = useRef<THREE.Object3D>(null)
+  // Day directional lights (3-point): key, fill, rim
+  const dirKeyRef = useRef<THREE.DirectionalLight>(null)
+  const dirFillRef = useRef<THREE.DirectionalLight>(null)
+  const dirRimRef = useRef<THREE.DirectionalLight>(null)
+  const dirTargetRef = useRef<THREE.Object3D>(null)
   const controlsRef = useRef<any>(null)
   const { gl, camera } = useThree()
 
@@ -122,6 +127,33 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimat
       targetRef.current.position.copy(targetPos)
       lightRef.current.target = targetRef.current
     }
+    // Update day directional lights (3-point) so key follows camera angle (sun-like)
+    if (dirKeyRef.current && dirTargetRef.current && camera) {
+      const camPos = camera.position.clone()
+      const radius = 4.5
+      // key light higher to emulate sun elevation
+      const keyHeight = 10
+      const angle = Math.atan2(camPos.z, camPos.x)
+      const keyPos = new THREE.Vector3(Math.cos(angle) * radius, keyHeight, Math.sin(angle) * radius)
+      dirKeyRef.current.position.copy(keyPos)
+      // target the scene center
+      dirTargetRef.current.position.set(0, 2, 0)
+      dirKeyRef.current.target = dirTargetRef.current
+
+      // Fill light: opposite side, low intensity, no shadows
+      if (dirFillRef.current) {
+        const fillPos = new THREE.Vector3(Math.cos(angle + Math.PI) * radius * 0.6, 3, Math.sin(angle + Math.PI) * radius * 0.6)
+        dirFillRef.current.position.copy(fillPos)
+        dirFillRef.current.target = dirTargetRef.current
+      }
+
+      // Rim light: offset perpendicular to key to create separation
+      if (dirRimRef.current) {
+        const rimPos = new THREE.Vector3(Math.cos(angle + Math.PI / 2) * radius * 0.8, 6, Math.sin(angle + Math.PI / 2) * radius * 0.8)
+        dirRimRef.current.position.copy(rimPos)
+        dirRimRef.current.target = dirTargetRef.current
+      }
+    }
   })
 
   return (
@@ -184,36 +216,41 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimat
 
       {/* Lumière directionnelle pour simuler le soleil en mode jour */}
       {!isNightMode && (
-        <directionalLight
-          intensity={1}
-          color="#FFF8DC"
-          position={[5, 10, 5]}
-          castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
-          shadow-camera-far={20}
-          shadow-camera-left={-10}
-          shadow-camera-right={10}
-          shadow-camera-top={10}
-          shadow-camera-bottom={-10}
-        />
-      )}
+        <>
+          {/* Key light (sun-like) - visible and casts shadows */}
+          <directionalLight
+            ref={dirKeyRef}
+            intensity={1}
+            color="#FFF8DC"
+            castShadow
+            shadow-mapSize-width={2048}
+            shadow-mapSize-height={2048}
+            shadow-camera-far={20}
+            shadow-camera-left={-10}
+            shadow-camera-right={10}
+            shadow-camera-top={10}
+            shadow-camera-bottom={-10}
+          />
 
-      {/* Lumière directionnelle pour simuler le soleil en mode jour */}
-      {!isNightMode && (
-        <directionalLight
-          intensity={1}
-          color="#FFF8DC"
-          position={[5, 10, 5]}
-          castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
-          shadow-camera-far={20}
-          shadow-camera-left={-10}
-          shadow-camera-right={10}
-          shadow-camera-top={10}
-          shadow-camera-bottom={-10}
-        />
+          {/* Fill light - subtle, no shadows */}
+          <directionalLight
+            ref={dirFillRef}
+            intensity={0.35}
+            color="#FFF8DC"
+            castShadow={false}
+          />
+
+          {/* Rim light - subtle separation, no shadows */}
+          <directionalLight
+            ref={dirRimRef}
+            intensity={0.25}
+            color="#FFEFD5"
+            castShadow={false}
+          />
+
+          {/* Invisible target for directional lights to look at */}
+          <object3D ref={dirTargetRef} />
+        </>
       )}
       <group ref={sceneRef}>
         {/* L'île principale */}
@@ -249,7 +286,7 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimat
         />
       </mesh>
 
-      <POPClemGLTF position={[2, 0, -1]} scale={0.05} />
+      <POPClemGLTF position={[2, 0, -1]} scale={0.02} />
 
       {/* Fog pour l'atmosphère adaptatif */}
       <fog attach="fog" args={[isNightMode ? '#000005' : '#87CEEB', 8, 25]} />
