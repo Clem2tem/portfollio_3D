@@ -2,12 +2,12 @@
 import {useGLTF, useAnimations } from '@react-three/drei'
 import * as THREE from 'three';
 import { useFrame} from '@react-three/fiber';
-import React from 'react';
+import React, { forwardRef } from 'react';
 import SVGLogo3D from './SVGLogo3D';
 
 
 // Composant persistant pour l'excavator animé
-const ExcavatorGLTF: React.FC<{ position: [number, number, number] }> = ({ position }) => {
+const ExcavatorGLTF = forwardRef<THREE.Group, { position: [number, number, number] }>(({ position }, ref) => {
     const gltf = useGLTF('models/Excavator/Excavator.gltf');
     const anims = useAnimations(gltf.animations, gltf.scene);
     const mixerRef = React.useRef<any>(null);
@@ -111,7 +111,7 @@ const ExcavatorGLTF: React.FC<{ position: [number, number, number] }> = ({ posit
 
 
     return (
-        <group>
+        <group ref={ref}>
             <primitive
                 ref={excavatorRef}
                 object={gltf.scene}
@@ -128,6 +128,6 @@ const ExcavatorGLTF: React.FC<{ position: [number, number, number] }> = ({ posit
             />
         </group>
     );
-};
+});
 
 export default ExcavatorGLTF;

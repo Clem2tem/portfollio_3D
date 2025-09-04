@@ -82,6 +82,16 @@ const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode }) => {
         </button>
       </div>
 
+      {/* Instructions de contrôle */}
+      <div className="absolute bottom-4 left-4 z-40">
+        <div className="bg-black/50 backdrop-blur-sm text-white p-3 rounded-lg space-y-1 text-sm">
+          <div><kbd className="bg-white/20 px-2 py-1 rounded">WASD</kbd> Se déplacer</div>
+          <div><kbd className="bg-white/20 px-2 py-1 rounded">SPACE</kbd> Sauter</div>
+          <div><kbd className="bg-white/20 px-2 py-1 rounded">H</kbd> Afficher/masquer hitboxes</div>
+          <div><kbd className="bg-white/20 px-2 py-1 rounded">P</kbd> Mode précis/simple</div>
+        </div>
+      </div>
+
       {/* Popup de projet */}
       {selectedProject && (
         <ProjectPopup 

@@ -29,6 +29,11 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimat
   // Toggle third-person player control for POPClem (true => camera is driven behind the player)
   const PLAYER_CONTROLLED = true
 
+  // Refs pour les objets GLTF
+  const islandRef = useRef<THREE.Group>(null)
+  const hospitalRef = useRef<THREE.Group>(null)
+  const excavatorRef = useRef<THREE.Group>(null)
+
   // Animation de caméra
   const [animationState, setAnimationState] = useState<{
     isAnimating: boolean
@@ -288,7 +293,15 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimat
         />
       </mesh>
 
-  <POPClemGLTF position={[0, 0, 0]} scale={0.05} playerControlled={PLAYER_CONTROLLED} moveSpeed={2.2} cameraDistance={4} cameraHeight={2.2} />
+  <POPClemGLTF 
+    position={[0, 1, 1]} 
+    scale={0.05} 
+    playerControlled={PLAYER_CONTROLLED} 
+    moveSpeed={2.2} 
+    cameraDistance={4} 
+    cameraHeight={2.2} 
+    showHitboxes={false} 
+  />
 
       {/* Fog pour l'atmosphère adaptatif */}
       <fog attach="fog" args={[isNightMode ? '#000005' : '#87CEEB', 8, 25]} />

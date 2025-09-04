@@ -2,6 +2,8 @@ import React, { useRef, useEffect, useState, MutableRefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGLTF, useAnimations } from '@react-three/drei'
 import * as THREE from 'three'
+import { usePrecisePlayerPhysics } from '../hooks/usePrecisePlayerPhysics'
+import { HitboxVisualizer } from './HitboxVisualizer'
 
 type Props = {
   position?: [number, number, number]
@@ -11,6 +13,7 @@ type Props = {
   moveSpeed?: number // units per second when player controlled
   cameraDistance?: number
   cameraHeight?: number
+  showHitboxes?: boolean // Pour afficher ou masquer les hitboxes
 }
 
 /**
@@ -18,16 +21,142 @@ type Props = {
  * - Loads the model at /POP/POP Clem 2.gltf
  * - Plays 'Idle' by default
  * - Plays 'Walk' while the camera is moving horizontally around the center
+ * - Plays 'Jump' when jumping (new animation to be added)
  * - Plays 'Salut' once when clicked, then returns to Walk/Idle
  * - Uses smooth crossfades between animations
+ * - Includes physics system with gravity, jumping and collision detection
  */
-const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.2, maxSpeed = 0.6, playerControlled = false, moveSpeed = 2, cameraDistance = 4, cameraHeight = 2.2 }) => {
+const POPClemGLTF: React.FC<Props> = ({ 
+  position = [0, 1, 1], 
+  scale = 0.2, 
+  maxSpeed = 0.6, 
+  playerControlled = false, 
+  moveSpeed = 2, 
+  cameraDistance = 4, 
+  cameraHeight = 2.2,
+  showHitboxes = false 
+}) => {
   const group = useRef<THREE.Group | null>(null)
   // prefer unencoded path and encode once so bundler/browser can find it reliably
   const gltf = useGLTF('models/POP/POPClem2.glb')
   const { actions, mixer } = useAnimations((gltf && gltf.animations) || [], group as MutableRefObject<THREE.Object3D | null>)
 
+  // Initialize physics system with precise GLTF collision detection
+  const { updatePhysics, initializeCollisions, collisionObjects } = usePrecisePlayerPhysics()
+  
+  // États pour le visualiseur de hitboxes
+  const [playerPosition, setPlayerPosition] = useState(new THREE.Vector3(...position))
+  const [showHitboxesState, setShowHitboxesState] = useState(showHitboxes)
+  const [preciseMode, setPreciseMode] = useState(true) // Mode précis par défaut
+
+  // Écouter la touche H pour basculer l'affichage des hitboxes et P pour le mode précis
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.code === 'KeyH') {
+        setShowHitboxesState(prev => !prev)
+        console.log('Hitboxes:', showHitboxesState ? 'désactivées' : 'activées')
+      } else if (event.code === 'KeyP') {
+        setPreciseMode(prev => !prev)
+        console.log('Mode collision:', preciseMode ? 'simple (boîtes)' : 'précis (meshes)')
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyPress)
+    return () => window.removeEventListener('keydown', handleKeyPress)
+  }, [showHitboxesState, preciseMode])
+
   const scene = gltf?.scene
+
+  // Initialize player position
+  useEffect(() => {
+    if (group.current) {
+      // Set initial position from props
+      group.current.position.fromArray(position)
+    }
+  }, [position])
+
+  // Initialize collisions with real GLTF objects from the scene
+  useEffect(() => {
+    if (!playerControlled) return
+    
+    // Wait for GLTF models to load, then get their references
+    const timer = setTimeout(() => {
+      try {
+        const gltfObjects: Array<{ object3D: THREE.Object3D; name: string }> = []
+        
+        // Chercher spécifiquement les refs des composants GLTF chargés
+        if (group.current && group.current.parent) {
+          const scene = group.current.parent
+          
+          console.log('Analyse de la scène pour les objets GLTF...')
+          
+          scene.traverse((child) => {
+            // Chercher l'île - doit être près de l'origine avec des meshes
+            if (child.type === 'Group' && child.children.length > 0) {
+              const worldPos = new THREE.Vector3()
+              child.getWorldPosition(worldPos)
+              
+              // Vérifier si c'est l'île (proche de l'origine)
+              if (Math.abs(worldPos.x) < 0.5 && Math.abs(worldPos.z) < 0.5 && worldPos.y < 1) {
+                let hasMeshes = false
+                child.traverse((subChild) => {
+                  if (subChild.type === 'Mesh') hasMeshes = true
+                })
+                if (hasMeshes && !gltfObjects.find(obj => obj.name === 'island')) {
+                  gltfObjects.push({ object3D: child, name: 'island' })
+                  console.log('Île trouvée à la position:', worldPos, 'taille:', child.children.length)
+                }
+              }
+              
+              // Vérifier si c'est l'hôpital (position négative en X, positive en Z)
+              else if (worldPos.x < -0.5 && worldPos.z > 0.5) {
+                let hasMeshes = false
+                child.traverse((subChild) => {
+                  if (subChild.type === 'Mesh') hasMeshes = true
+                })
+                if (hasMeshes && !gltfObjects.find(obj => obj.name === 'hospital')) {
+                  gltfObjects.push({ object3D: child, name: 'hospital' })
+                  console.log('Hôpital trouvé à la position:', worldPos, 'taille:', child.children.length)
+                }
+              }
+              
+              // Vérifier si c'est l'excavator (position positive en X, négative en Z)
+              else if (worldPos.x > 0.5 && worldPos.z < -0.5) {
+                let hasMeshes = false
+                child.traverse((subChild) => {
+                  if (subChild.type === 'Mesh') hasMeshes = true
+                })
+                if (hasMeshes && !gltfObjects.find(obj => obj.name === 'excavator')) {
+                  gltfObjects.push({ object3D: child, name: 'excavator' })
+                  console.log('Excavator trouvé à la position:', worldPos, 'taille:', child.children.length)
+                }
+              }
+            }
+          })
+        }
+        
+        if (gltfObjects.length > 0) {
+          initializeCollisions(gltfObjects)
+          console.log(`Collisions initialisées avec ${gltfObjects.length} objets principaux`)
+        } else {
+          console.warn('Aucun objet GLTF principal trouvé pour les collisions')
+          console.log('Tentative de recherche alternative...')
+          
+          // Alternative: chercher par nom ou propriétés spécifiques
+          scene.traverse((child) => {
+            if (child.userData && Object.keys(child.userData).length > 0) {
+              console.log('Objet avec userData trouvé:', child.name, child.userData, child.position)
+            }
+          })
+        }
+        
+      } catch (error) {
+        console.error('Erreur lors de la recherche des objets GLTF:', error)
+      }
+    }, 2000) // Attendre 2 secondes pour que les modèles se chargent
+
+    return () => clearTimeout(timer)
+  }, [playerControlled, initializeCollisions])
 
   // state to track current action name
   const [current, setCurrent] = useState<string | null>(null)
@@ -67,6 +196,7 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.2, maxSp
   const ACTION_SPEEDS: Record<string, number> = {
     walk: 2,
     salut: 1.6,
+    jump: 1.8, // New animation speed for jumping
   }
   const idleConfirm = useRef<number | null>(null)
 
@@ -258,12 +388,14 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.2, maxSp
   useFrame((state, delta) => {
     if (!state.camera) return
     const cam = state.camera
-    // player-controlled movement: WASD or ZQSD (Z/Q on AZERTY)
+    
+    // player-controlled movement: WASD or ZQSD (Z/Q on AZERTY) + Space for jump
     if (playerControlled && group.current) {
       const forward = (keys.current['KeyW'] || keys.current['KeyZ']) ? 1 : 0
       const back = keys.current['KeyS'] ? 1 : 0
       const left = (keys.current['KeyA'] || keys.current['KeyQ']) ? 1 : 0
       const right = keys.current['KeyD'] ? 1 : 0
+      const jump = keys.current['Space'] ? true : false
 
       const moveX = right - left
       const moveZ = forward - back
@@ -273,37 +405,56 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.2, maxSp
       cam.getWorldDirection(camForward)
       camForward.y = 0
       if (camForward.lengthSq() > 1e-6) camForward.normalize()
-  // Right vector relative to camera; negate to match expected left/right input mapping
-  const camRight = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), camForward).normalize().negate()
+      
+      // Right vector relative to camera; negate to match expected left/right input mapping
+      const camRight = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), camForward).normalize().negate()
 
-      const moveVec = new THREE.Vector3()
-      moveVec.addScaledVector(camForward, moveZ)
-      moveVec.addScaledVector(camRight, moveX)
+      const inputVector = new THREE.Vector3()
+      inputVector.addScaledVector(camForward, moveZ * moveSpeed)
+      inputVector.addScaledVector(camRight, moveX * moveSpeed)
 
-      if (moveVec.lengthSq() > 1e-6) {
-        moveVec.normalize()
-        const step = moveVec.multiplyScalar(moveSpeed * delta)
-        // move the model's world position
-        const worldPos = new THREE.Vector3()
-        group.current.getWorldPosition(worldPos)
-        worldPos.add(step)
-        // convert to parent local
-        if (group.current.parent) {
-          const inv = new THREE.Matrix4().copy(group.current.parent.matrixWorld).invert()
-          const local = worldPos.applyMatrix4(inv)
-          group.current.position.copy(local)
-        } else {
-          group.current.position.copy(worldPos)
-        }
+      // Update physics
+      const currentPosition = new THREE.Vector3()
+      if (group.current.parent) {
+        group.current.getWorldPosition(currentPosition)
+      } else {
+        currentPosition.copy(group.current.position)
+      }
 
-        // rotate player to face movement direction (world-space direction of step)
-        const desiredYaw = Math.atan2(step.x, step.z)
+      const newPosition = updatePhysics(currentPosition, delta, inputVector, jump)
+      
+      // Apply physics position to the model
+      if (group.current.parent) {
+        const inv = new THREE.Matrix4().copy(group.current.parent.matrixWorld).invert()
+        const local = newPosition.clone().applyMatrix4(inv)
+        group.current.position.copy(local)
+      } else {
+        group.current.position.copy(newPosition)
+      }
+
+      // Mettre à jour la position pour le visualiseur de hitboxes
+      setPlayerPosition(newPosition.clone())
+
+      // Rotate player to face movement direction if moving horizontally
+      if (inputVector.x !== 0 || inputVector.z !== 0) {
+        const desiredYaw = Math.atan2(inputVector.x, inputVector.z)
         const curYaw = group.current.rotation.y || 0
         let yawDelta = desiredYaw - curYaw
         yawDelta = ((yawDelta + Math.PI) % (2 * Math.PI)) - Math.PI
         const rotLerp = Math.min(1, 10 * delta)
         group.current.rotation.y = curYaw + yawDelta * rotLerp
+      }
 
+      // Animation logic based on movement and input
+      if (jump) {
+        // Try to play Jump animation if available, otherwise fall back to Walk
+        const jumpAction = getAction('Jump') || getAction('jump')
+        if (jumpAction) {
+          fadeTo('Jump')
+        } else {
+          fadeTo('Walk') // Fallback if no jump animation
+        }
+      } else if (inputVector.lengthSq() > 0.01) {
         fadeTo('Walk')
       } else {
         fadeTo('Idle')
@@ -312,40 +463,27 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.2, maxSp
       // camera follow behind the player
       const camTarget = new THREE.Vector3()
       group.current.getWorldPosition(camTarget)
-  // apply camera yaw/pitch offsets from mouse drag
-  // Camera yaw is independent from player yaw: use camYawOffset only so player movement doesn't rotate the camera
-  const totalYaw = camYawOffset.current
-  // use wheel-controlled distance and clamp
-  const r = Math.max(1, Math.min(12, cameraDistanceRef.current))
+      
+      // apply camera yaw/pitch offsets from mouse drag
+      const totalYaw = camYawOffset.current
+      const r = Math.max(1, Math.min(12, cameraDistanceRef.current))
 
-  // We want the camera to orbit around the player (pivot = player). To preserve the
-  // previous feel where the camera sits somewhat above the player at pitch=0, we
-  // compute a base elevation (atan2(baseHeight, r)) and then add the user pitch
-  // offset. This yields a spherical offset around the player's pivot so pitching
-  // up/down rotates the camera around the player rather than moving the lookAt
-  // point away from the player.
-  // reduce baseHeight so camera sits lower above the player by default
-  const baseHeight = cameraHeight * 0.55
-  const baseElevation = Math.atan2(baseHeight, r)
-  // clamp total elevation so extreme pitch can't place the camera too far above
-  const totalElevation = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, baseElevation + camPitch.current))
-  const sphereR = Math.sqrt(r * r + baseHeight * baseHeight)
+      const baseHeight = cameraHeight * 0.55
+      const baseElevation = Math.atan2(baseHeight, r)
+      const totalElevation = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, baseElevation + camPitch.current))
+      const sphereR = Math.sqrt(r * r + baseHeight * baseHeight)
 
-  const offsetX = -Math.sin(totalYaw) * Math.cos(totalElevation) * sphereR
-  const offsetZ = -Math.cos(totalYaw) * Math.cos(totalElevation) * sphereR
-  const offsetY = Math.sin(totalElevation) * sphereR
+      const offsetX = -Math.sin(totalYaw) * Math.cos(totalElevation) * sphereR
+      const offsetZ = -Math.cos(totalYaw) * Math.cos(totalElevation) * sphereR
+      const offsetY = Math.sin(totalElevation) * sphereR
 
-  // pivot is the player's world position (optionally a small eye offset so the
-  // camera aims slightly above the player's origin). This ensures rotation is
-  // always around the player and they remain visible when looking up.
-  const pivot = camTarget.clone()
-  // smaller eyeOffset so pivot is closer to player's center (less top-down feel)
-  const eyeOffset = Math.min(0.6, Math.max(0.2, cameraHeight * 0.25))
-  pivot.y += eyeOffset
+      const pivot = camTarget.clone()
+      const eyeOffset = Math.min(0.6, Math.max(0.2, cameraHeight * 0.25))
+      pivot.y += eyeOffset
 
-  const camPos = pivot.clone().add(new THREE.Vector3(offsetX, offsetY, offsetZ))
-  cam.position.lerp(camPos, Math.min(1, 8 * delta))
-  cam.lookAt(pivot)
+      const camPos = pivot.clone().add(new THREE.Vector3(offsetX, offsetY, offsetZ))
+      cam.position.lerp(camPos, Math.min(1, 8 * delta))
+      cam.lookAt(pivot)
 
       return
     }
@@ -531,9 +669,20 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.2, maxSp
   if (!scene) return null
 
   return (
-    <group ref={group} position={position} scale={[scale, scale, scale]} onClick={onClick} dispose={null}>
-      <primitive object={scene} />
-    </group>
+    <>
+      <group ref={group} position={position} scale={[scale, scale, scale]} onClick={onClick} dispose={null}>
+        <primitive object={scene} />
+      </group>
+      
+      {/* Visualiseur de hitboxes - placé en dehors du groupe du joueur */}
+      <HitboxVisualizer
+        visible={showHitboxesState}
+        playerPosition={playerPosition}
+        playerRadius={0.3}
+        collisionObjects={collisionObjects}
+        preciseMode={preciseMode}
+      />
+    </>
   )
 }
 

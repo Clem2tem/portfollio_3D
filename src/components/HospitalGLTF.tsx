@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, forwardRef } from 'react';
 import { Html, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useFrame, useLoader } from '@react-three/fiber';
 import { TextureLoader } from 'three';
 
-const HospitalGLTF: React.FC<{ position: [number, number, number] }> = ({ position }) => {
+const HospitalGLTF = forwardRef<THREE.Group, { position: [number, number, number] }>(({ position }, ref) => {
     const gltf = useGLTF('models/CHU/CHU.gltf');
     const [hovered, setHovered] = useState(false);
 
@@ -42,7 +42,7 @@ const HospitalGLTF: React.FC<{ position: [number, number, number] }> = ({ positi
         }
     });
     return (
-        <group>
+        <group ref={ref}>
             <primitive
                 object={gltf.scene}
                 scale={[0.2, 0.2, 0.2]}
@@ -107,6 +107,6 @@ const HospitalGLTF: React.FC<{ position: [number, number, number] }> = ({ positi
             </mesh>
         </group>
     );
-};
+});
 
 export default HospitalGLTF;
