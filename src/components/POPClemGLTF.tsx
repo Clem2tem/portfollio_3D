@@ -44,6 +44,7 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 1, maxSpee
   const MOVE_IDLE_TIMEOUT = 300 // ms
   const ANGLE_EPS = 0.01 // radians threshold to consider angle reached
   const IDLE_CONFIRM_MS = 150 // require this much time after movement stops before switching to Idle
+  const TWO_PI = Math.PI * 2
   const idleConfirm = useRef<number | null>(null)
   
 
@@ -213,20 +214,28 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 1, maxSpee
   const currentRadius = Math.sqrt(currentWorld.x * currentWorld.x + currentWorld.z * currentWorld.z)
 
   // initialize modelAngle from current world orientation once
-  if (modelAngle.current === null) modelAngle.current = Math.atan2(currentWorld.z, currentWorld.x)
+    if (modelAngle.current === null) {
+      const init = Math.atan2(currentWorld.z, currentWorld.x)
+      // adjust initial modelAngle to the nearest equivalent to the camera's unwrapped angle
+      // so the model starts with a continuous (unwrapped) angle and won't jump on first frames
+      let adjusted = init
+      if (cameraUnwrapped.current !== null) {
+        const n = Math.round((cameraUnwrapped.current - init) / TWO_PI)
+        adjusted = init + n * TWO_PI
+      }
+      modelAngle.current = adjusted
+    }
 
   // target angle (continuous, unwrapped)
   const targetAngle = cameraUnwrapped.current as number
   // current model angle (continuous)
   const curModelAngle = modelAngle.current as number
 
-  // modulo helpers
-  // normalize helper to [-PI, PI]
-  const normalize = (a: number) => ((a + Math.PI) % (2 * Math.PI)) - Math.PI
-
-  // compute shortest angular difference using the unwrapped camera angle
-  const deltaAngle = normalize((targetAngle) - curModelAngle)
-  const targetNearest = curModelAngle + deltaAngle
+  // compute nearest equivalent of targetAngle (add multiples of 2PI) so we always take the short way
+  const n = Math.round((curModelAngle - targetAngle) / TWO_PI)
+  const targetNearest = targetAngle + n * TWO_PI
+  // signed angular difference (already the shortest path)
+  const deltaAngle = targetNearest - curModelAngle
 
     // linear max step this frame
     const maxStep = maxSpeed * Math.max(0.016, delta)
@@ -256,7 +265,8 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 1, maxSpee
       // tangent vector for increasing angle
       const tangent = new THREE.Vector3(-Math.sin(newAngle), 0, Math.cos(newAngle))
       // direction sign: angular step sign indicates clockwise or counter-clockwise movement
-      const dirSign = angularStep === 0 ? (deltaAngle >= 0 ? 1 : -1) : Math.sign(angularStep)
+  // determine motion direction robustly: prefer angularStep sign, fall back to deltaAngle
+  const dirSign = Math.sign(angularStep) || Math.sign(deltaAngle) || 1
       tangent.multiplyScalar(dirSign)
 
       // target yaw so the model faces along the tangent (assuming model forward is +Z)
@@ -268,12 +278,17 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 1, maxSpee
       yawDelta = ((yawDelta + Math.PI) % (2 * Math.PI)) - Math.PI
       const rotLerp = Math.min(1, 8 * delta) // adjust 8 for rotation responsiveness
       const newYaw = curYaw + yawDelta * rotLerp
-      group.current.rotation.y = newYaw
+  // normalize yaw to [-PI, PI] after applying incremental change to avoid accumulating large values
+  let normYaw = ((newYaw + Math.PI) % (TWO_PI)) - Math.PI
+  normYaw = ((normYaw + Math.PI) % (TWO_PI)) - Math.PI
+  group.current.rotation.y = normYaw
     }
 
-    // determine whether we've reached the target angle (modulo-aware)
-    const remaining = normalize(targetNearest - newAngle)
-    const reached = Math.abs(remaining) < ANGLE_EPS
+  // determine whether we've reached the target angle (modulo-aware)
+  // normalize difference to [-PI, PI]
+  let remaining = ((targetNearest - newAngle + Math.PI) % (TWO_PI)) - Math.PI
+  remaining = ((remaining + Math.PI) % (TWO_PI)) - Math.PI
+  const reached = Math.abs(remaining) < ANGLE_EPS
 
     // animation decision (centralized):
     // - if model hasn't reached the angular target -> Walk
