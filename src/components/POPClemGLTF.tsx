@@ -36,10 +36,15 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 1, maxSpee
   const prevWrapped = useRef<number | null>(null)
   // track the model's continuous angle on the circle
   const modelAngle = useRef<number | null>(null)
+  // whether salut animation is currently playing
+  const salutPlaying = useRef(false)
 
   const BLEND = 0.35
   const MOVE_THRESHOLD = 0.004 // tune sensitivity
   const MOVE_IDLE_TIMEOUT = 300 // ms
+  const ANGLE_EPS = 0.01 // radians threshold to consider angle reached
+  const IDLE_CONFIRM_MS = 150 // require this much time after movement stops before switching to Idle
+  const idleConfirm = useRef<number | null>(null)
   
 
   // helper: find action by name case-insensitive
@@ -52,7 +57,9 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 1, maxSpee
 
   // Crossfade to an action (looping by default)
   const fadeTo = (name: string, once = false) => {
-    if (!actions || !mixer) return
+  if (!actions || !mixer) return
+  // do not interrupt Salut once started (except when explicitly asking for Salut)
+  if (salutPlaying.current && name.toLowerCase() !== 'salut') return
 
     // resolve actual action key case-insensitively
     const key = Object.keys(actions).find(k => k.toLowerCase() === name.toLowerCase())
@@ -107,13 +114,15 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 1, maxSpee
       if (e.action !== salut) return
       mixer.removeEventListener('finished', onFinished)
       // return to walk or idle
-      if (movingRef.current) fadeTo('Walk')
-      else fadeTo('Idle')
+    salutPlaying.current = false
+    if (movingRef.current) fadeTo('Walk')
+    else fadeTo('Idle')
     }
 
     mixer.addEventListener('finished', onFinished)
 
   // Start salut (play once)
+  salutPlaying.current = true
   fadeTo('Salut', true)
   }
 
@@ -183,13 +192,14 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 1, maxSpee
     const now = performance.now()
     if (absd > MOVE_THRESHOLD) {
       lastMoveTime.current = now
-  if (!movingRef.current) movingRef.current = true
-  // while movement is detected, ensure we're in Walk
-  fadeTo('Walk')
+      if (!movingRef.current) movingRef.current = true
+      // cancel any pending idle confirmation when movement resumes
+      idleConfirm.current = null
     } else {
       if (movingRef.current && now - lastMoveTime.current > MOVE_IDLE_TIMEOUT) {
         movingRef.current = false
-        fadeTo('Idle')
+        // start idle confirmation timer
+        idleConfirm.current = now
       }
     }
 
@@ -209,7 +219,14 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 1, maxSpee
   const targetAngle = cameraUnwrapped.current as number
   // current model angle (continuous)
   const curModelAngle = modelAngle.current as number
-  let deltaAngle = targetAngle - curModelAngle
+
+  // modulo helpers
+  // normalize helper to [-PI, PI]
+  const normalize = (a: number) => ((a + Math.PI) % (2 * Math.PI)) - Math.PI
+
+  // compute shortest angular difference using the unwrapped camera angle
+  const deltaAngle = normalize((targetAngle) - curModelAngle)
+  const targetNearest = curModelAngle + deltaAngle
 
     // linear max step this frame
     const maxStep = maxSpeed * Math.max(0.016, delta)
@@ -234,7 +251,7 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 1, maxSpee
       Math.sin(newAngle) * newRadius
     )
 
-    // compute facing direction (tangent) and smoothly rotate the model to face motion
+  // compute facing direction (tangent) and smoothly rotate the model to face motion
     if (group.current) {
       // tangent vector for increasing angle
       const tangent = new THREE.Vector3(-Math.sin(newAngle), 0, Math.cos(newAngle))
@@ -252,6 +269,26 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 1, maxSpee
       const rotLerp = Math.min(1, 8 * delta) // adjust 8 for rotation responsiveness
       const newYaw = curYaw + yawDelta * rotLerp
       group.current.rotation.y = newYaw
+    }
+
+    // determine whether we've reached the target angle (modulo-aware)
+    const remaining = normalize(targetNearest - newAngle)
+    const reached = Math.abs(remaining) < ANGLE_EPS
+
+    // animation decision (centralized):
+    // - if model hasn't reached the angular target -> Walk
+    // - else if model reached target and camera has been idle for IDLE_CONFIRM_MS -> Idle
+    // - otherwise keep Walk until confirmed
+    const now2 = performance.now()
+    const idleConfirmed = idleConfirm.current !== null && (now2 - (idleConfirm.current as number) >= IDLE_CONFIRM_MS)
+    if (!reached) {
+      // still moving toward target
+      fadeTo('Walk')
+    } else if (idleConfirmed) {
+      fadeTo('Idle')
+    } else {
+      // reached but not yet confirmed idle -> stay in Walk for smoothness
+      fadeTo('Walk')
     }
 
     // convert world to parent-local and apply
