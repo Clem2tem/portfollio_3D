@@ -264,43 +264,52 @@ const POPClemGLTF: React.FC<Props> = ({ position = [0, 0, 0], scale = 0.4, maxSp
       Math.sin(newAngle) * newRadius
     )
 
-  // compute facing direction (tangent) and smoothly rotate the model to face motion
+  // facing logic moved below so it can use `reached` / idleConfirmed
+
+    // determine whether we've reached the target angle (modulo-aware)
+    // normalize difference to [-PI, PI]
+    let remaining = ((targetNearest - newAngle + Math.PI) % (TWO_PI)) - Math.PI
+    remaining = ((remaining + Math.PI) % (TWO_PI)) - Math.PI
+    const reached = Math.abs(remaining) < ANGLE_EPS
+
+    // compute facing direction now that we know if we're 'reached' (idle) or still moving
     if (group.current) {
-      // tangent vector for increasing angle
-      const tangent = new THREE.Vector3(-Math.sin(newAngle), 0, Math.cos(newAngle))
-      // direction sign: angular step sign indicates clockwise or counter-clockwise movement
-  // determine motion direction robustly: prefer angularStep sign, fall back to deltaAngle
-  const dirSign = Math.sign(angularStep) || Math.sign(deltaAngle) || 1
-      tangent.multiplyScalar(dirSign)
-
-      // target yaw so the model faces along the tangent (assuming model forward is +Z)
-      const targetYaw = Math.atan2(tangent.x, tangent.z)
-
-      // smooth rotation interpolation (handle angle wrap)
+      const rotLerp = Math.min(1, 8 * delta)
       const curYaw = group.current.rotation.y || 0
+
+      let targetYaw: number
+
+      // If Salut is playing or we've reached target and confirmed idle, face the camera
+      const idleConfirmed = idleConfirm.current !== null && (performance.now() - (idleConfirm.current as number) >= IDLE_CONFIRM_MS)
+      if (salutPlaying.current || (reached && idleConfirmed)) {
+        // model world position
+        const modelWorld = new THREE.Vector3()
+        group.current.getWorldPosition(modelWorld)
+        const toCam = new THREE.Vector3().subVectors(cam.position, modelWorld)
+        targetYaw = Math.atan2(toCam.x, toCam.z)
+      } else {
+        // face tangent direction while moving (preserve previous dirSign logic)
+        const tangent = new THREE.Vector3(-Math.sin(newAngle), 0, Math.cos(newAngle))
+        const dirSign = Math.sign(angularStep) || Math.sign(deltaAngle) || 1
+        tangent.multiplyScalar(dirSign)
+        targetYaw = Math.atan2(tangent.x, tangent.z)
+      }
+
       let yawDelta = targetYaw - curYaw
       yawDelta = ((yawDelta + Math.PI) % (2 * Math.PI)) - Math.PI
-      const rotLerp = Math.min(1, 8 * delta) // adjust 8 for rotation responsiveness
       const newYaw = curYaw + yawDelta * rotLerp
-  // normalize yaw to [-PI, PI] after applying incremental change to avoid accumulating large values
-  let normYaw = ((newYaw + Math.PI) % (TWO_PI)) - Math.PI
-  normYaw = ((normYaw + Math.PI) % (TWO_PI)) - Math.PI
-  group.current.rotation.y = normYaw
+      let normYaw = ((newYaw + Math.PI) % (TWO_PI)) - Math.PI
+      normYaw = ((normYaw + Math.PI) % (TWO_PI)) - Math.PI
+      group.current.rotation.y = normYaw
     }
-
-  // determine whether we've reached the target angle (modulo-aware)
-  // normalize difference to [-PI, PI]
-  let remaining = ((targetNearest - newAngle + Math.PI) % (TWO_PI)) - Math.PI
-  remaining = ((remaining + Math.PI) % (TWO_PI)) - Math.PI
-  const reached = Math.abs(remaining) < ANGLE_EPS
 
     // animation decision (centralized):
     // - if model hasn't reached the angular target -> Walk
     // - else if model reached target and camera has been idle for IDLE_CONFIRM_MS -> Idle
     // - otherwise keep Walk until confirmed
-    const now2 = performance.now()
-    const idleConfirmed = idleConfirm.current !== null && (now2 - (idleConfirm.current as number) >= IDLE_CONFIRM_MS)
-    if (!reached) {
+  const now2 = performance.now()
+  const idleConfirmed = idleConfirm.current !== null && (now2 - (idleConfirm.current as number) >= IDLE_CONFIRM_MS)
+  if (!reached) {
       // still moving toward target
       fadeTo('Walk')
     } else if (idleConfirmed) {
