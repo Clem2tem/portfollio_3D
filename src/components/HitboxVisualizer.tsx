@@ -5,30 +5,27 @@ interface HitboxVisualizerProps {
   visible: boolean
   playerPosition: THREE.Vector3
   playerRadius?: number
-  playerHeight?: number
   collisionObjects?: Array<{
     name: string
     boundingBox?: THREE.Box3
-    position?: THREE.Vector3
-    meshes?: THREE.Mesh[] // Pour les collisions précises
+    meshPoints?: THREE.Vector3[]
+    usePreciseCollision?: boolean
   }>
-  preciseMode?: boolean // Nouveau prop pour basculer entre boîtes et meshes précis
 }
 
 export const HitboxVisualizer: React.FC<HitboxVisualizerProps> = ({
   visible,
   playerPosition,
   playerRadius = 0.3,
-  collisionObjects = [],
-  preciseMode = false
+  collisionObjects = []
 }) => {
   if (!visible) return null
 
   return (
     <group>
-      {/* Hitbox du joueur - Sphère plus réaliste */}
-      <mesh position={[playerPosition.x, playerPosition.y + playerRadius, playerPosition.z]}>
-        <sphereGeometry args={[playerRadius, 16, 16]} />
+      {/* Hitbox du joueur - Sphère ajustée pour être centrée sur le modèle */}
+      <mesh position={[playerPosition.x, playerPosition.y + playerRadius + 0.2, playerPosition.z]}>
+        <sphereGeometry args={[playerRadius, 8, 8]} />
         <meshBasicMaterial
           color="green"
           wireframe
@@ -37,9 +34,11 @@ export const HitboxVisualizer: React.FC<HitboxVisualizerProps> = ({
         />
       </mesh>
 
-      {/* Hitboxes des objets de collision */}
+      {/* Hitboxes des objets */}
       {collisionObjects.map((obj, index) => {
-        // Couleur différente selon le type d'objet
+        if (!obj.boundingBox) return null
+
+        // Couleur selon le type d'objet
         let color = "red"
         if (obj.name?.toLowerCase().includes('island')) {
           color = "blue"
@@ -49,29 +48,36 @@ export const HitboxVisualizer: React.FC<HitboxVisualizerProps> = ({
           color = "orange"
         }
 
-        if (preciseMode && obj.meshes) {
-          // Mode précis - Afficher les vrais meshes avec transformations
-          return (
-            <group key={`precise-${obj.name}-${index}`}>
-              {obj.meshes.map((mesh, meshIndex) => {
-                // Obtenir les transformations du mesh original
-                mesh.updateMatrixWorld()
-                const position = new THREE.Vector3()
-                const quaternion = new THREE.Quaternion()
-                const scale = new THREE.Vector3()
-                mesh.matrixWorld.decompose(position, quaternion, scale)
-
-                // Cloner la géométrie pour l'affichage wireframe
-                const geometry = mesh.geometry.clone()
-
+        return (
+          <group key={`hitbox-${obj.name}-${index}`}>
+            {obj.usePreciseCollision ? (
+              // Affichage précis pour l'île
+              obj.meshPoints && obj.meshPoints.length > 0 && (
+                <group>
+                  {/* Échantillonner les points pour éviter trop d'affichage */}
+                  {obj.meshPoints.filter((_, pointIdx) => pointIdx % 8 === 0).map((point, pointIndex) => (
+                    <mesh 
+                      key={`mesh-point-${index}-${pointIndex}`}
+                      position={[point.x, point.y, point.z]}
+                    >
+                      <sphereGeometry args={[0.01, 4, 4]} />
+                      <meshBasicMaterial
+                        color={color}
+                        transparent
+                        opacity={0.6}
+                      />
+                    </mesh>
+                  ))}
+                </group>
+              )
+            ) : (
+              // Bounding box simple pour les autres objets
+              obj.boundingBox && (() => {
+                const size = obj.boundingBox.getSize(new THREE.Vector3())
+                const center = obj.boundingBox.getCenter(new THREE.Vector3())
                 return (
-                  <mesh
-                    key={`mesh-${meshIndex}`}
-                    position={[position.x, position.y, position.z]}
-                    quaternion={[quaternion.x, quaternion.y, quaternion.z, quaternion.w]}
-                    scale={[scale.x, scale.y, scale.z]}
-                  >
-                    <primitive object={geometry} />
+                  <mesh position={[center.x, center.y, center.z]}>
+                    <boxGeometry args={[size.x, size.y, size.z]} />
                     <meshBasicMaterial
                       color={color}
                       wireframe
@@ -80,57 +86,10 @@ export const HitboxVisualizer: React.FC<HitboxVisualizerProps> = ({
                     />
                   </mesh>
                 )
-              })}
-              
-              {/* Label avec le nom de l'objet */}
-              {obj.boundingBox && (
-                <mesh position={(() => {
-                  const center = obj.boundingBox.getCenter(new THREE.Vector3())
-                  const size = obj.boundingBox.getSize(new THREE.Vector3())
-                  return [center.x, center.y + size.y / 2 + 0.5, center.z]
-                })()}>
-                  <planeGeometry args={[2, 0.5]} />
-                  <meshBasicMaterial
-                    color="white"
-                    transparent
-                    opacity={0.8}
-                  />
-                </mesh>
-              )}
-            </group>
-          )
-        } else if (obj.boundingBox) {
-          // Mode simple - Afficher les boîtes englobantes
-          const size = obj.boundingBox.getSize(new THREE.Vector3())
-          const center = obj.boundingBox.getCenter(new THREE.Vector3())
-          
-          return (
-            <group key={`simple-${obj.name}-${index}`}>
-              {/* Wireframe de la boîte de collision */}
-              <mesh position={[center.x, center.y, center.z]}>
-                <boxGeometry args={[size.x, size.y, size.z]} />
-                <meshBasicMaterial
-                  color={color}
-                  wireframe
-                  transparent
-                  opacity={0.3}
-                />
-              </mesh>
-              
-              {/* Label avec le nom de l'objet */}
-              <mesh position={[center.x, center.y + size.y / 2 + 0.5, center.z]}>
-                <planeGeometry args={[2, 0.5]} />
-                <meshBasicMaterial
-                  color="white"
-                  transparent
-                  opacity={0.8}
-                />
-              </mesh>
-            </group>
-          )
-        }
-
-        return null
+              })()
+            )}
+          </group>
+        )
       })}
     </group>
   )

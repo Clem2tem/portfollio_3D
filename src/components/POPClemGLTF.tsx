@@ -47,23 +47,19 @@ const POPClemGLTF: React.FC<Props> = ({
   // États pour le visualiseur de hitboxes
   const [playerPosition, setPlayerPosition] = useState(new THREE.Vector3(...position))
   const [showHitboxesState, setShowHitboxesState] = useState(showHitboxes)
-  const [preciseMode, setPreciseMode] = useState(true) // Mode précis par défaut
 
-  // Écouter la touche H pour basculer l'affichage des hitboxes et P pour le mode précis
+  // Écouter la touche H pour basculer l'affichage des hitboxes
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
       if (event.code === 'KeyH') {
         setShowHitboxesState(prev => !prev)
         console.log('Hitboxes:', showHitboxesState ? 'désactivées' : 'activées')
-      } else if (event.code === 'KeyP') {
-        setPreciseMode(prev => !prev)
-        console.log('Mode collision:', preciseMode ? 'simple (boîtes)' : 'précis (meshes)')
       }
     }
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [showHitboxesState, preciseMode])
+  }, [showHitboxesState])
 
   const scene = gltf?.scene
 
@@ -680,7 +676,6 @@ const POPClemGLTF: React.FC<Props> = ({
         playerPosition={playerPosition}
         playerRadius={0.3}
         collisionObjects={collisionObjects}
-        preciseMode={preciseMode}
       />
     </>
   )

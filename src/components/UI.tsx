@@ -88,7 +88,6 @@ const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode }) => {
           <div><kbd className="bg-white/20 px-2 py-1 rounded">WASD</kbd> Se déplacer</div>
           <div><kbd className="bg-white/20 px-2 py-1 rounded">SPACE</kbd> Sauter</div>
           <div><kbd className="bg-white/20 px-2 py-1 rounded">H</kbd> Afficher/masquer hitboxes</div>
-          <div><kbd className="bg-white/20 px-2 py-1 rounded">P</kbd> Mode précis/simple</div>
         </div>
       </div>
 

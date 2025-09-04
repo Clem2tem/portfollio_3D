@@ -1,279 +1,247 @@
+// usePreciseCollisions.ts — BVH version (TypeScript safe)
 import { useCallback, useRef } from 'react'
 import * as THREE from 'three'
+import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh'
+import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
-interface PreciseCollisionObject {
-  name: string
-  meshes: THREE.Mesh[]
-  boundingBox: THREE.Box3 // Pour optimisation
+    // Activer le raycast accéléré pour toutes les Mesh
+    ; (THREE.Mesh.prototype as any).raycast = acceleratedRaycast
+
+type Collider = {
+    name: string
+    mesh: THREE.Mesh               // Mesh fusionné (statique) servant à la collision
+    boundingBox: THREE.Box3        // Broadphase AABB
+    isStatic: boolean              // Toujours true ici (colliders statiques)
 }
 
-export const usePreciseCollisions = () => {
-  const collisionObjects = useRef<PreciseCollisionObject[]>([])
-
-  const addPreciseCollisionObject = useCallback((name: string, object3D: THREE.Object3D) => {
-    // Éviter les doublons
-    const existingIndex = collisionObjects.current.findIndex(obj => obj.name === name)
-    if (existingIndex !== -1) {
-      collisionObjects.current.splice(existingIndex, 1)
-    }
-
-    const meshes: THREE.Mesh[] = []
-    const boundingBox = new THREE.Box3()
-
-    // Collecter tous les meshes de l'objet
-    object3D.traverse((child) => {
-      if (child instanceof THREE.Mesh && child.geometry) {
-        meshes.push(child)
-        
-        // Calculer la bounding box du mesh en coordonnées mondiales
-        const meshBox = new THREE.Box3().setFromObject(child)
-        boundingBox.union(meshBox)
-      }
-    })
-
-    if (meshes.length > 0) {
-      collisionObjects.current.push({
-        name,
-        meshes,
-        boundingBox
-      })
-
-      console.log(`Collision précise ajoutée pour ${name}: ${meshes.length} meshes`)
-    }
-  }, [])
-
-  // Vérification rapide avec bounding box puis précise avec géométrie
-  const checkPreciseCollision = useCallback((position: THREE.Vector3, radius: number = 0.5): {
+interface CollisionResult {
     colliding: boolean
     normal: THREE.Vector3
     penetration: number
     objectName?: string
-    point?: THREE.Vector3
-  } => {
-    const result = {
-      colliding: false,
-      normal: new THREE.Vector3(0, 1, 0),
-      penetration: 0,
-      objectName: undefined as string | undefined,
-      point: undefined as THREE.Vector3 | undefined
+}
+
+export const usePreciseCollisions = () => {
+    const collidersRef = useRef<Collider[]>([])
+    const raycasterRef = useRef(new THREE.Raycaster())
+
+    // ---------- Construit une géométrie de collision fusionnée depuis un Object3D ----------
+    const buildMergedCollisionGeometry = useCallback((root: THREE.Object3D): THREE.BufferGeometry | null => {
+        const geoms: THREE.BufferGeometry[] = []
+
+        // petits helpers
+        const pushGeom = (g: THREE.BufferGeometry) => {
+            // indexer + dédoublonner pour un BVH plus propre
+            const indexed = mergeVertices(g, 1e-4)
+            geoms.push(indexed)
+        }
+
+        // optionnel : ignorer certains meshes "visuels" (billboards, feuilles, décors plats)
+        const shouldIncludeMesh = (mesh: THREE.Mesh) => {
+            const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material
+            // ⚠️ les alpha-cutouts restent des grands quads : souvent mieux de les ignorer côté collision
+            if (mat && (mat as any).transparent && (mat as any).opacity < 0.99) return false
+            if (mesh.name.toLowerCase().includes('billboard')) return false
+            if (mesh.name.toLowerCase().includes('leaf')) return false
+            if (mesh.name.toLowerCase().includes('foliage')) return false
+            return true
+        }
+
+        root.updateMatrixWorld(true)
+
+        root.traverse((child) => {
+            // skip skinned / lines / points
+            if ((child as any).isSkinnedMesh) return
+
+            // --- InstancedMesh : dupliquer chaque instance ---
+            if ((child as any).isInstancedMesh) {
+                const inst = child as THREE.InstancedMesh
+                if (!inst.geometry) return
+                if (!shouldIncludeMesh(inst as unknown as THREE.Mesh)) return
+
+                const base = inst.geometry
+                const m = new THREE.Matrix4()
+                const world = new THREE.Matrix4().copy(inst.matrixWorld)
+
+                // on fusionne base dans le monde de chaque instance
+                const tmp = base.clone()
+                const count = inst.count
+                for (let i = 0; i < count; i++) {
+                    inst.getMatrixAt(i, m)
+                    const g = base.clone()
+                    g.applyMatrix4(m)
+                    g.applyMatrix4(world)
+                    pushGeom(g)
+                }
+                return
+            }
+
+            // --- Mesh normal ---
+            if (child instanceof THREE.Mesh && child.geometry) {
+                if (!shouldIncludeMesh(child)) return
+                const g = child.geometry.clone()
+                g.applyMatrix4(child.matrixWorld)
+                pushGeom(g)
+            }
+        })
+
+        if (geoms.length === 0) return null
+
+        const merged = mergeGeometries(geoms, true)
+        merged.computeBoundingBox()
+        return merged
+    }, [])
+
+    // ---------- Ajout d’un collider à partir d’un Object3D ----------
+    const addPreciseCollisionObject = useCallback((name: string, object3D: THREE.Object3D) => {
+        // éviter les doublons par nom
+        if (collidersRef.current.find((c) => c.name === name)) return
+
+        const merged = buildMergedCollisionGeometry(object3D)
+        if (!merged) {
+            console.warn(`[Collisions] Aucun mesh statique détecté pour "${name}"`)
+            return
+        }
+
+        // Construire le BVH (options par défaut OK ; supprimer lazyGeneration)
+        const bvh = new MeshBVH(merged /*, { strategy: MeshBVH.SAH } */)
+            ; (merged as any).boundsTree = bvh
+
+        // Créer le mesh collider (invisible)
+        const colliderMesh = new THREE.Mesh(merged)
+        colliderMesh.matrixAutoUpdate = false
+        colliderMesh.visible = false
+
+        // boundingBox est non-null car computeBoundingBox() a été appelé
+        const box = new THREE.Box3().copy(merged.boundingBox!)
+
+        collidersRef.current.push({
+            name,
+            mesh: colliderMesh,
+            boundingBox: box,
+            isStatic: true,
+        })
+
+        console.log(`[Collisions] BVH construit pour "${name}"`)
+    }, [buildMergedCollisionGeometry])
+
+    // ---------- Broadphase: test AABB d’une sphère ----------
+    const aabbIntersectsSphere = (box: THREE.Box3, center: THREE.Vector3, radius: number) => {
+        const closestPoint = new THREE.Vector3(
+            Math.max(box.min.x, Math.min(center.x, box.max.x)),
+            Math.max(box.min.y, Math.min(center.y, box.max.y)),
+            Math.max(box.min.z, Math.min(center.z, box.max.z)),
+        )
+        return closestPoint.distanceToSquared(center) <= radius * radius
     }
 
-    // Créer une sphère pour le joueur
-    const playerSphere = new THREE.Sphere(position, radius)
+    // ---------- Narrowphase: sphere vs triangle mesh via BVH.shapecast ----------
+    const checkPreciseCollision = useCallback((position: THREE.Vector3, radius: number = 0.5): CollisionResult => {
+        const result: CollisionResult = {
+            colliding: false,
+            normal: new THREE.Vector3(0, 1, 0),
+            penetration: 0,
+            objectName: undefined,
+        }
 
-    for (const obj of collisionObjects.current) {
-      // Test rapide avec bounding box
-      if (!obj.boundingBox.intersectsSphere(playerSphere)) {
-        continue
-      }
+        if (collidersRef.current.length === 0) return result
 
-      // Test précis avec géométrie
-      for (const mesh of obj.meshes) {
-        const meshCollision = checkSphereToMeshCollision(playerSphere, mesh)
-        
-        if (meshCollision.colliding) {
-          // Vérifier si on est au-dessus de l'objet (permettre le mouvement)
-          const playerBottom = position.y - radius
-          const contactTop = meshCollision.contactPoint.y
-          
-          // Si le joueur est clairement au-dessus, ne pas bloquer le mouvement horizontal
-          if (playerBottom > contactTop + 0.1) {
-            continue
-          }
-          
-          // Vérifier si c'est une collision latérale ou frontale (bloquer)
-          const normalY = Math.abs(meshCollision.normal.y)
-          if (normalY < 0.7) { // Collision latérale/frontale
+        // AABB de la sphère pour filtrer rapidement
+        const sphereAABB = new THREE.Box3().setFromCenterAndSize(
+            position,
+            new THREE.Vector3(2 * radius, 2 * radius, 2 * radius),
+        )
+
+        const tri = new THREE.Triangle()
+        const closest = new THREE.Vector3()
+        const nrm = new THREE.Vector3()
+
+        let bestPenetration = 0
+        const bestNormal = new THREE.Vector3()
+        let bestName: string | undefined
+
+        for (const col of collidersRef.current) {
+            // Broadphase: AABB collider vs AABB sphère
+            if (!col.boundingBox.intersectsBox(sphereAABB)) continue
+            // Test rapide sphere vs AABB
+            if (!aabbIntersectsSphere(col.boundingBox, position, radius)) continue
+
+            const geom = col.mesh.geometry as any
+            const bvh: MeshBVH | undefined = geom.boundsTree
+            if (!bvh) continue
+
+            bvh.shapecast({
+                intersectsBounds: (bounds: THREE.Box3) => bounds.intersectsBox(sphereAABB),
+                intersectsTriangle: (triangle: THREE.Triangle) => {
+                    tri.a.copy(triangle.a)
+                    tri.b.copy(triangle.b)
+                    tri.c.copy(triangle.c)
+
+                    // Point le plus proche du centre de la sphère sur le triangle
+                    tri.closestPointToPoint(position, closest)
+                    const dist = closest.distanceTo(position)
+
+                    if (dist < radius) {
+                        tri.getNormal(nrm)
+                        if (nrm.lengthSq() < 1e-10) return false
+                        nrm.normalize()
+
+                        const penetration = radius - dist
+                        if (penetration > bestPenetration) {
+                            bestPenetration = penetration
+                            bestNormal.copy(nrm)
+                            bestName = col.name
+                        }
+                    }
+                    return false // continuer à tester
+                },
+            })
+        }
+
+        if (bestPenetration > 0) {
             result.colliding = true
-            result.objectName = obj.name
-            result.normal = meshCollision.normal
-            result.penetration = meshCollision.penetration
-            result.point = meshCollision.contactPoint
-            return result
-          }
+            result.penetration = bestPenetration
+            result.normal.copy(bestNormal)
+            result.objectName = bestName
         }
-      }
-    }
 
-    return result
-  }, [])
+        return result
+    }, [])
 
-  // Fonction pour détecter collision entre sphère et mesh avec rotations
-  const checkSphereToMeshCollision = (sphere: THREE.Sphere, mesh: THREE.Mesh): {
-    colliding: boolean
-    normal: THREE.Vector3
-    penetration: number
-    contactPoint: THREE.Vector3
-  } => {
-    const result = {
-      colliding: false,
-      normal: new THREE.Vector3(0, 1, 0),
-      penetration: 0,
-      contactPoint: new THREE.Vector3()
-    }
+    // ---------- Hauteur du sol par raycast vertical (accéléré BVH) ----------
+    const getGroundHeight = useCallback((position: THREE.Vector3, yMax: number = 1000): number => {
+        const raycaster = raycasterRef.current as THREE.Raycaster & { firstHitOnly?: boolean }
+            ; (raycaster as any).firstHitOnly = true // propriété ajoutée par three-mesh-bvh
 
-    if (!mesh.geometry) return result
+        raycaster.ray.origin.set(position.x, yMax, position.z)
+        raycaster.ray.direction.set(0, -1, 0)
 
-    // Obtenir la matrice de transformation du mesh (avec rotations)
-    mesh.updateMatrixWorld()
-    const inverseMatrix = mesh.matrixWorld.clone().invert()
-    
-    // Transformer la sphère dans l'espace local du mesh
-    const localCenter = sphere.center.clone().applyMatrix4(inverseMatrix)
-    
-    // Calculer le rayon dans l'espace local (tenir compte de l'échelle)
-    const scale = new THREE.Vector3()
-    mesh.matrixWorld.decompose(new THREE.Vector3(), new THREE.Quaternion(), scale)
-    const avgScale = (scale.x + scale.y + scale.z) / 3
-    const localRadius = sphere.radius / avgScale
+        let bestY = -Infinity
 
-    const localSphere = new THREE.Sphere(localCenter, localRadius)
+        for (const col of collidersRef.current) {
+            // Filtre AABB planimétrique
+            if (position.x < col.boundingBox.min.x || position.x > col.boundingBox.max.x) continue
+            if (position.z < col.boundingBox.min.z || position.z > col.boundingBox.max.z) continue
 
-    // Vérifier l'intersection avec la géométrie
-    const intersection = checkSphereGeometryIntersection(localSphere, mesh.geometry)
-    
-    if (intersection.colliding) {
-      result.colliding = true
-      
-      // Transformer le point de contact et la normale vers l'espace monde
-      result.contactPoint = intersection.contactPoint.clone().applyMatrix4(mesh.matrixWorld)
-      result.normal = intersection.normal.clone()
-        .transformDirection(mesh.matrixWorld)
-        .normalize()
-      
-      result.penetration = intersection.penetration * avgScale
-    }
-
-    return result
-  }
-
-  // Vérification d'intersection sphère-géométrie améliorée
-  const checkSphereGeometryIntersection = (sphere: THREE.Sphere, geometry: THREE.BufferGeometry): {
-    colliding: boolean
-    contactPoint: THREE.Vector3
-    normal: THREE.Vector3
-    penetration: number
-  } => {
-    const result = {
-      colliding: false,
-      contactPoint: new THREE.Vector3(),
-      normal: new THREE.Vector3(0, 1, 0),
-      penetration: 0
-    }
-
-    const position = geometry.attributes.position
-    if (!position) return result
-
-    let closestDistance = Infinity
-    let closestPoint = new THREE.Vector3()
-    let closestNormal = new THREE.Vector3(0, 1, 0)
-
-    // Vérifier les triangles pour une détection précise
-    if (geometry.index) {
-      const index = geometry.index
-      for (let i = 0; i < index.count; i += 3) {
-        const a = new THREE.Vector3(
-          position.getX(index.getX(i)),
-          position.getY(index.getX(i)),
-          position.getZ(index.getX(i))
-        )
-        const b = new THREE.Vector3(
-          position.getX(index.getX(i + 1)),
-          position.getY(index.getX(i + 1)),
-          position.getZ(index.getX(i + 1))
-        )
-        const c = new THREE.Vector3(
-          position.getX(index.getX(i + 2)),
-          position.getY(index.getX(i + 2)),
-          position.getZ(index.getX(i + 2))
-        )
-
-        const triangle = new THREE.Triangle(a, b, c)
-        const closestPointOnTriangle = new THREE.Vector3()
-        triangle.closestPointToPoint(sphere.center, closestPointOnTriangle)
-        
-        const distance = sphere.center.distanceTo(closestPointOnTriangle)
-        
-        if (distance <= sphere.radius && distance < closestDistance) {
-          result.colliding = true
-          closestDistance = distance
-          closestPoint = closestPointOnTriangle.clone()
-          
-          // Calculer la normale du triangle
-          const normal = new THREE.Vector3()
-          triangle.getNormal(normal)
-          closestNormal = normal
+            const hits = raycaster.intersectObject(col.mesh, false)
+            if (hits.length && hits[0].point.y > bestY) {
+                bestY = hits[0].point.y
+            }
         }
-      }
-    } else {
-      // Fallback pour géométries sans index
-      for (let i = 0; i < position.count; i += 3) {
-        const a = new THREE.Vector3(position.getX(i), position.getY(i), position.getZ(i))
-        const b = new THREE.Vector3(position.getX(i + 1), position.getY(i + 1), position.getZ(i + 1))
-        const c = new THREE.Vector3(position.getX(i + 2), position.getY(i + 2), position.getZ(i + 2))
 
-        const triangle = new THREE.Triangle(a, b, c)
-        const closestPointOnTriangle = new THREE.Vector3()
-        triangle.closestPointToPoint(sphere.center, closestPointOnTriangle)
-        
-        const distance = sphere.center.distanceTo(closestPointOnTriangle)
-        
-        if (distance <= sphere.radius && distance < closestDistance) {
-          result.colliding = true
-          closestDistance = distance
-          closestPoint = closestPointOnTriangle.clone()
-          
-          const normal = new THREE.Vector3()
-          triangle.getNormal(normal)
-          closestNormal = normal
-        }
-      }
+        return Number.isFinite(bestY) ? bestY : 0
+    }, [])
+
+    // ---------- Reset ----------
+    const clearCollisions = useCallback(() => {
+        collidersRef.current = []
+    }, [])
+
+    return {
+        addPreciseCollisionObject, // (name, object3D)
+        checkPreciseCollision,     // (position, radius)
+        getGroundHeight,           // (position)
+        clearCollisions,
+        collisionObjects: collidersRef.current,
     }
-
-    if (result.colliding) {
-      result.contactPoint = closestPoint
-      result.normal = closestNormal
-      result.penetration = sphere.radius - closestDistance
-    }
-
-    return result
-  }
-
-  // Obtenir la hauteur du sol pour la gravité
-  const getGroundHeight = useCallback((position: THREE.Vector3): number => {
-    // Chercher l'île dans les objets de collision
-    const islandObj = collisionObjects.current.find(obj => 
-      obj.name?.toLowerCase().includes('island')
-    )
-    
-    if (!islandObj) return 0
-
-    // Lancer un rayon vers le bas pour trouver le sol
-    const raycaster = new THREE.Raycaster(
-      new THREE.Vector3(position.x, position.y + 10, position.z),
-      new THREE.Vector3(0, -1, 0)
-    )
-
-    let maxY = 0
-    for (const mesh of islandObj.meshes) {
-      const intersections = raycaster.intersectObject(mesh)
-      if (intersections.length > 0) {
-        maxY = Math.max(maxY, intersections[0].point.y)
-      }
-    }
-
-    return maxY
-  }, [])
-
-  const clearCollisions = useCallback(() => {
-    collisionObjects.current = []
-  }, [])
-
-  return {
-    addPreciseCollisionObject,
-    checkPreciseCollision,
-    getGroundHeight,
-    clearCollisions,
-    collisionObjects: collisionObjects.current
-  }
 }
