@@ -58,7 +58,7 @@ export const usePreciseCollisions = () => {
       point: undefined as THREE.Vector3 | undefined
     }
 
-    // Créer une sphère pour le joueur (plus réaliste qu'une boîte)
+    // Créer une sphère pour le joueur
     const playerSphere = new THREE.Sphere(position, radius)
 
     for (const obj of collisionObjects.current) {
@@ -69,21 +69,28 @@ export const usePreciseCollisions = () => {
 
       // Test précis avec géométrie
       for (const mesh of obj.meshes) {
-        if (checkSphereToMeshCollision(playerSphere, mesh)) {
-          result.colliding = true
-          result.objectName = obj.name
-
-          // Calculer la normale de collision approximative
-          const meshCenter = new THREE.Vector3()
-          obj.boundingBox.getCenter(meshCenter)
-          result.normal = position.clone().sub(meshCenter).normalize()
+        const meshCollision = checkSphereToMeshCollision(playerSphere, mesh)
+        
+        if (meshCollision.colliding) {
+          // Vérifier si on est au-dessus de l'objet (permettre le mouvement)
+          const playerBottom = position.y - radius
+          const contactTop = meshCollision.contactPoint.y
           
-          // Calculer la pénétration approximative
-          const distance = position.distanceTo(meshCenter)
-          const meshRadius = obj.boundingBox.getSize(new THREE.Vector3()).length() / 2
-          result.penetration = Math.max(0, radius + meshRadius - distance)
-
-          return result
+          // Si le joueur est clairement au-dessus, ne pas bloquer le mouvement horizontal
+          if (playerBottom > contactTop + 0.1) {
+            continue
+          }
+          
+          // Vérifier si c'est une collision latérale ou frontale (bloquer)
+          const normalY = Math.abs(meshCollision.normal.y)
+          if (normalY < 0.7) { // Collision latérale/frontale
+            result.colliding = true
+            result.objectName = obj.name
+            result.normal = meshCollision.normal
+            result.penetration = meshCollision.penetration
+            result.point = meshCollision.contactPoint
+            return result
+          }
         }
       }
     }
@@ -91,41 +98,77 @@ export const usePreciseCollisions = () => {
     return result
   }, [])
 
-  // Fonction pour détecter collision entre sphère et mesh
-  const checkSphereToMeshCollision = (sphere: THREE.Sphere, mesh: THREE.Mesh): boolean => {
-    if (!mesh.geometry) return false
+  // Fonction pour détecter collision entre sphère et mesh avec rotations
+  const checkSphereToMeshCollision = (sphere: THREE.Sphere, mesh: THREE.Mesh): {
+    colliding: boolean
+    normal: THREE.Vector3
+    penetration: number
+    contactPoint: THREE.Vector3
+  } => {
+    const result = {
+      colliding: false,
+      normal: new THREE.Vector3(0, 1, 0),
+      penetration: 0,
+      contactPoint: new THREE.Vector3()
+    }
 
-    // Obtenir la matrice de transformation du mesh
+    if (!mesh.geometry) return result
+
+    // Obtenir la matrice de transformation du mesh (avec rotations)
     mesh.updateMatrixWorld()
     const inverseMatrix = mesh.matrixWorld.clone().invert()
     
     // Transformer la sphère dans l'espace local du mesh
     const localCenter = sphere.center.clone().applyMatrix4(inverseMatrix)
-    const localSphere = new THREE.Sphere(localCenter, sphere.radius)
+    
+    // Calculer le rayon dans l'espace local (tenir compte de l'échelle)
+    const scale = new THREE.Vector3()
+    mesh.matrixWorld.decompose(new THREE.Vector3(), new THREE.Quaternion(), scale)
+    const avgScale = (scale.x + scale.y + scale.z) / 3
+    const localRadius = sphere.radius / avgScale
 
-    // Vérifier si la sphère intersecte avec la géométrie
-    return checkSphereGeometryIntersection(localSphere, mesh.geometry)
-  }
+    const localSphere = new THREE.Sphere(localCenter, localRadius)
 
-  // Vérification d'intersection sphère-géométrie
-  const checkSphereGeometryIntersection = (sphere: THREE.Sphere, geometry: THREE.BufferGeometry): boolean => {
-    const position = geometry.attributes.position
-    if (!position) return false
-
-    // Vérifier si des vertices sont dans la sphère
-    for (let i = 0; i < position.count; i++) {
-      const vertex = new THREE.Vector3(
-        position.getX(i),
-        position.getY(i),
-        position.getZ(i)
-      )
+    // Vérifier l'intersection avec la géométrie
+    const intersection = checkSphereGeometryIntersection(localSphere, mesh.geometry)
+    
+    if (intersection.colliding) {
+      result.colliding = true
       
-      if (sphere.containsPoint(vertex)) {
-        return true
-      }
+      // Transformer le point de contact et la normale vers l'espace monde
+      result.contactPoint = intersection.contactPoint.clone().applyMatrix4(mesh.matrixWorld)
+      result.normal = intersection.normal.clone()
+        .transformDirection(mesh.matrixWorld)
+        .normalize()
+      
+      result.penetration = intersection.penetration * avgScale
     }
 
-    // Vérifier les triangles pour une détection plus précise
+    return result
+  }
+
+  // Vérification d'intersection sphère-géométrie améliorée
+  const checkSphereGeometryIntersection = (sphere: THREE.Sphere, geometry: THREE.BufferGeometry): {
+    colliding: boolean
+    contactPoint: THREE.Vector3
+    normal: THREE.Vector3
+    penetration: number
+  } => {
+    const result = {
+      colliding: false,
+      contactPoint: new THREE.Vector3(),
+      normal: new THREE.Vector3(0, 1, 0),
+      penetration: 0
+    }
+
+    const position = geometry.attributes.position
+    if (!position) return result
+
+    let closestDistance = Infinity
+    let closestPoint = new THREE.Vector3()
+    let closestNormal = new THREE.Vector3(0, 1, 0)
+
+    // Vérifier les triangles pour une détection précise
     if (geometry.index) {
       const index = geometry.index
       for (let i = 0; i < index.count; i += 3) {
@@ -146,16 +189,54 @@ export const usePreciseCollisions = () => {
         )
 
         const triangle = new THREE.Triangle(a, b, c)
-        const closestPoint = new THREE.Vector3()
-        triangle.closestPointToPoint(sphere.center, closestPoint)
+        const closestPointOnTriangle = new THREE.Vector3()
+        triangle.closestPointToPoint(sphere.center, closestPointOnTriangle)
         
-        if (sphere.center.distanceTo(closestPoint) <= sphere.radius) {
-          return true
+        const distance = sphere.center.distanceTo(closestPointOnTriangle)
+        
+        if (distance <= sphere.radius && distance < closestDistance) {
+          result.colliding = true
+          closestDistance = distance
+          closestPoint = closestPointOnTriangle.clone()
+          
+          // Calculer la normale du triangle
+          const normal = new THREE.Vector3()
+          triangle.getNormal(normal)
+          closestNormal = normal
+        }
+      }
+    } else {
+      // Fallback pour géométries sans index
+      for (let i = 0; i < position.count; i += 3) {
+        const a = new THREE.Vector3(position.getX(i), position.getY(i), position.getZ(i))
+        const b = new THREE.Vector3(position.getX(i + 1), position.getY(i + 1), position.getZ(i + 1))
+        const c = new THREE.Vector3(position.getX(i + 2), position.getY(i + 2), position.getZ(i + 2))
+
+        const triangle = new THREE.Triangle(a, b, c)
+        const closestPointOnTriangle = new THREE.Vector3()
+        triangle.closestPointToPoint(sphere.center, closestPointOnTriangle)
+        
+        const distance = sphere.center.distanceTo(closestPointOnTriangle)
+        
+        if (distance <= sphere.radius && distance < closestDistance) {
+          result.colliding = true
+          closestDistance = distance
+          closestPoint = closestPointOnTriangle.clone()
+          
+          const normal = new THREE.Vector3()
+          triangle.getNormal(normal)
+          closestNormal = normal
         }
       }
     }
 
-    return false
+    if (result.colliding) {
+      result.contactPoint = closestPoint
+      result.normal = closestNormal
+      result.penetration = sphere.radius - closestDistance
+    }
+
+    return result
   }
 
   // Obtenir la hauteur du sol pour la gravité

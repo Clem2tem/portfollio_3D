@@ -50,24 +50,25 @@ export const HitboxVisualizer: React.FC<HitboxVisualizerProps> = ({
         }
 
         if (preciseMode && obj.meshes) {
-          // Mode précis - Afficher les vrais meshes
+          // Mode précis - Afficher les vrais meshes avec transformations
           return (
             <group key={`precise-${obj.name}-${index}`}>
               {obj.meshes.map((mesh, meshIndex) => {
+                // Obtenir les transformations du mesh original
+                mesh.updateMatrixWorld()
+                const position = new THREE.Vector3()
+                const quaternion = new THREE.Quaternion()
+                const scale = new THREE.Vector3()
+                mesh.matrixWorld.decompose(position, quaternion, scale)
+
                 // Cloner la géométrie pour l'affichage wireframe
                 const geometry = mesh.geometry.clone()
-                const position = new THREE.Vector3()
-                const rotation = new THREE.Euler()
-                const scale = new THREE.Vector3()
-                
-                mesh.updateMatrixWorld()
-                mesh.matrixWorld.decompose(position, new THREE.Quaternion().setFromEuler(rotation), scale)
 
                 return (
                   <mesh
                     key={`mesh-${meshIndex}`}
                     position={[position.x, position.y, position.z]}
-                    rotation={[rotation.x, rotation.y, rotation.z]}
+                    quaternion={[quaternion.x, quaternion.y, quaternion.z, quaternion.w]}
                     scale={[scale.x, scale.y, scale.z]}
                   >
                     <primitive object={geometry} />
