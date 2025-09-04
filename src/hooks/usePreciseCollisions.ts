@@ -64,7 +64,6 @@ export const usePreciseCollisions = () => {
                 const world = new THREE.Matrix4().copy(inst.matrixWorld)
 
                 // on fusionne base dans le monde de chaque instance
-                const tmp = base.clone()
                 const count = inst.count
                 for (let i = 0; i < count; i++) {
                     inst.getMatrixAt(i, m)

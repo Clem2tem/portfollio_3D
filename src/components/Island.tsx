@@ -1,9 +1,9 @@
-import React, { JSX, useRef, forwardRef } from 'react'
+import React, { JSX, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Cone, Cylinder, Sphere, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 
-const Island = forwardRef<THREE.Group>((props, ref) => {
+const Island: React.FC = () => {
     const treesRef = useRef<THREE.Group>(null)
 
     useFrame((state) => {
@@ -111,16 +111,14 @@ const Island = forwardRef<THREE.Group>((props, ref) => {
                         }, [gltf])
     
                         return (
-                            <group ref={ref}>
-                                <primitive
-                                    object={gltf.scene}
-                                    scale={[0.4, 0.4, 0.4]}
-                                    position={[0, -0.5, 0]}
-                                    rotation={[0, -Math.PI / 3, 0]}
-                                />
-                            </group>
+                            <primitive
+                                object={gltf.scene}
+                                scale={[0.4, 0.4, 0.4]}
+                                position={[0, -0.5, 0]}
+                                rotation={[0, -Math.PI / 3, 0]}
+                            />
                         )
 
-})
+}
 
 export default Island

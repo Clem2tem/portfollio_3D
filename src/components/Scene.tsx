@@ -29,11 +29,6 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimat
   // Toggle third-person player control for POPClem (true => camera is driven behind the player)
   const PLAYER_CONTROLLED = true
 
-  // Refs pour les objets GLTF
-  const islandRef = useRef<THREE.Group>(null)
-  const hospitalRef = useRef<THREE.Group>(null)
-  const excavatorRef = useRef<THREE.Group>(null)
-
   // Animation de caméra
   const [animationState, setAnimationState] = useState<{
     isAnimating: boolean
