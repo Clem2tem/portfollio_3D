@@ -161,7 +161,7 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimat
   return (
     <>
       {/* Contrôles de caméra */}
-      <OrbitControls
+      {/* <OrbitControls
         ref={controlsRef}
   enabled={!animationState?.isAnimating && !PLAYER_CONTROLLED}
         enablePan={false}
@@ -171,8 +171,8 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimat
         dampingFactor={0.05}
         rotateSpeed={0.5}
         zoomSpeed={0.5}
-        minDistance={6}
-        maxDistance={12}
+        minDistance={2}
+        maxDistance={6}
         minPolarAngle={Math.PI / 2.8}
         maxPolarAngle={Math.PI / 2.1}
         autoRotate={false}
@@ -186,7 +186,7 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimat
           ONE: THREE.TOUCH.ROTATE,
           TWO: THREE.TOUCH.DOLLY_PAN
         }}
-      />
+      /> */}
 
       {/* Éclairage de base adaptatif */}
       <ambientLight intensity={isNightMode ? 0.1 : 0.4} color={isNightMode ? "#FFFFFF" : "#87CEEB"} />

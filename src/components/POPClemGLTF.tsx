@@ -32,8 +32,8 @@ const POPClemGLTF: React.FC<Props> = ({
   maxSpeed = 0.6, 
   playerControlled = false, 
   moveSpeed = 2, 
-  cameraDistance = 4, 
-  cameraHeight = 2.2,
+  cameraDistance = 0.2, 
+  cameraHeight = 1.2,
   showHitboxes = false 
 }) => {
   const group = useRef<THREE.Group | null>(null)
@@ -176,6 +176,9 @@ const POPClemGLTF: React.FC<Props> = ({
   const camPitch = useRef(-0.25) // initial pitch (radians), negative = look down
   // camera distance ref so wheel can update it
   const cameraDistanceRef = useRef(cameraDistance)
+  // camera distance limits (ajuste ici pour rapprocher/éloigner la caméra)
+  const MIN_CAM_DIST = 0
+  const MAX_CAM_DIST = 2
   const stopCounter = useRef(0)
   // keep an unwrapped camera angle so full rotations (±n * 2PI) are tracked
   const cameraUnwrapped = useRef<number | null>(null)
@@ -238,7 +241,7 @@ const POPClemGLTF: React.FC<Props> = ({
     const onWheel = (e: WheelEvent) => {
       // deltaY: positive -> wheel down -> zoom out
       const ZS = 0.02
-      cameraDistanceRef.current = Math.max(1.0, Math.min(12, cameraDistanceRef.current + e.deltaY * ZS))
+  cameraDistanceRef.current = Math.max(MIN_CAM_DIST, Math.min(MAX_CAM_DIST, cameraDistanceRef.current + e.deltaY * ZS))
       // prevent page scroll when adjusting
       e.preventDefault()
     }
@@ -467,7 +470,7 @@ const POPClemGLTF: React.FC<Props> = ({
       
       // apply camera yaw/pitch offsets from mouse drag
       const totalYaw = camYawOffset.current
-      const r = Math.max(1, Math.min(12, cameraDistanceRef.current))
+  const r = Math.max(MIN_CAM_DIST, Math.min(MAX_CAM_DIST, cameraDistanceRef.current))
 
       const baseHeight = cameraHeight * 0.55
       const baseElevation = Math.atan2(baseHeight, r)
