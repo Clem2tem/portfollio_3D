@@ -4,6 +4,7 @@ import { useGLTF, useAnimations } from '@react-three/drei'
 import * as THREE from 'three'
 import { PLAYER_RADIUS, usePrecisePlayerPhysics } from '../hooks/usePrecisePlayerPhysics'
 import { HitboxVisualizer } from './HitboxVisualizer'
+import { usePlayerPosition } from '../contexts/PlayerPositionContext'
 
 type Props = {
   position?: [number, number, number]
@@ -27,7 +28,7 @@ type Props = {
  * - Includes physics system with gravity, jumping and collision detection
  */
 const POPClemGLTF: React.FC<Props> = ({ 
-  position = [0, 1, 1], 
+  position = [0, 1.5, 0], 
   scale = 0.05, 
   maxSpeed = 0.6, 
   playerControlled = false, 
@@ -48,6 +49,9 @@ const POPClemGLTF: React.FC<Props> = ({
   const [playerPosition, setPlayerPosition] = useState(new THREE.Vector3(...position))
   const [showHitboxesState, setShowHitboxesState] = useState(showHitboxes)
   const [hitboxFilter, setHitboxFilter] = useState<'all' | 'island' | 'others'>('all')
+
+  // Player position persistence API (context)
+  const playerPosApi = usePlayerPosition()
 
   // Écouter les touches H/J pour basculer l'affichage et filtrer
   useEffect(() => {
@@ -94,11 +98,37 @@ const POPClemGLTF: React.FC<Props> = ({
 
   // Initialize player position
   useEffect(() => {
-    if (group.current) {
-      // Set initial position from props
-      group.current.position.fromArray(position)
+    // Apply initial position once on mount. If a saved position exists in context, restore it
+    try {
+      const saved = playerPosApi.position
+      if (group.current) {
+        if (saved) {
+          group.current.position.set(saved.x, saved.y, saved.z)
+        } else {
+          group.current.position.fromArray(position)
+        }
+      }
+    } catch (e) {
+      // fallback: just set from props
+      if (group.current) group.current.position.fromArray(position)
     }
-  }, [position])
+  // run only on mount
+  }, [])
+
+  // Persist player position on unmount so remounts can restore it
+  useEffect(() => {
+    return () => {
+      try {
+        if (group.current) {
+          const p = new THREE.Vector3()
+          group.current.getWorldPosition(p)
+          playerPosApi.setPosition({ x: p.x, y: p.y, z: p.z })
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [])
 
   // Initialize collisions with real GLTF objects from the scene
   useEffect(() => {
@@ -733,7 +763,9 @@ const POPClemGLTF: React.FC<Props> = ({
 
   return (
     <>
-      <group ref={group} position={position} scale={[scale, scale, scale]} onClick={onClick} dispose={null}>
+      {/* Do not pass `position` as a prop here to avoid external re-renders resetting the
+          programmatically-updated position; initial pos already set on mount above. */}
+      <group ref={group} scale={[scale, scale, scale]} onClick={onClick} dispose={null}>
         <primitive object={scene} />
       </group>
       

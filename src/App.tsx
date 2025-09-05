@@ -6,6 +6,7 @@ import LoadingScreen from './components/LoadingScreen'
 import CustomCursor from './components/CustomCursor'
 import IntroScreen from './components/IntroScreen'
 import { LoadingProvider, ProgressBridge } from './contexts/LoadingContext'
+import { PlayerPositionProvider } from './contexts/PlayerPositionContext'
 
 function App() {
   const [isNightMode, setIsNightMode] = useState(false)
@@ -27,7 +28,8 @@ function App() {
 
   return (
     <LoadingProvider>
-      <div className="w-full h-screen relative overflow-hidden" style={{ cursor: showIntro ? 'auto' : 'none' }}>
+      <PlayerPositionProvider>
+        <div className="w-full h-screen relative overflow-hidden" style={{ cursor: showIntro ? 'auto' : 'none' }}>
       {/* Écran d'introduction */}
       {showIntro && (
         <IntroScreen onEnterPortfolio={handleEnter3DWorld} />
@@ -79,6 +81,7 @@ function App() {
         <div />
       </Suspense>
       </div>
+      </PlayerPositionProvider>
     </LoadingProvider>
   )
 }
