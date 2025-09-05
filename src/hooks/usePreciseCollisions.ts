@@ -21,9 +21,15 @@ export interface CollisionResult {
   objectName?: string
 }
 
+// Global pointer to the current colliders array so any component can read it
+let GLOBAL_COLLIDERS_REF: { current: Collider[] } | null = null
+export const getCollisionObjectsGlobal = (): Collider[] => GLOBAL_COLLIDERS_REF?.current ?? []
+
 export const usePreciseCollisions = () => {
   const collidersRef = useRef<Collider[]>([])
   const raycasterRef = useRef(new THREE.Raycaster())
+  // expose this ref globally for read-only visualization
+  GLOBAL_COLLIDERS_REF = collidersRef
 
   const buildMergedCollisionGeometry = useCallback((root: THREE.Object3D): THREE.BufferGeometry | null => {
     const geoms: THREE.BufferGeometry[] = []
@@ -129,7 +135,7 @@ export const usePreciseCollisions = () => {
             const away = position.clone().sub(closest)
             if (away.lengthSq() < 1e-10) return false
             away.normalize()
-            const pen = (radius - dist)// petite marge
+            const pen = (radius - dist)
             if (pen > bestPen) {
               bestPen = pen
               bestN.copy(away)
@@ -185,7 +191,7 @@ export const usePreciseCollisions = () => {
       maxStepUp?: number
       maxStepDown?: number
       maxSlopeDeg?: number
-      includeIsland?: boolean // if true include Island meshes in support search; default false (we handle Island separately)
+      includeIsland?: boolean // if true include Island meshes in support search; default false
     }
   ): { y: number; normal: THREE.Vector3 | null; name?: string } => {
     const { maxStepUp = 0.3, maxStepDown = 0.6, maxSlopeDeg = 45, includeIsland = false } = options || {}
@@ -196,7 +202,6 @@ export const usePreciseCollisions = () => {
     const cosMax = Math.cos(THREE.MathUtils.degToRad(maxSlopeDeg))
     const x = position.x
     const z = position.z
-    // Only consider surfaces within the strict step window above and down from the given position
     const yStart = position.y + maxStepUp
     const yMin = position.y - maxStepDown
 
@@ -207,12 +212,10 @@ export const usePreciseCollisions = () => {
     for (const col of collidersRef.current) {
       const isIsland = col.name?.toLowerCase().includes('island')
       if (!includeIsland && isIsland) continue
-      // quick xz AABB reject
       if (x < col.boundingBox.min.x || x > col.boundingBox.max.x || z < col.boundingBox.min.z || z > col.boundingBox.max.z) continue
 
       raycaster.ray.origin.set(x, yStart, z)
       raycaster.ray.direction.set(0, -1, 0)
-      // Intersect this collider; geometry already baked in world space
       const hits = raycaster.intersectObject(col.mesh, false)
       if (!hits || hits.length === 0) continue
 
@@ -220,10 +223,8 @@ export const usePreciseCollisions = () => {
         if (!h.point) continue
         const y = h.point.y
         if (y > yStart + 1e-4 || y < yMin) continue
-        // slope check
         const faceNormal = (h as any).face?.normal as THREE.Vector3 | undefined
         const n = faceNormal ? faceNormal.clone().normalize() : (h.normal ? h.normal.clone().normalize() : new THREE.Vector3(0,1,0))
-        // Keep all slopes for island when included; otherwise enforce slope limit
         const isOkSlope = isIsland || n.y >= cosMax
         if (!isOkSlope) continue
         if (y > bestY) {

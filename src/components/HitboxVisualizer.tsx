@@ -1,6 +1,7 @@
 // HitboxVisualizer.tsx — adapté à la version BVH
 import React, { useMemo } from 'react'
 import * as THREE from 'three'
+import { getCollisionObjectsGlobal } from '../hooks/usePreciseCollisions'
 
 type Collider = {
   name: string
@@ -22,11 +23,14 @@ export const HitboxVisualizer: React.FC<HitboxVisualizerProps> = ({
   visible,
   playerPosition,
   playerRadius = 0.05,
-  colliders = [],
+  colliders,
   showColliderMeshes = true,
   showBoundingBoxes = false,
 }) => {
   if (!visible) return null
+
+  // by default, read from the global store populated by the collisions hook
+  const all = colliders ?? getCollisionObjectsGlobal()
 
   // Matériaux partagés (évite de recréer à chaque render)
   const playerMat = useMemo(
@@ -66,13 +70,7 @@ export const HitboxVisualizer: React.FC<HitboxVisualizerProps> = ({
   )
 
   // Couleur optionnelle par nom d’objet (facultatif)
-  const colorFor = (name: string) => {
-    const n = name.toLowerCase()
-    if (n.includes('island')) return new THREE.Color('blue')
-    if (n.includes('hospital') || n.includes('chu')) return new THREE.Color('yellow')
-    if (n.includes('excavator')) return new THREE.Color('orange')
-    return new THREE.Color('red')
-  }
+  const colorFor = (name: string) => name.toLowerCase().includes('island') ? new THREE.Color('blue') : new THREE.Color('magenta')
 
   return (
     <group>
@@ -83,7 +81,7 @@ export const HitboxVisualizer: React.FC<HitboxVisualizerProps> = ({
       </mesh>
 
       {/* Visualisation des colliders */}
-      {colliders.map((c, i) => {
+  {all.map((c, i) => {
         const color = colorFor(c.name)
 
         return (
