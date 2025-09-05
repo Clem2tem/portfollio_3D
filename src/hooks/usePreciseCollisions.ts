@@ -210,24 +210,38 @@ export const usePreciseCollisions = () => {
     // ---------- Hauteur du sol par raycast vertical (accéléré BVH) ----------
     const getGroundHeight = useCallback((position: THREE.Vector3, yMax: number = 1000): number => {
         const raycaster = raycasterRef.current as THREE.Raycaster & { firstHitOnly?: boolean }
-            ; (raycaster as any).firstHitOnly = true // propriété ajoutée par three-mesh-bvh
+        // pour ce calcul on veut récupérer le (ou les) intersection(s) les plus hautes,
+        // donc on désactive temporairement firstHitOnly pour être sûr d'avoir toutes les intersections
+        const prevFirstHit = (raycaster as any).firstHitOnly
+        ; (raycaster as any).firstHitOnly = false
 
         raycaster.ray.origin.set(position.x, yMax, position.z)
         raycaster.ray.direction.set(0, -1, 0)
 
-        let bestY = -Infinity
-
-        for (const col of collidersRef.current) {
-            // Filtre AABB planimétrique
-            if (position.x < col.boundingBox.min.x || position.x > col.boundingBox.max.x) continue
-            if (position.z < col.boundingBox.min.z || position.z > col.boundingBox.max.z) continue
-
-            const hits = raycaster.intersectObject(col.mesh, false)
-            if (hits.length && hits[0].point.y > bestY) {
-                bestY = hits[0].point.y
-            }
+        // ne prendre en compte que l'île pour le groundHeight
+        const islandCollider = collidersRef.current.find(c => c.name && c.name.toLowerCase().includes('island'))
+        if (!islandCollider) {
+            ; (raycaster as any).firstHitOnly = prevFirstHit
+            return 0
         }
 
+        // filtre AABB planimétrique rapide : si on est hors de l'étendue de l'île, rien
+        if (position.x < islandCollider.boundingBox.min.x || position.x > islandCollider.boundingBox.max.x) {
+            ; (raycaster as any).firstHitOnly = prevFirstHit
+            return 0
+        }
+        if (position.z < islandCollider.boundingBox.min.z || position.z > islandCollider.boundingBox.max.z) {
+            ; (raycaster as any).firstHitOnly = prevFirstHit
+            return 0
+        }
+
+        const hits = raycaster.intersectObject(islandCollider.mesh, false)
+        let bestY = -Infinity
+        for (const h of hits) {
+            if (h && h.point && h.point.y > bestY) bestY = h.point.y
+        }
+
+        ; (raycaster as any).firstHitOnly = prevFirstHit
         return Number.isFinite(bestY) ? bestY : 0
     }, [])
 
