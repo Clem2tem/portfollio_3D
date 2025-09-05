@@ -7,11 +7,12 @@ const GRAVITY = -9.81 * 1.5           // Force de gravité
 const JUMP_FORCE = 4                   // Force du saut
 const MOVE_SPEED = 2                   // Vitesse de déplacement
 const GROUND_FRICTION = 0.98           // Friction au sol (plus proche de 1 = moins de friction)
-const PLAYER_RADIUS = 0.01            // Rayon du joueur pour les collisions (plus large pour éviter les "aspirations" sur murs)
+export const PLAYER_RADIUS = 0.11      // Rayon du joueur pour les collisions (position = pieds; centre sphère = y + R)
 const PLAYER_HEIGHT_OFFSET = 0        // Hauteur du joueur au-dessus du sol
 const MAX_SLOPE_DEG = 40               // Pente max montable (hors Island)
 const MAX_STEP_UP = 0.05               // Hauteur max d'une marche
 const MAX_STEP_DOWN = 0.5              // Descente max par frame
+const EPS = 1e-5                       // petite marge pour éviter l'oscillation et le survol
 
 export const usePrecisePlayerPhysics = () => {
   const velocity = useRef(new THREE.Vector3())
@@ -45,44 +46,59 @@ export const usePrecisePlayerPhysics = () => {
 
     // Mouvement horizontal avec test de collision et stepping
     if (inputVector.length() > 0) {
-      const moveVel = inputVector.clone().normalize().multiplyScalar(MOVE_SPEED * deltaTime)
+      const fullMove = inputVector.clone().normalize().multiplyScalar(MOVE_SPEED * deltaTime)
+      const maxStepDist = Math.max(PLAYER_RADIUS * 0.5, 0.01)
+      const steps = Math.max(1, Math.ceil(fullMove.length() / maxStepDist))
+      const stepVec = fullMove.clone().multiplyScalar(1 / steps)
 
-      // 1) essai direct
-      let candidate = newPosition.clone().add(moveVel)
-      const testCenter = candidate.clone(); testCenter.y += PLAYER_RADIUS + 0.2
-      const hit = checkPreciseCollision(testCenter, PLAYER_RADIUS)
+      for (let s = 0; s < steps; s++) {
+        // 1) essai direct
+        const candidate = newPosition.clone().add(stepVec)
+        const testCenter = candidate.clone(); testCenter.y += PLAYER_RADIUS
+        const hit = checkPreciseCollision(testCenter, PLAYER_RADIUS)
 
-      if (hit.colliding) {
-        // 2) tentative de step-up: uniquement si une surface walkable est trouvée dans la fenêtre de step ET qu'il y a de la place à cette hauteur
-        const support = getSupportBelow(
-          new THREE.Vector3(candidate.x, newPosition.y, candidate.z),
-          { maxStepUp: MAX_STEP_UP, maxStepDown: 0, maxSlopeDeg: MAX_SLOPE_DEG, includeIsland: false }
-        )
-        if (Number.isFinite(support.y) && support.y !== -Infinity) {
-          const stepY = support.y + PLAYER_RADIUS + PLAYER_HEIGHT_OFFSET
-          if (stepY > newPosition.y && stepY - newPosition.y <= MAX_STEP_UP + 1e-4) {
-            // re-tester la collision au niveau relevé (évite d'être "poussé" sur un mur)
-            const stepped = new THREE.Vector3(candidate.x, stepY, candidate.z)
-            const stepCenter = stepped.clone(); stepCenter.y += PLAYER_RADIUS + 0.05
-            const clearance = checkPreciseCollision(stepCenter, PLAYER_RADIUS)
-            if (!clearance.colliding) {
-              newPosition.copy(stepped)
+        if (hit.colliding) {
+          // 2) tentative de step-up sur sous-pas
+          const support = getSupportBelow(
+            new THREE.Vector3(candidate.x, newPosition.y, candidate.z),
+            { maxStepUp: MAX_STEP_UP, maxStepDown: 0, maxSlopeDeg: MAX_SLOPE_DEG, includeIsland: false }
+          )
+          let advanced = false
+          if (Number.isFinite(support.y) && support.y !== -Infinity) {
+            const stepY = support.y + PLAYER_HEIGHT_OFFSET + EPS
+            if (stepY > newPosition.y && stepY - newPosition.y <= MAX_STEP_UP + 1e-4) {
+              const stepped = new THREE.Vector3(candidate.x, stepY, candidate.z)
+              const stepCenter = stepped.clone(); stepCenter.y += PLAYER_RADIUS
+              const clearance = checkPreciseCollision(stepCenter, PLAYER_RADIUS)
+              if (!clearance.colliding) {
+                newPosition.copy(stepped)
+                advanced = true
+              }
             }
           }
-        }
-        // 3) sinon: slide le long du mur en annulant la composante vers l'obstacle
-        if (newPosition.equals(position)) {
+          if (advanced) continue
+
+          // 3) slide le long du mur pour ce sous-pas
           const n = hit.normal.clone().setY(0).normalize()
           if (n.lengthSq() > 1e-6) {
-            const along = moveVel.clone().sub(n.multiplyScalar(moveVel.dot(n)))
-            const alt = position.clone().add(along)
-            const altCenter = alt.clone(); altCenter.y += PLAYER_RADIUS + 0.2
+            const along = stepVec.clone().sub(n.multiplyScalar(stepVec.dot(n)))
+            const alt = newPosition.clone().add(along)
+            const altCenter = alt.clone(); altCenter.y += PLAYER_RADIUS
             const col2 = checkPreciseCollision(altCenter, PLAYER_RADIUS)
-            if (!col2.colliding) newPosition.copy(alt)
+            if (!col2.colliding) {
+              newPosition.copy(alt)
+              continue
+            }
           }
+
+          // 4) dernière option: résolution par poussée hors de la géométrie
+          const resolvedCenter = testCenter.clone().addScaledVector(hit.normal, hit.penetration + EPS)
+          const resolvedFeet = resolvedCenter.clone(); resolvedFeet.y -= PLAYER_RADIUS
+          newPosition.copy(resolvedFeet)
+          // ne pas avancer davantage ce sous-pas
+        } else {
+          newPosition.copy(candidate)
         }
-      } else {
-        newPosition.copy(candidate)
       }
     }
 
@@ -95,16 +111,17 @@ export const usePrecisePlayerPhysics = () => {
       { maxStepUp: MAX_STEP_UP, maxStepDown: MAX_STEP_DOWN, maxSlopeDeg: MAX_SLOPE_DEG, includeIsland: false }
     )
 
-    // Island minimum: assure rester au-dessus de l'île même hors autres supports
+  // Island minimum: assure rester au-dessus de l'île même hors autres supports
     const islandY = getGroundHeight(newPosition.clone())
     const minGroundY = Number.isFinite(islandY) ? islandY : -Infinity
 
     // Le support prioritaire est celui non-Island s'il existe et est au-dessus de l'île; sinon on colle à l'île
     const targetSupportY = (support.y !== -Infinity) ? Math.max(support.y, minGroundY) : minGroundY
-    const targetY = targetSupportY + PLAYER_RADIUS + PLAYER_HEIGHT_OFFSET
+  // Place les PIEDS au niveau du support (plus un léger epsilon); le centre de la sphère est alors à y + PLAYER_RADIUS
+  const targetY = targetSupportY + PLAYER_HEIGHT_OFFSET + EPS
 
     // Atterrissage / accrochage au sol si on descend
-    if (newPosition.y <= targetY + 1e-4 && velocity.current.y <= 0) {
+    if (newPosition.y <= targetY + EPS && velocity.current.y <= 0) {
       newPosition.y = targetY
       velocity.current.y = 0
       isGrounded.current = true
@@ -115,9 +132,9 @@ export const usePrecisePlayerPhysics = () => {
     } else {
       // si on est au-dessus mais qu'on a quitté un support, on peut tomber jusqu'à Island ou autre
       isGrounded.current = false
-      // éviter de passer sous l'île si on tombe plus bas que min island Y
-      if (newPosition.y < (minGroundY + PLAYER_RADIUS + PLAYER_HEIGHT_OFFSET)) {
-        newPosition.y = minGroundY + PLAYER_RADIUS + PLAYER_HEIGHT_OFFSET
+      // éviter de passer sous l'île: pieds >= islandY
+      if (newPosition.y < (minGroundY + PLAYER_HEIGHT_OFFSET + EPS)) {
+        newPosition.y = minGroundY + PLAYER_HEIGHT_OFFSET + EPS
         velocity.current.y = Math.max(0, velocity.current.y)
         isGrounded.current = true
       }

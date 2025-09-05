@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, MutableRefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGLTF, useAnimations } from '@react-three/drei'
 import * as THREE from 'three'
-import { usePrecisePlayerPhysics } from '../hooks/usePrecisePlayerPhysics'
+import { PLAYER_RADIUS, usePrecisePlayerPhysics } from '../hooks/usePrecisePlayerPhysics'
 import { HitboxVisualizer } from './HitboxVisualizer'
 
 type Props = {
@@ -679,9 +679,9 @@ const POPClemGLTF: React.FC<Props> = ({
       <HitboxVisualizer
         visible={showHitboxesState}
         playerPosition={playerPosition}
-        playerRadius={0.05}
+        playerRadius={PLAYER_RADIUS}
         colliders={collisionObjects}
-  filterMode={hitboxFilter}
+        filterMode={hitboxFilter}
       />
     </>
   )

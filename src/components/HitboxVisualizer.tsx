@@ -2,6 +2,7 @@
 import React, { useMemo } from 'react'
 import * as THREE from 'three'
 import { getCollisionObjectsGlobal } from '../hooks/usePreciseCollisions'
+import { PLAYER_RADIUS as PHYS_PLAYER_RADIUS } from '../hooks/usePrecisePlayerPhysics'
 
 type Collider = {
   name: string
@@ -33,6 +34,9 @@ export const HitboxVisualizer: React.FC<HitboxVisualizerProps> = ({
 
   // by default, read from the global store populated by the collisions hook
   const all = colliders ?? getCollisionObjectsGlobal()
+
+  // Radius to render: prefer prop if given, else physics export
+  const radius = playerRadius ?? PHYS_PLAYER_RADIUS
 
   // Filtrer selon le mode sélectionné
   const filtered = useMemo(() => {
@@ -85,8 +89,8 @@ export const HitboxVisualizer: React.FC<HitboxVisualizerProps> = ({
   return (
     <group>
       {/* Sphère de collision du joueur (centrée à y + radius si c'est ta convention) */}
-      <mesh position={[playerPosition.x, playerPosition.y + playerRadius, playerPosition.z]}>
-        <sphereGeometry args={[playerRadius, 12, 12]} />
+      <mesh position={[playerPosition.x, playerPosition.y + radius, playerPosition.z]}>
+        <sphereGeometry args={[radius, 12, 12]} />
         <primitive object={playerMat} attach="material" />
       </mesh>
 
