@@ -53,6 +53,34 @@ const POPClemGLTF: React.FC<Props> = ({
   // Player position persistence API (context)
   const playerPosApi = usePlayerPosition()
 
+  // React to external focus/position requests (e.g. when clicking a building)
+useEffect(() => {
+  const req = playerPosApi.position
+  if (!req || !group.current) return
+  try {
+    // Smoothly move the player to the requested position over a short period.
+    const target = new THREE.Vector3(req.x, req.y, req.z)
+    // if parented, convert to local
+    if (group.current.parent) {
+      const inv = new THREE.Matrix4().copy(group.current.parent.matrixWorld).invert()
+      target.applyMatrix4(inv)
+    }
+    // immediate set to avoid physics fight; leave physics to reconcile next frames
+    group.current.position.lerp(target, 1)
+    // if a lookAt is provided, set the camera to face it briefly by storing to a custom flag on window
+    if (req.lookAt) {
+      try {
+        // small helper: set a global requested camera lookAt so Scene/POPClem can pick it up if needed
+        ;(window as any).__requestedCameraLookAt = { x: req.lookAt.x, y: req.lookAt.y ?? 0, z: req.lookAt.z }
+      } catch (e) {}
+    }
+  } catch (e) {
+    // ignore
+  }
+  // clear the request after applying once
+  playerPosApi.clearPosition()
+}, [playerPosApi.position])
+
   // Écouter les touches H/J pour basculer l'affichage et filtrer
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {

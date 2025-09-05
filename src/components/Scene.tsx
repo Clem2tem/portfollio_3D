@@ -83,7 +83,33 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, onAnimationComplete }) => {
   }, [gl])
 
   // Synchronize spotlight position with camera + animation de caméra
-  useFrame(() => {
+  // small helper to smoothly apply an externally-requested lookAt (set by ProjectBuildings)
+  const requestedLookAtRef = useRef<THREE.Vector3 | null>(null)
+const lookAtExpireRef = useRef<number | null>(null)
+useFrame(() => {
+    // If an external lookAt was requested via window.__requestedCameraLookAt, pick it up and expire after a short time
+    const req = (window as any).__requestedCameraLookAt as { x: number; y: number; z: number } | undefined
+  if (req) {
+    requestedLookAtRef.current = new THREE.Vector3(req.x, req.y, req.z)
+    lookAtExpireRef.current = Date.now() + 3000 // keep focus for 3s by default
+    // remove the global request so it won't be re-read repeatedly
+    try { delete (window as any).__requestedCameraLookAt } catch (e) {}
+  }
+  // if we have an active requested lookAt, move camera to frame it smoothly
+  const nowMs = Date.now()
+  if (requestedLookAtRef.current && lookAtExpireRef.current && nowMs < lookAtExpireRef.current) {
+    const target = requestedLookAtRef.current
+    // desired camera offset relative to the target so the building and player are visible near center/top
+    const desiredCam = new THREE.Vector3(target.x + 0.6, target.y + PLAYER_CAM_HEIGHT, target.z + PLAYER_CAM_DISTANCE * 0.6)
+    camera.position.lerp(desiredCam, 0.08)
+    camera.lookAt(target)
+    // continue with rest of frame logic (lighting update) below
+  } else if (lookAtExpireRef.current && nowMs >= (lookAtExpireRef.current || 0)) {
+    // expired: clear refs so normal camera behavior resumes
+    requestedLookAtRef.current = null
+    lookAtExpireRef.current = null
+  }
+    
     // Gérer l'animation de caméra
     if (animationState?.isAnimating) {
       const elapsed = Date.now() - animationState.startTime

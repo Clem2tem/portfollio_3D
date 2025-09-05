@@ -6,6 +6,7 @@ import CustomCursor from './components/CustomCursor'
 import IntroScreen from './components/IntroScreen'
 import { LoadingProvider, ProgressBridge } from './contexts/LoadingContext'
 import { PlayerPositionProvider } from './contexts/PlayerPositionContext'
+import { ProjectViewProvider } from './contexts/ProjectViewContext'
 
 function App() {
   const [isNightMode, setIsNightMode] = useState(false)
@@ -28,6 +29,7 @@ function App() {
   return (
     <LoadingProvider>
       <PlayerPositionProvider>
+        <ProjectViewProvider>
         <div className="w-full h-screen relative overflow-hidden" style={{ cursor: showIntro ? 'auto' : 'none' }}>
       {/* Écran d'introduction */}
       {showIntro && (
@@ -75,6 +77,7 @@ function App() {
       {/* Curseur personnalisé - masqué pendant l'intro */}
       {!showIntro && <CustomCursor />}
       </div>
+        </ProjectViewProvider>
       </PlayerPositionProvider>
     </LoadingProvider>
   )

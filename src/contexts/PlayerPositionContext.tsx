@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState } from 'react'
 
-type SimplePos = { x: number; y: number; z: number } | null
+type LookAt = { x: number; y?: number; z: number }
+
+type PlayerFocus = { x: number; y: number; z: number; lookAt?: LookAt } | null
 
 type PlayerPositionAPI = {
-  position: SimplePos
-  setPosition: (p: SimplePos) => void
+  position: PlayerFocus
+  setPosition: (p: PlayerFocus) => void
   clearPosition: () => void
 }
 
@@ -17,7 +19,7 @@ const PlayerPositionContext = createContext<PlayerPositionAPI>({
 })
 
 export const PlayerPositionProvider: React.FC<React.PropsWithChildren<Record<string, unknown>>> = ({ children }) => {
-  const [position, setPosition] = useState<SimplePos>(null)
+  const [position, setPosition] = useState<PlayerFocus>(null)
 
   const api: PlayerPositionAPI = {
     position,
