@@ -7,7 +7,7 @@ const GRAVITY = -9.81 * 1.5           // Force de gravité
 const JUMP_FORCE = 4                   // Force du saut
 const MOVE_SPEED = 2                   // Vitesse de déplacement
 const GROUND_FRICTION = 0.98           // Friction au sol (plus proche de 1 = moins de friction)
-const PLAYER_RADIUS = 0.15             // Rayon du joueur pour les collisions (plus large pour éviter les "aspirations" sur murs)
+const PLAYER_RADIUS = 0.05             // Rayon du joueur pour les collisions (plus large pour éviter les "aspirations" sur murs)
 const PLAYER_HEIGHT_OFFSET = 0        // Hauteur du joueur au-dessus du sol
 const MAX_SLOPE_DEG = 40               // Pente max montable (hors Island)
 const MAX_STEP_UP = 0.25               // Hauteur max d'une marche

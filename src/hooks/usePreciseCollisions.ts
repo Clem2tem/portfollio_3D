@@ -129,7 +129,7 @@ export const usePreciseCollisions = () => {
             const away = position.clone().sub(closest)
             if (away.lengthSq() < 1e-10) return false
             away.normalize()
-            const pen = (radius - dist) * 1.05 // petite marge
+            const pen = (radius - dist)// petite marge
             if (pen > bestPen) {
               bestPen = pen
               bestN.copy(away)
