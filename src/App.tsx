@@ -2,7 +2,6 @@ import { Canvas } from '@react-three/fiber'
 import { Suspense, useState } from 'react'
 import Scene from './components/Scene'
 import UI from './components/UI'
-import LoadingScreen from './components/LoadingScreen'
 import CustomCursor from './components/CustomCursor'
 import IntroScreen from './components/IntroScreen'
 import { LoadingProvider, ProgressBridge } from './contexts/LoadingContext'
@@ -75,11 +74,6 @@ function App() {
 
       {/* Curseur personnalisé - masqué pendant l'intro */}
       {!showIntro && <CustomCursor />}
-
-      {/* Loading screen */}
-      <Suspense fallback={<LoadingScreen />}>
-        <div />
-      </Suspense>
       </div>
       </PlayerPositionProvider>
     </LoadingProvider>

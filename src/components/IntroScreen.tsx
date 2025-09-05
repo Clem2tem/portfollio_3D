@@ -7,6 +7,13 @@ interface IntroScreenProps {
 
 const IntroScreen: React.FC<IntroScreenProps> = ({ onEnterPortfolio }) => {
   const { progress, loaded } = useLoading()
+
+  const [delayedLoaded, setDelayedLoaded] = React.useState(loaded)
+              React.useEffect(() => {
+                const id = setTimeout(() => setDelayedLoaded(loaded), 1000)
+                return () => clearTimeout(id)
+              }, [loaded])
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-purple-900/30 via-blue-900/30 to-indigo-900/30 backdrop-blur-sm">
       {/* Fond animé avec particules */}
@@ -74,13 +81,13 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ onEnterPortfolio }) => {
 
         {/* Bouton d'entrée */}
         <button
-          onClick={() => { if (loaded) onEnterPortfolio() }}
-          disabled={!loaded}
+          onClick={() => { if (delayedLoaded) onEnterPortfolio() }}
+          disabled={!delayedLoaded}
           className={`group relative px-12 py-4 text-white font-semibold text-lg rounded-full transition-all duration-300 shadow-lg animate-fade-in-up animation-delay-1200 ${loaded ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 hover:scale-105' : 'bg-gray-700/60 cursor-not-allowed'}`}
-          aria-disabled={!loaded}
+          aria-disabled={!delayedLoaded}
         >
           <span className="relative z-10 flex items-center gap-3">
-            {loaded ? 'Entrez dans mon monde !' : `Chargement ${Math.round(progress)}%`}
+            {delayedLoaded ? 'Entrez dans mon monde !' : `Chargement ${Math.round(progress)}%`}
             <svg className={`w-6 h-6 transition-transform duration-300 ${loaded ? 'group-hover:translate-x-1' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>

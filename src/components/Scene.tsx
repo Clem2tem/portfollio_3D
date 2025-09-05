@@ -29,6 +29,12 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, onAnimationComplete }) => {
   // Toggle third-person player control for POPClem (true => camera is driven behind the player)
   const PLAYER_CONTROLLED = true
 
+  // Keep player camera defaults here so Scene and POPClemGLTF stay in sync
+  // Use a close, slightly elevated default so the camera starts near the player on scene load.
+  // Matches the requested default: distance 0.5, slightly above.
+  const PLAYER_CAM_DISTANCE = 0.5
+  const PLAYER_CAM_HEIGHT = 0.8
+
   // Animation de caméra
   const [animationState, setAnimationState] = useState<{
     isAnimating: boolean
@@ -41,6 +47,17 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, onAnimationComplete }) => {
   const easeOutCubic = (t: number): number => {
     return 1 - Math.pow(1 - t, 3)
   }
+
+  // Ensure camera starts slightly above and behind the player instead of using Canvas default
+  useEffect(() => {
+    try {
+      // place camera behind and slightly above the player using the player camera defaults
+      camera.position.set(0, PLAYER_CAM_HEIGHT, PLAYER_CAM_DISTANCE)
+      camera.lookAt(0, 0, 0)
+    } catch (e) {
+      // ignore if three not ready
+    }
+  }, [camera])
 
 
   // Empêcher le comportement de drag du canvas
@@ -273,13 +290,13 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, onAnimationComplete }) => {
       </mesh>
 
   <POPClemGLTF 
-    position={[0, 1, 1]} 
-    scale={0.02} 
-    playerControlled={PLAYER_CONTROLLED} 
-    moveSpeed={2.2} 
-    cameraDistance={4} 
-    cameraHeight={2.2} 
-    showHitboxes={false} 
+  position={[0, 1, 1]} 
+  scale={0.02} 
+  playerControlled={PLAYER_CONTROLLED} 
+  moveSpeed={2.2} 
+  cameraDistance={PLAYER_CAM_DISTANCE} 
+  cameraHeight={PLAYER_CAM_HEIGHT} 
+  showHitboxes={false} 
   />
 
       {/* Fog pour l'atmosphère adaptatif */}
