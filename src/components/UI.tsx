@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import ContactModal from './ContactModal'
 import { useProjectView } from '../contexts/ProjectViewContext'
 
@@ -9,19 +9,8 @@ interface UIProps {
 
 const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode }) => {
   // Use global project view state so camera-driven selection can show details here
-  const { viewedProject, setViewedProject } = useProjectView()
+  const { viewedProject, setViewedProject, panelVisible, setPanelVisible } = useProjectView()
   const [showContactModal, setShowContactModal] = useState(false)
-  const [panelVisible, setPanelVisible] = useState(false)
-
-  // open panel when a project is selected
-  useEffect(() => {
-    if (viewedProject) {
-      const t = setTimeout(() => setPanelVisible(true), 10)
-      return () => clearTimeout(t)
-    }
-    setPanelVisible(false)
-    return undefined
-  }, [viewedProject])
 
   return (
     <>

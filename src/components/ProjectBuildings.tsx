@@ -1,270 +1,149 @@
-import ExcavatorGLTF from './ExcavatorGLTF';
-
-// Composant pour gérer l'affichage du logo techno avec fallback texte
-type TechLogoProps = {
-    tech: string;
-};
-
-const TechLogo: React.FC<TechLogoProps> = ({ tech }) => {
-    const techKey = tech.replace(/\s+/g, "_");
-    const pngPath = `/logos/${techKey}.png`;
-    const jpgPath = `/logos/${techKey}.jpg`;
-    const svgPath = `/logos/${techKey}.svg`;
-    const [imgSrc, setImgSrc] = React.useState<string | null>(pngPath);
-    React.useEffect(() => {
-        setImgSrc(pngPath);
-    }, [tech]);
-    if (imgSrc) {
-        return (
-            <img
-                src={imgSrc}
-                alt={tech}
-                className="w-8 h-8 object-contain rounded cursor-none min-w-[70px] max-w-[70px] min-h-[70px] max-h-[70px] p-1"
-                onError={() => {
-                    if (imgSrc === pngPath) setImgSrc(jpgPath);
-                    else if (imgSrc === jpgPath) setImgSrc(svgPath);
-                    else setImgSrc(null);
-                }}
-                style={{ display: imgSrc ? 'inline-block' : 'none' }}
-            />
-        );
-    }
-    return (
-        <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded cursor-none min-w-[70px] w-[70px] max-w-[70px] text-center">
-            {tech}
-        </span>
-    );
-};
-import React, { useState, useRef } from 'react'
-
-import { useFrame, useThree } from '@react-three/fiber'
-import { Box, Cone, Html} from '@react-three/drei'
-import HospitalGLTF from './HospitalGLTF';
+import React, { useEffect, useRef, useState } from 'react'
+import { useFrame } from '@react-three/fiber'
+import { Html, Box } from '@react-three/drei'
 import * as THREE from 'three'
+import ExcavatorGLTF from './ExcavatorGLTF'
+import HospitalGLTF from './HospitalGLTF'
 import { projects } from '../data/projects'
 import { Project } from '../types/Project'
 import { useProjectView } from '../contexts/ProjectViewContext'
+import { usePlayerPosition } from '../contexts/PlayerPositionContext'
 
 interface ProjectBuildingsProps {
-  isNightMode?: boolean
+    isNightMode?: boolean
 }
 
+// Renders buildings and auto-selects the project nearest to the player's XZ position.
 const ProjectBuildings: React.FC<ProjectBuildingsProps> = ({ isNightMode = false }) => {
+    const buildingsRef = useRef<THREE.Group | null>(null)
+
+    const { viewedProject, viewProjectById } = useProjectView()
+    const { position: playerPosition } = usePlayerPosition()
+
+    // timers (DOM setTimeout returns number in browser env)
+    const nearestTimer = useRef<number | null>(null)
+    const lastAutoSelectAt = useRef<number>(0)
+    const AUTOSELECT_COOLDOWN_MS = 800
+    const AUTOSELECT_DEBOUNCE_MS = 250
+
+    // hover state for top bubble UI (managed by pointer events on each building)
     const [hoveredProject, setHoveredProject] = useState<string | null>(null)
-    const { camera } = useThree()
-    const buildingsRef = useRef<THREE.Group>(null)
+    const [techIndex, setTechIndex] = useState(0)
+    const [lastHoveredProjectData, setLastHoveredProjectData] = useState<Project | null>(null)
 
+    useEffect(() => {
+        return () => {
+            if (nearestTimer.current) {
+                window.clearTimeout(nearestTimer.current)
+                nearestTimer.current = null
+            }
+        }
+    }, [])
+
+    // Auto-select the nearest project to the player's XZ position.
     useFrame(() => {
-        // Animation de flottement pour les bâtiments survolés
-        if (buildingsRef.current) {
-            buildingsRef.current.children.forEach((building) => {
+        if (!playerPosition) return
+        const px = playerPosition.x
+        const pz = playerPosition.z
 
-                // Orientation des bâtiments pour qu'ils regardent vers l'extérieur
-                const worldPos = new THREE.Vector3()
-                building.getWorldPosition(worldPos)
-                const angle = Math.atan2(worldPos.x, worldPos.z)
-                building.rotation.y = angle
-            })
+        let nearest: Project | null = null
+        let nearestDistSq = Infinity
+        for (const p of projects) {
+            const dx = p.position[0] - px
+            const dz = p.position[2] - pz
+            const d2 = dx * dx + dz * dz
+            if (d2 < nearestDistSq) {
+                nearestDistSq = d2
+                nearest = p
+            }
+        }
+        if (!nearest) return
+
+        const now = Date.now()
+        if (now - lastAutoSelectAt.current < AUTOSELECT_COOLDOWN_MS) return
+
+        // If nearest changed, (re)start debounce timer
+        if (nearest.id !== viewedProject?.id) {
+            if (nearestTimer.current) {
+                window.clearTimeout(nearestTimer.current)
+                nearestTimer.current = null
+            }
+            nearestTimer.current = window.setTimeout(() => {
+                viewProjectById(nearest!.id)
+                lastAutoSelectAt.current = Date.now()
+                if (nearestTimer.current) {
+                    window.clearTimeout(nearestTimer.current)
+                    nearestTimer.current = null
+                }
+            }, AUTOSELECT_DEBOUNCE_MS) as unknown as number
         }
     })
-    // (selection visual effects removed here; selection is handled globally in UI)
 
-    const { setViewedProject } = useProjectView()
+    // simple outward-facing rotation so buildings look natural
+    useFrame(() => {
+        if (!buildingsRef.current) return
+        buildingsRef.current.children.forEach((building) => {
+            const worldPos = new THREE.Vector3()
+            building.getWorldPosition(worldPos)
+            const angle = Math.atan2(worldPos.x, worldPos.z)
+            building.rotation.y = angle
+        })
+    })
+
+    useEffect(() => {
+        const found = projects.find((p) => p.id === hoveredProject)
+        if (found) setLastHoveredProjectData(found)
+    }, [hoveredProject])
+
+    const handleBuildingClick = (projectId: string, e?: any) => {
+        e?.stopPropagation()
+        viewProjectById(projectId)
+        // set cooldown so auto-select won't immediately override a manual click
+        lastAutoSelectAt.current = Date.now()
+        if (nearestTimer.current) {
+            window.clearTimeout(nearestTimer.current)
+            nearestTimer.current = null
+        }
+    }
 
     const BuildingComponent: React.FC<{ project: Project }> = ({ project }) => {
-        const meshRef = useRef<THREE.Group>(null)
-        const [isVisible, setIsVisible] = useState(true)
-        // Calcul de la visibilité, mais ne doit pas impacter l'animation
-        useFrame((state) => {
-            if (meshRef.current) {
-                const worldPos = new THREE.Vector3()
-                meshRef.current.getWorldPosition(worldPos)
-                const cameraDirection = new THREE.Vector3()
-                state.camera.getWorldDirection(cameraDirection)
-                const toBuildingDirection = new THREE.Vector3()
-                toBuildingDirection.subVectors(worldPos, state.camera.position).normalize()
-                const dot = cameraDirection.dot(toBuildingDirection)
-                setIsVisible(dot > -0.3)
-            }
-        })
-
-        const handleClick = (event: any) => {
-            if (!isVisible) return
-            event.stopPropagation()
-            // open project in the static UI
-            try { setViewedProject(project) } catch (e) { }
-            console.log('Project clicked:', project.title)
-        }
-
-        const renderBuilding = () => {
-            // Ne pas changer l'apparence du bâtiment lors du hover
-            const baseColor = isVisible ? '#374151' : '#1f2937';
-            const roofColor = isVisible ? '#1f2937' : '#111827';
-            // hospitalColor et hospitalRoofColor inutiles avec le modèle GLTF
-            const emissiveIntensity = 0;
-
-
-            switch (project.buildingType) {
-                case 'hospital':
-                    // Affiche le modèle GLTF CHU
-                    return <HospitalGLTF position={project.position} />;
-                case 'office':
-                    return (
-                        <>
-                            {/* Tour principale */}
-                            <Box args={[0.6, 1.5, 0.6]} position={[0, 0.75, 0]}>
-                                <meshStandardMaterial
-                                    color={baseColor}
-                                    emissive={baseColor}
-                                    emissiveIntensity={emissiveIntensity}
-                                />
-                            </Box>
-                            {/* Fenêtres */}
-                            {Array.from({ length: 6 }).map((_, i) => (
-                                <Box key={i} args={[0.15, 0.15, 0.02]} position={[-0.2, 0.3 + i * 0.2, 0.31]}>
-                                    <meshStandardMaterial
-                                        color="#fbbf24"
-                                        emissive="#fbbf24"
-                                        emissiveIntensity={0.4}
-                                    />
-                                </Box>
-                            ))}
-                            {Array.from({ length: 6 }).map((_, i) => (
-                                <Box key={i + 6} args={[0.15, 0.15, 0.02]} position={[0.2, 0.3 + i * 0.2, 0.31]}>
-                                    <meshStandardMaterial
-                                        color="#fbbf24"
-                                        emissive="#fbbf24"
-                                        emissiveIntensity={0.4}
-                                    />
-                                </Box>
-                            ))}
-                        </>
-                    )
-                case 'school':
-                    return (
-                        <>
-                            {/* Bâtiment principal */}
-                            <Box args={[1, 0.8, 0.8]} position={[0, 0.4, 0]}>
-                                <meshStandardMaterial
-                                    color={baseColor}
-                                    emissive={baseColor}
-                                    emissiveIntensity={emissiveIntensity}
-                                />
-                            </Box>
-                            {/* Toit en pente */}
-                            <Cone args={[0.8, 0.4, 4]} position={[0, 1, 0]} rotation={[0, Math.PI / 4, 0]}>
-                                <meshStandardMaterial
-                                    color={roofColor}
-                                    emissive={roofColor}
-                                    emissiveIntensity={emissiveIntensity}
-                                />
-                            </Cone>
-                            {/* Clocher */}
-                            <Box args={[0.2, 0.6, 0.2]} position={[0.3, 1, 0]}>
-                                <meshStandardMaterial
-                                    color={baseColor}
-                                    emissive={baseColor}
-                                    emissiveIntensity={emissiveIntensity}
-                                />
-                            </Box>
-                        </>
-                    )
-                case 'factory':
-                    // On ne rend rien ici, le modèle animé est monté globalement
-                    return null;
-                default:
-                    return (
-                        <Box args={[0.8, 1, 0.8]} position={[0, 0.5, 0]}>
-                            <meshStandardMaterial
-                                color={baseColor}
-                                emissive={baseColor}
-                                emissiveIntensity={emissiveIntensity}
-                            />
-                        </Box>
-                    )
-            }
-        }
-
         return (
             <group
-                ref={meshRef}
-                position={project.position}
-                onClick={handleClick}
+                position={project.position as unknown as [number, number, number]}
+                onClick={(e) => handleBuildingClick(project.id, e)}
+                onPointerOver={() => setHoveredProject(project.id)}
+                onPointerOut={() => setHoveredProject(null)}
             >
-                {renderBuilding()}
+                {project.buildingType === 'hospital' ? (
+                    <HospitalGLTF position={project.position} />
+                ) : project.buildingType === 'factory' ? null : project.buildingType === 'office' ? (
+                    <>
+                        <Box args={[0.6, 1.5, 0.6]} position={[0, 0.75, 0]}>
+                            <meshStandardMaterial color={'#374151'} emissive={'#374151'} emissiveIntensity={0} />
+                        </Box>
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <Box key={i} args={[0.15, 0.15, 0.02]} position={[-0.2, 0.3 + i * 0.2, 0.31]}>
+                                <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.4} />
+                            </Box>
+                        ))}
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <Box key={i + 6} args={[0.15, 0.15, 0.02]} position={[0.2, 0.3 + i * 0.2, 0.31]}>
+                                <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.4} />
+                            </Box>
+                        ))}
+                    </>
+                ) : (
+                    <Box args={[0.8, 1, 0.8]} position={[0, 0.5, 0]}>
+                        <meshStandardMaterial color={'#374151'} emissive={'#374151'} emissiveIntensity={0} />
+                    </Box>
+                )}
             </group>
         )
     }
 
-    useFrame(() => {
-        // Gestion du hover pour tous les bâtiments SAUF l'usine (factory)
-        if (buildingsRef.current) {
-            buildingsRef.current.children.forEach((building, index) => {
-                const project = projects[index];
-                if (project.buildingType === 'factory') return; // On gère l'usine à part
-                let hovered = false;
-                building.traverse((child: any) => {
-                    if (child.isMesh) {
-                        const worldPos = new THREE.Vector3();
-                        child.getWorldPosition(worldPos);
-                        const angleDiff = Math.atan2(worldPos.x, worldPos.z) - Math.atan2(camera.position.x, camera.position.z);
-                        if (Math.abs(angleDiff) < Math.PI / 12) {
-                            hovered = true;
-                        }
-                    }
-                });
-                if (hovered) {
-                    if (hoveredProject !== project.id) {
-                        setTechIndex(0); // Reset tech index when hovering a new project
-                    }
-                    setHoveredProject(project.id);
-                } else if (hoveredProject === project.id) {
-                    setHoveredProject(null);
-                }
-            });
-        }
+    const hoveredProjectData = projects.find((p) => p.id === hoveredProject) || lastHoveredProjectData
+    const factoryProject = projects.find((p) => p.buildingType === 'factory')
 
-        // Gestion du hover pour l'excavator (usine)
-        const factory = projects.find(p => p.buildingType === 'factory');
-        if (factory) {
-            // Centre de la scène (0,0,0)
-            const center = new THREE.Vector3(0, 0, 0);
-            const excavatorPos = new THREE.Vector3(...factory.position);
-            // Vecteur du centre vers excavator
-            const dirToExcavator = excavatorPos.clone().sub(center).setY(0).normalize();
-            // Vecteur du centre vers la caméra
-            const camPos = camera.position.clone();
-            const dirToCamera = camPos.clone().sub(center).setY(0).normalize();
-            // Calcul de l'angle entre les deux vecteurs
-            const angle = dirToExcavator.angleTo(dirToCamera); // en radians
-            const angleThreshold = Math.PI / 12; // ~15°
-            if (angle < angleThreshold) {
-                if (hoveredProject !== factory.id) {
-                    setTechIndex(0);
-                }
-                setHoveredProject(factory.id);
-            } else if (hoveredProject === factory.id) {
-                setHoveredProject(null);
-            }
-        }
-    });
-
-    // Affichage de la bulle d'infos projet survolé en haut de l'écran
-
-    // On garde en mémoire le dernier hoveredProjectData et techIndex valides
-    const [techIndex, setTechIndex] = useState(0);
-    const [lastHoveredProjectData, setLastHoveredProjectData] = useState<Project | null>(null);
-    const hoveredProjectData = projects.find(p => p.id === hoveredProject) || lastHoveredProjectData;
-
-    React.useEffect(() => {
-        const found = projects.find(p => p.id === hoveredProject);
-        if (found) {
-            setLastHoveredProjectData(found);
-        }
-    }, [hoveredProject]);
-
-    // Chercher la position du projet factory
-    const factoryProject = projects.find(p => p.buildingType === 'factory');
     return (
         <>
             <group ref={buildingsRef}>
@@ -272,71 +151,19 @@ const ProjectBuildings: React.FC<ProjectBuildingsProps> = ({ isNightMode = false
                     <BuildingComponent key={project.id} project={project} />
                 ))}
             </group>
-            {/* On monte le modèle excavator animé une seule fois, à la bonne position */}
+
             {factoryProject && <ExcavatorGLTF position={factoryProject.position} />}
 
-            {/* Bulle d'infos projet survolé, statique en haut de l'écran */}
-            <Html
-                as="div"
-                center
-                occlude={false}
-                className="cursor-none"
-                style={{
-                    position: 'fixed',
-                    top: "-45vh",
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    zIndex: 100,
-                    pointerEvents: 'auto',
-                    width: 'auto',
-                    opacity: hoveredProject ? 1 : 0,
-                    transition: 'opacity 0.2s ease-in-out',
-                }}
-            >
+            <Html as="div" center occlude={false} className="cursor-none" style={{ position: 'fixed', top: '-45vh', left: '50%', transform: 'translateX(-50%)', zIndex: 100, pointerEvents: 'auto', width: 'auto', opacity: hoveredProject ? 1 : 0, transition: 'opacity 0.2s ease-in-out' }}>
                 <div className={`${isNightMode ? 'text-white' : 'text-gray-900'} max-w-xl cursor-none`}>
                     <div className={`flex inline-flex items-center gap-2 rounded-lg p-3`}>
-                        <div
-                            className="flex items-center gap-2 absolute w-[140px] -left-[140px] top-1/2 -translate-y-1/2 pointer-events-auto"
-                            style={{ width: 120 }}
-                        >
-                            <button
-                                className={`${isNightMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-800'} transition-colors px-1 cursor-none`}
-                                onClick={e => {
-                                    e.stopPropagation();
-                                    setTechIndex((prev) => {
-                                        if (!hoveredProjectData || !hoveredProjectData.technologies) return 0;
-                                        return prev === 0
-                                            ? hoveredProjectData.technologies.length - 1
-                                            : prev - 1;
-                                    });
-                                }}
-                                tabIndex={-1}
-                                aria-label="Précédent"
-                            >
-                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                </svg>
+                        <div className="flex items-center gap-2 absolute w-[140px] -left-[140px] top-1/2 -translate-y-1/2 pointer-events-auto" style={{ width: 120 }}>
+                            <button className={`${isNightMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-800'} transition-colors px-1 cursor-none`} onClick={e => { e.stopPropagation(); setTechIndex((prev) => { if (!hoveredProjectData || !hoveredProjectData.technologies) return 0; return prev === 0 ? hoveredProjectData.technologies.length - 1 : prev - 1; }); }} tabIndex={-1} aria-label="Précédent">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                             </button>
-                            {hoveredProjectData && hoveredProjectData.technologies ? (
-                                <TechLogo tech={hoveredProjectData.technologies[techIndex] || hoveredProjectData.technologies[0]} />
-                            ) : null}
-                            <button
-                                className={`${isNightMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors px-1 cursor-none`}
-                                onClick={e => {
-                                    e.stopPropagation();
-                                    setTechIndex((prev) => {
-                                        if (!hoveredProjectData || !hoveredProjectData.technologies) return 0;
-                                        return prev === hoveredProjectData.technologies.length - 1
-                                            ? 0
-                                            : prev + 1;
-                                    });
-                                }}
-                                tabIndex={-1}
-                                aria-label="Suivant"
-                            >
-                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
+                            {hoveredProjectData && hoveredProjectData.technologies ? (<img src={`/logos/${hoveredProjectData.technologies[techIndex].replace(/\s+/g, '_')}.png`} alt={hoveredProjectData.technologies[techIndex]} className="w-8 h-8 object-contain rounded" onError={(e) => {(e.currentTarget as HTMLImageElement).style.display = 'none'}} />) : null}
+                            <button className={`${isNightMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors px-1 cursor-none`} onClick={e => { e.stopPropagation(); setTechIndex((prev) => { if (!hoveredProjectData || !hoveredProjectData.technologies) return 0; return prev === hoveredProjectData.technologies.length - 1 ? 0 : prev + 1; }); }} tabIndex={-1} aria-label="Suivant">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                             </button>
                         </div>
                         <div>
@@ -346,8 +173,6 @@ const ProjectBuildings: React.FC<ProjectBuildingsProps> = ({ isNightMode = false
                     </div>
                 </div>
             </Html>
-
-            {/* project details moved to UI via ProjectViewContext */}
         </>
     )
 }
