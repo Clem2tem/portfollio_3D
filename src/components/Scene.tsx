@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { OrbitControls, Sky } from '@react-three/drei'
+import { Sky } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import StarField from './StarField'
@@ -24,7 +24,7 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimat
   const dirFillRef = useRef<THREE.DirectionalLight>(null)
   const dirRimRef = useRef<THREE.DirectionalLight>(null)
   const dirTargetRef = useRef<THREE.Object3D>(null)
-  const controlsRef = useRef<any>(null)
+  // const controlsRef = useRef<any>(null)
   const { gl, camera } = useThree()
   // Toggle third-person player control for POPClem (true => camera is driven behind the player)
   const PLAYER_CONTROLLED = true

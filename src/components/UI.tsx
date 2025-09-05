@@ -59,36 +59,13 @@ const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode }) => {
         </div>
       </header>
 
-      {/* Instructions de navigation */}
-      <div className="absolute bottom-6 left-6 z-40">
-        <div className="bg-black/50 backdrop-blur-sm text-white p-4 rounded-lg max-w-xs">
-          <h3 className="font-semibold mb-2">Navigation</h3>
-          <ul className="text-sm space-y-1">
-            <li>🖱️ Clic gauche + glisser : Rotation caméra</li>
-            <li>🔄 Molette : Rotation de l'île</li>
-            <li>👆 Survol : Bulle d'informations</li>
-            <li>🎯 Clic : Détails du projet</li>
-          </ul>
-        </div>
-      </div>
-
-      {/* Boutons de navigation */}
-      <div className="absolute bottom-6 right-6 z-40 flex gap-2">
-        <button className="bg-white/20 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white/30 transition-colors">
-          ←
-        </button>
-        <button className="bg-white/20 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white/30 transition-colors">
-          →
-        </button>
-      </div>
-
       {/* Instructions de contrôle */}
       <div className="absolute bottom-4 left-4 z-40">
-        <div className="bg-black/50 backdrop-blur-sm text-white p-3 rounded-lg space-y-1 text-sm">
+        <div className="bg-black/50 backdrop-blur-sm text-white p-3 rounded-lg space-y-2 text-sm">
+          <h3 className="font-semibold mb-2">Contrôles</h3>
           <div><kbd className="bg-white/20 px-2 py-1 rounded">WASD</kbd> Se déplacer</div>
           <div><kbd className="bg-white/20 px-2 py-1 rounded">SPACE</kbd> Sauter</div>
-          <div><kbd className="bg-white/20 px-2 py-1 rounded">H</kbd> Afficher/masquer hitboxes</div>
-          <div><kbd className="bg-white/20 px-2 py-1 rounded">J</kbd> Cycle île/objets/toutes</div>
+          <div><kbd className="bg-white/20 px-2 py-1 rounded">Clic</kbd> Interagir</div>
         </div>
       </div>
 

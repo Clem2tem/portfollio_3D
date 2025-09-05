@@ -84,7 +84,7 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ onEnterPortfolio }) => {
 
         {/* Instructions subtiles */}
         <div className="mt-8 text-white/50 text-sm animate-fade-in-up animation-delay-1500">
-          <p>Navigation : Souris pour explorer • Molette pour zoomer • Clic pour interagir</p>
+          <p>Navigation : ZQSD pour se déplacer • Souris pour explorer • Molette pour zoomer • Clic pour interagir</p>
         </div>
       </div>
     </div>
