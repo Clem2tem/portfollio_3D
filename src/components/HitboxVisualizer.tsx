@@ -41,17 +41,17 @@ export const HitboxVisualizer: React.FC<HitboxVisualizerProps> = ({
     []
   )
 
-  const colliderMat = useMemo(
-    () =>
-      new THREE.MeshBasicMaterial({
-        color: new THREE.Color('red'),
-        wireframe: true,
-        transparent: true,
-        opacity: 0.35,
-        depthWrite: false,
-      }),
-    []
-  )
+  // const colliderMat = useMemo(
+  //   () =>
+  //     new THREE.MeshBasicMaterial({
+  //       color: new THREE.Color('red'),
+  //       wireframe: true,
+  //       transparent: true,
+  //       opacity: 0.35,
+  //       depthWrite: false,
+  //     }),
+  //   []
+  // )
 
   const boxMat = useMemo(
     () =>
