@@ -79,7 +79,7 @@ const POPClemGLTF: React.FC<Props> = ({
       const box = new THREE.Box3().setFromObject(scene)
       const height = box.max.y - box.min.y
   // pick a point a bit above the model bottom (tweak the 0.75 factor if needed)
-  const eyeLocal = box.min.y + height * 0.75
+  const eyeLocal = box.min.y + height * 1
       // account for the group's scale prop
       const eyeWorld = eyeLocal * 0.1
       modelEyeOffsetRef.current = Math.max(0, eyeWorld)
@@ -201,7 +201,7 @@ const POPClemGLTF: React.FC<Props> = ({
   // camera distance ref so wheel can update it
   const cameraDistanceRef = useRef(cameraDistance)
   // camera distance limits (ajuste ici pour rapprocher/éloigner la caméra)
-  const MIN_CAM_DIST = 0.02
+  const MIN_CAM_DIST = 0.5
   const MAX_CAM_DIST = 4
   // ensure initial is clamped
   cameraDistanceRef.current = Math.max(MIN_CAM_DIST, Math.min(MAX_CAM_DIST, cameraDistanceRef.current))
@@ -421,12 +421,13 @@ const POPClemGLTF: React.FC<Props> = ({
 
   // camera movement detection + follow target derived from camera angle (same circle as Scene)
   // Scene places the light on a circle radius=4.5, height=3
-  const FOLLOW_RADIUS = 4.8
   const FOLLOW_HEIGHT = 0.1 
 
   useFrame((state, delta) => {
     if (!state.camera) return
     const cam = state.camera
+  // authoritative camera distance (set by mouse wheel / user)
+  const r = cameraDistanceRef.current
     
     // player-controlled movement: WASD or ZQSD (Z/Q on AZERTY) + Space for jump
     if (playerControlled && group.current) {
@@ -503,9 +504,8 @@ const POPClemGLTF: React.FC<Props> = ({
       const camTarget = new THREE.Vector3()
       group.current.getWorldPosition(camTarget)
       
-      // apply camera yaw/pitch offsets from mouse drag
-      const totalYaw = camYawOffset.current
-      const r = Math.max(MIN_CAM_DIST, Math.min(MAX_CAM_DIST, cameraDistanceRef.current))
+  // apply camera yaw/pitch offsets from mouse drag
+  const totalYaw = camYawOffset.current
 
       // when playerControlled, slightly lower the camera pitch to appear closer to the model
   const pitchAdjust = playerControlled ? -0.12 : 0
@@ -619,8 +619,10 @@ const POPClemGLTF: React.FC<Props> = ({
 
     // linear max step this frame
     const maxStep = maxSpeed * Math.max(0.016, delta)
-    // convert to max angular step based on circle radius (arc length = radius * angle)
-  const maxAngularStep = FOLLOW_RADIUS > 0 ? maxStep / FOLLOW_RADIUS : Math.sign(deltaAngle) * Math.abs(deltaAngle)
+    // use the authoritative user radius 'r' as the follow radius so zoom is preserved
+    const desiredFollowRadius = r
+    // convert to max angular step based on desiredFollowRadius (arc length = radius * angle)
+  const maxAngularStep = desiredFollowRadius > 0 ? maxStep / desiredFollowRadius : Math.sign(deltaAngle) * Math.abs(deltaAngle)
 
   // apply angular step (preserve direction) but based on modelAngle (continuous)
   const angularStep = Math.abs(deltaAngle) > Math.abs(maxAngularStep) ? Math.sign(deltaAngle) * Math.abs(maxAngularStep) : deltaAngle
@@ -628,8 +630,8 @@ const POPClemGLTF: React.FC<Props> = ({
   // store updated continuous model angle
   modelAngle.current = newAngle
 
-    // gently correct radial distance towards FOLLOW_RADIUS while respecting maxStep
-    const radiusDiff = FOLLOW_RADIUS - currentRadius
+  // gently correct radial distance towards the desiredFollowRadius while respecting maxStep
+  const radiusDiff = desiredFollowRadius - currentRadius
     const radialStep = Math.abs(radiusDiff) > maxStep ? Math.sign(radiusDiff) * maxStep : radiusDiff
     const newRadius = currentRadius + radialStep
 
