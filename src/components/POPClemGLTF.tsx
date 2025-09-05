@@ -107,14 +107,35 @@ const POPClemGLTF: React.FC<Props> = ({
     // Wait for GLTF models to load, then get their references
     const timer = setTimeout(() => {
       try {
-        const gltfObjects: Array<{ object3D: THREE.Object3D; name: string }> = []
+  const gltfObjects: Array<{ object3D: THREE.Object3D; name: string; animated?: boolean }> = []
         
-        // Chercher spécifiquement les refs des composants GLTF chargés
-        if (group.current && group.current.parent) {
+  // Chercher spécifiquement les refs des composants GLTF chargés
+  if (group.current && group.current.parent) {
           const scene = group.current.parent
           
           console.log('Analyse de la scène pour les objets GLTF...')
           
+          // helper: detect if this node should be considered animated
+          const detectAnimated = (node: THREE.Object3D) => {
+            // explicit flag on userData still honoured
+            if ((node as any).userData?.animated) return true
+            // if any descendant is a SkinnedMesh, treat as animated
+            let hasSkinned = false
+            node.traverse((n) => { if ((n as any).isSkinnedMesh) hasSkinned = true })
+            if (hasSkinned) return true
+            // check gltf animations for tracks that target this node by name
+            if (gltf?.animations && gltf.animations.length > 0) {
+              const nodeName = node.name || ''
+              for (const clip of gltf.animations) {
+                const tracks = (clip as any).tracks || []
+                for (const t of tracks) {
+                  if (typeof t.name === 'string' && nodeName && (t.name.startsWith(nodeName + '.') || t.name.includes('/' + nodeName + '.'))) return true
+                }
+              }
+            }
+            return false
+          }
+
           scene.traverse((child) => {
             // Chercher l'île - doit être près de l'origine avec des meshes
             if (child.type === 'Group' && child.children.length > 0) {
@@ -128,7 +149,7 @@ const POPClemGLTF: React.FC<Props> = ({
                   if (subChild.type === 'Mesh') hasMeshes = true
                 })
                 if (hasMeshes && !gltfObjects.find(obj => obj.name === 'island')) {
-                  gltfObjects.push({ object3D: child, name: 'island' })
+                  gltfObjects.push({ object3D: child, name: 'island', animated: detectAnimated(child) })
                   console.log('Île trouvée à la position:', worldPos, 'taille:', child.children.length)
                 }
               }
@@ -140,7 +161,7 @@ const POPClemGLTF: React.FC<Props> = ({
                   if (subChild.type === 'Mesh') hasMeshes = true
                 })
                 if (hasMeshes && !gltfObjects.find(obj => obj.name === 'hospital')) {
-                  gltfObjects.push({ object3D: child, name: 'hospital' })
+                  gltfObjects.push({ object3D: child, name: 'hospital', animated: detectAnimated(child) })
                   console.log('Hôpital trouvé à la position:', worldPos, 'taille:', child.children.length)
                 }
               }
@@ -152,7 +173,7 @@ const POPClemGLTF: React.FC<Props> = ({
                   if (subChild.type === 'Mesh') hasMeshes = true
                 })
                 if (hasMeshes && !gltfObjects.find(obj => obj.name === 'excavator')) {
-                  gltfObjects.push({ object3D: child, name: 'excavator' })
+                  gltfObjects.push({ object3D: child, name: 'excavator', animated: true })
                   console.log('Excavator trouvé à la position:', worldPos, 'taille:', child.children.length)
                 }
               }

@@ -12,6 +12,12 @@ export type Collider = {
   mesh: THREE.Mesh
   boundingBox: THREE.Box3
   isStatic: boolean
+  // optional: original object used to build this collider (kept for visualization or animated items)
+  sourceObject?: THREE.Object3D
+  // if true, this collider was registered as animated — visualization should follow the source object
+  animated?: boolean
+  // matrixWorld of the source at bake time (used to rebase baked world-space geometry to local for animated visuals)
+  bakeMatrix?: THREE.Matrix4
 }
 
 export interface CollisionResult {
@@ -77,7 +83,7 @@ export const usePreciseCollisions = () => {
     return merged
   }, [])
 
-  const addPreciseCollisionObject = useCallback((name: string, object3D: THREE.Object3D) => {
+  const addPreciseCollisionObject = useCallback((name: string, object3D: THREE.Object3D, options?: { animated?: boolean }) => {
     if (collidersRef.current.find((c) => c.name === name)) return
     const merged = buildMergedCollisionGeometry(object3D)
     if (!merged) {
@@ -92,7 +98,18 @@ export const usePreciseCollisions = () => {
     colliderMesh.visible = false
 
     const box = new THREE.Box3().copy(merged.boundingBox!)
-    collidersRef.current.push({ name, mesh: colliderMesh, boundingBox: box, isStatic: true })
+    // ensure source object's world matrix is up-to-date and capture it as the bake matrix
+    object3D.updateMatrixWorld(true)
+    const bakeMatrix = object3D.matrixWorld.clone()
+    collidersRef.current.push({
+      name,
+      mesh: colliderMesh,
+      boundingBox: box,
+      isStatic: true,
+      sourceObject: object3D,
+      animated: !!options?.animated,
+      bakeMatrix,
+    })
   }, [buildMergedCollisionGeometry])
 
   // Broadphase rapide

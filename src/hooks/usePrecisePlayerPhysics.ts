@@ -19,10 +19,10 @@ export const usePrecisePlayerPhysics = () => {
   const isGrounded = useRef(false)
   const { addPreciseCollisionObject, checkPreciseCollision, getGroundHeight, clearCollisions, collisionObjects, getSupportBelow } = usePreciseCollisions()
 
-  const initializeCollisions = useCallback((objects: Array<{ object3D: THREE.Object3D; name: string }>) => {
+  const initializeCollisions = useCallback((objects: Array<{ object3D: THREE.Object3D; name: string; animated?: boolean }>) => {
     clearCollisions()
-    objects.forEach(({ object3D, name }) => {
-      addPreciseCollisionObject(name, object3D)
+    objects.forEach(({ object3D, name, animated }) => {
+      addPreciseCollisionObject(name, object3D, { animated })
     })
     console.log(`Collisions simplifiées initialisées avec ${objects.length} objets`)
   }, [addPreciseCollisionObject, clearCollisions])
@@ -105,6 +105,25 @@ export const usePrecisePlayerPhysics = () => {
     // Mouvement vertical
     newPosition.y += velocity.current.y * deltaTime
 
+    // --- Ceiling / clearance check: prevent passing through surfaces above ---
+    // check the sphere at the new center for upward collisions
+    const centerAfter = newPosition.clone()
+    centerAfter.y += PLAYER_RADIUS
+    const upHit = checkPreciseCollision(centerAfter, PLAYER_RADIUS)
+    if (upHit.colliding) {
+      // If penetrating or moving up into a ceiling, push the sphere out along the hit normal
+      // This moves the player's center away from the surface; feet are center.y - PLAYER_RADIUS
+      const push = upHit.normal.clone().multiplyScalar(upHit.penetration + EPS)
+      const resolvedCenter = centerAfter.clone().add(push)
+      const resolvedFeetY = resolvedCenter.y - PLAYER_RADIUS
+      // Only modify vertical position if this would lower the feet (i.e., stop upward motion)
+      if (resolvedFeetY < newPosition.y + 1e-6) {
+        newPosition.y = resolvedFeetY
+      }
+      // Cancel any upward velocity so we don't immediately re-penetrate
+      if (velocity.current.y > 0) velocity.current.y = 0
+    }
+
     // Détection du support: surfaces walkables (hors Island) puis Island comme minimum
     const support = getSupportBelow(
       newPosition.clone(),
@@ -120,7 +139,7 @@ export const usePrecisePlayerPhysics = () => {
   // Place les PIEDS au niveau du support (plus un léger epsilon); le centre de la sphère est alors à y + PLAYER_RADIUS
   const targetY = targetSupportY + PLAYER_HEIGHT_OFFSET + EPS
 
-    // Atterrissage / accrochage au sol si on descend
+    // Atterrissage / accrochage au sol si on descendz
     if (newPosition.y <= targetY + EPS && velocity.current.y <= 0) {
       newPosition.y = targetY
       velocity.current.y = 0
