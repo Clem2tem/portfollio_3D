@@ -5,6 +5,7 @@ import UI from './components/UI'
 import LoadingScreen from './components/LoadingScreen'
 import CustomCursor from './components/CustomCursor'
 import IntroScreen from './components/IntroScreen'
+import { LoadingProvider, ProgressBridge } from './contexts/LoadingContext'
 
 function App() {
   const [isNightMode, setIsNightMode] = useState(false)
@@ -25,39 +26,45 @@ function App() {
   }
 
   return (
-    <div className="w-full h-screen relative overflow-hidden" style={{ cursor: showIntro ? 'auto' : 'none' }}>
+    <LoadingProvider>
+      <div className="w-full h-screen relative overflow-hidden" style={{ cursor: showIntro ? 'auto' : 'none' }}>
       {/* Écran d'introduction */}
       {showIntro && (
         <IntroScreen onEnterPortfolio={handleEnter3DWorld} />
       )}
 
-      {/* Canvas 3D - affiché seulement après avoir cliqué sur entrer */}
-      {!showIntro && (
-        <Canvas
-          camera={{ 
-            position: hasEntered ? [0, 6, 10] : [0, 2, 0], 
-            fov: 60,
-            near: 0.1,
-            far: 1000
-          }}
-          shadows
-          className="absolute inset-0"
-          gl={{
-            antialias: true,
-            alpha: false,
-            powerPreference: "high-performance"
-          }}
-          dpr={[1, 2]}
-        >
-          <Suspense fallback={null}>
-            <Scene 
-              isNightMode={isNightMode} 
-              isEntering={isEntering}
-              onAnimationComplete={handleAnimationComplete}
-            />
-          </Suspense>
-        </Canvas>
-      )}
+      {/* Canvas 3D - mounted always so we can preload assets while intro is shown */}
+      <Canvas
+        camera={{ 
+          position: hasEntered ? [0, 6, 10] : [0, 2, 0], 
+          fov: 60,
+          near: 0.1,
+          far: 1000
+        }}
+        shadows
+        className="absolute inset-0"
+        style={{
+          // keep canvas running but invisible / non-interactive while intro is visible
+          visibility: showIntro ? 'hidden' : 'visible',
+          pointerEvents: showIntro ? 'none' : undefined
+        }}
+        gl={{
+          antialias: true,
+          alpha: false,
+          powerPreference: "high-performance"
+        }}
+        dpr={[1, 2]}
+      >
+        {/* Mount a small bridge inside the Canvas to forward drei progress into app context */}
+        <ProgressBridge />
+        <Suspense fallback={null}>
+          <Scene 
+            isNightMode={isNightMode} 
+            isEntering={isEntering}
+            onAnimationComplete={handleAnimationComplete}
+          />
+        </Suspense>
+      </Canvas>
 
       {/* Interface utilisateur overlay - masquée pendant l'intro */}
       {!showIntro && (
@@ -71,7 +78,8 @@ function App() {
       <Suspense fallback={<LoadingScreen />}>
         <div />
       </Suspense>
-    </div>
+      </div>
+    </LoadingProvider>
   )
 }
 

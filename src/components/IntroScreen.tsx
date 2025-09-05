@@ -1,10 +1,12 @@
 import React from 'react'
+import { useLoading } from '../contexts/LoadingContext'
 
 interface IntroScreenProps {
   onEnterPortfolio: () => void
 }
 
 const IntroScreen: React.FC<IntroScreenProps> = ({ onEnterPortfolio }) => {
+  const { progress, loaded } = useLoading()
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-purple-900/30 via-blue-900/30 to-indigo-900/30 backdrop-blur-sm">
       {/* Fond animé avec particules */}
@@ -70,16 +72,22 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ onEnterPortfolio }) => {
 
         {/* Bouton d'entrée */}
         <button
-          onClick={onEnterPortfolio}
-          className="group relative px-12 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold text-lg rounded-full hover:from-purple-500 hover:to-blue-500 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 animate-fade-in-up animation-delay-1200"
+          onClick={() => { if (loaded) onEnterPortfolio() }}
+          disabled={!loaded}
+          className={`group relative px-12 py-4 text-white font-semibold text-lg rounded-full transition-all duration-300 shadow-lg animate-fade-in-up animation-delay-1200 ${loaded ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 hover:scale-105' : 'bg-gray-700/60 cursor-not-allowed'}`}
+          aria-disabled={!loaded}
         >
           <span className="relative z-10 flex items-center gap-3">
-            Entrer dans le Portfolio
-            <svg className="w-6 h-6 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {loaded ? 'Entrer dans le Portfolio' : `Chargement ${Math.round(progress)}%`}
+            <svg className={`w-6 h-6 transition-transform duration-300 ${loaded ? 'group-hover:translate-x-1' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
           </span>
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-blue-400 rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+
+          {/* Progress fill visual */}
+          <div className="absolute left-0 top-0 bottom-0 rounded-full bg-gradient-to-r from-purple-400 to-blue-400 opacity-30 pointer-events-none"
+            style={{ width: `${Math.min(Math.max(progress, 0), 100)}%`, transition: 'width 200ms linear' }}
+          />
         </button>
 
         {/* Instructions subtiles */}
