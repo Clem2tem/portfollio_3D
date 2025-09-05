@@ -33,7 +33,7 @@ const POPClemGLTF: React.FC<Props> = ({
   playerControlled = false, 
   moveSpeed = 2, 
   cameraDistance = 0.2, 
-  cameraHeight = 1.2,
+  cameraHeight = 0.5,
   showHitboxes = false 
 }) => {
   const group = useRef<THREE.Group | null>(null)
@@ -67,6 +67,30 @@ const POPClemGLTF: React.FC<Props> = ({
   }, [showHitboxesState, hitboxFilter])
 
   const scene = gltf?.scene
+
+  // compute a model-based eye offset so the camera pivots at a natural height
+  // relative to the character instead of an arbitrary magic number.
+  const modelEyeOffsetRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (!scene) return
+    try {
+      // ensure world matrices are up-to-date
+      scene.updateMatrixWorld(true)
+      const box = new THREE.Box3().setFromObject(scene)
+      const height = box.max.y - box.min.y
+  // pick a point a bit above the model bottom (tweak the 0.75 factor if needed)
+  const eyeLocal = box.min.y + height * 0.75
+      // account for the group's scale prop
+      const eyeWorld = eyeLocal * 0.1
+      modelEyeOffsetRef.current = Math.max(0, eyeWorld)
+      // eslint-disable-next-line no-console
+      console.log('[POPClemGLTF] computed model eye offset', modelEyeOffsetRef.current)
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('[POPClemGLTF] failed to compute model bbox for camera pivot', e)
+      modelEyeOffsetRef.current = Math.max(0, cameraHeight * 0.2)
+    }
+  }, [scene, scale, cameraHeight])
 
   // Initialize player position
   useEffect(() => {
@@ -177,8 +201,10 @@ const POPClemGLTF: React.FC<Props> = ({
   // camera distance ref so wheel can update it
   const cameraDistanceRef = useRef(cameraDistance)
   // camera distance limits (ajuste ici pour rapprocher/éloigner la caméra)
-  const MIN_CAM_DIST = 0
-  const MAX_CAM_DIST = 2
+  const MIN_CAM_DIST = 0.02
+  const MAX_CAM_DIST = 4
+  // ensure initial is clamped
+  cameraDistanceRef.current = Math.max(MIN_CAM_DIST, Math.min(MAX_CAM_DIST, cameraDistanceRef.current))
   const stopCounter = useRef(0)
   // keep an unwrapped camera angle so full rotations (±n * 2PI) are tracked
   const cameraUnwrapped = useRef<number | null>(null)
@@ -237,25 +263,34 @@ const POPClemGLTF: React.FC<Props> = ({
   // invert vertical drag: moving mouse up should increase elevation
   camPitch.current = Math.max(-Math.PI / 3, Math.min(Math.PI / 6, camPitch.current + dy * SENS))
     }
-    // wheel to zoom camera distance
-    const onWheel = (e: WheelEvent) => {
+    // wheel to zoom camera distance (attach to canvas when possible)
+    const onWheel: EventListener = (evt) => {
+      const e = evt as WheelEvent
       // deltaY: positive -> wheel down -> zoom out
-      const ZS = 0.02
-  cameraDistanceRef.current = Math.max(MIN_CAM_DIST, Math.min(MAX_CAM_DIST, cameraDistanceRef.current + e.deltaY * ZS))
+      const ZS = 0.005
+      const prev = cameraDistanceRef.current
+      cameraDistanceRef.current = Math.max(MIN_CAM_DIST, Math.min(MAX_CAM_DIST, cameraDistanceRef.current + e.deltaY * ZS))
+      if (prev !== cameraDistanceRef.current) {
+        // small debug visible in console when zoom changes
+        // eslint-disable-next-line no-console
+        console.log('[camera] distance ->', cameraDistanceRef.current)
+      }
       // prevent page scroll when adjusting
       e.preventDefault()
     }
+    const canvas = document.querySelector('canvas')
+    const wheelTarget: EventTarget = canvas ?? window
     window.addEventListener('mousedown', onMouseDown)
     window.addEventListener('mouseup', onMouseUp)
     window.addEventListener('mousemove', onMouseMove)
-    window.addEventListener('wheel', onWheel, { passive: false } as AddEventListenerOptions)
+    wheelTarget.addEventListener('wheel', onWheel, { passive: false } as AddEventListenerOptions)
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
       window.removeEventListener('mousedown', onMouseDown)
       window.removeEventListener('mouseup', onMouseUp)
       window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('wheel', onWheel as any)
+      wheelTarget.removeEventListener('wheel', onWheel as any)
     }
   }, [playerControlled])
   
@@ -470,27 +505,28 @@ const POPClemGLTF: React.FC<Props> = ({
       
       // apply camera yaw/pitch offsets from mouse drag
       const totalYaw = camYawOffset.current
-  const r = Math.max(MIN_CAM_DIST, Math.min(MAX_CAM_DIST, cameraDistanceRef.current))
+      const r = Math.max(MIN_CAM_DIST, Math.min(MAX_CAM_DIST, cameraDistanceRef.current))
 
-      const baseHeight = cameraHeight * 0.55
-      const baseElevation = Math.atan2(baseHeight, r)
-      const totalElevation = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, baseElevation + camPitch.current))
-      const sphereR = Math.sqrt(r * r + baseHeight * baseHeight)
-
-      const offsetX = -Math.sin(totalYaw) * Math.cos(totalElevation) * sphereR
-      const offsetZ = -Math.cos(totalYaw) * Math.cos(totalElevation) * sphereR
-      const offsetY = Math.sin(totalElevation) * sphereR
-
+      // when playerControlled, slightly lower the camera pitch to appear closer to the model
+  const pitchAdjust = playerControlled ? -0.12 : 0
+      const elevation = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, camPitch.current + pitchAdjust))
+      const dir = new THREE.Vector3(
+        -Math.sin(totalYaw) * Math.cos(elevation),
+        Math.sin(elevation),
+        -Math.cos(totalYaw) * Math.cos(elevation)
+      ).normalize()
       const pivot = camTarget.clone()
-      const eyeOffset = Math.min(0.6, Math.max(0.2, cameraHeight * 0.25))
-      pivot.y += eyeOffset
+      const computedEye = modelEyeOffsetRef.current ?? Math.max(0.0, cameraHeight * 0.2)
+      pivot.y += computedEye
 
-      const camPos = pivot.clone().add(new THREE.Vector3(offsetX, offsetY, offsetZ))
+      // position = pivot + dir * r (zoom only changes distance r)
+      const camPos = pivot.clone().add(dir.multiplyScalar(r))
       cam.position.lerp(camPos, Math.min(1, 8 * delta))
       cam.lookAt(pivot)
 
       return
     }
+
     // match Scene.tsx: use atan2(z, x) for wrapped angle
     const wrapped = Math.atan2(cam.position.z, cam.position.x)
 
