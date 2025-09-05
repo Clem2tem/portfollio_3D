@@ -47,19 +47,24 @@ const POPClemGLTF: React.FC<Props> = ({
   // États pour le visualiseur de hitboxes
   const [playerPosition, setPlayerPosition] = useState(new THREE.Vector3(...position))
   const [showHitboxesState, setShowHitboxesState] = useState(showHitboxes)
+  const [hitboxFilter, setHitboxFilter] = useState<'all' | 'island' | 'others'>('all')
 
-  // Écouter la touche H pour basculer l'affichage des hitboxes
+  // Écouter les touches H/J pour basculer l'affichage et filtrer
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
       if (event.code === 'KeyH') {
         setShowHitboxesState(prev => !prev)
         console.log('Hitboxes:', showHitboxesState ? 'désactivées' : 'activées')
+      } else if (event.code === 'KeyJ') {
+        setHitboxFilter(prev => prev === 'all' ? 'island' : prev === 'island' ? 'others' : 'all')
+        // eslint-disable-next-line no-console
+        console.log('[Hitboxes] Filtre:', hitboxFilter === 'all' ? 'island' : hitboxFilter === 'island' ? 'others' : 'all')
       }
     }
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [showHitboxesState])
+  }, [showHitboxesState, hitboxFilter])
 
   const scene = gltf?.scene
 
@@ -676,6 +681,7 @@ const POPClemGLTF: React.FC<Props> = ({
         playerPosition={playerPosition}
         playerRadius={0.05}
         colliders={collisionObjects}
+  filterMode={hitboxFilter}
       />
     </>
   )

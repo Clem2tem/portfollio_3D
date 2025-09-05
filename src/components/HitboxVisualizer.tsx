@@ -17,6 +17,7 @@ interface HitboxVisualizerProps {
   colliders?: Collider[]
   showColliderMeshes?: boolean   // affiche la géométrie de collision précise (wireframe)
   showBoundingBoxes?: boolean    // affiche aussi les AABB
+  filterMode?: 'all' | 'island' | 'others' // filtre d'affichage
 }
 
 export const HitboxVisualizer: React.FC<HitboxVisualizerProps> = ({
@@ -26,11 +27,20 @@ export const HitboxVisualizer: React.FC<HitboxVisualizerProps> = ({
   colliders,
   showColliderMeshes = true,
   showBoundingBoxes = false,
+  filterMode = 'all',
 }) => {
   if (!visible) return null
 
   // by default, read from the global store populated by the collisions hook
   const all = colliders ?? getCollisionObjectsGlobal()
+
+  // Filtrer selon le mode sélectionné
+  const filtered = useMemo(() => {
+    const isIsland = (name: string) => name.toLowerCase().includes('island')
+    if (filterMode === 'island') return all.filter(c => isIsland(c.name))
+    if (filterMode === 'others') return all.filter(c => !isIsland(c.name))
+    return all
+  }, [all, filterMode])
 
   // Matériaux partagés (évite de recréer à chaque render)
   const playerMat = useMemo(
@@ -80,8 +90,8 @@ export const HitboxVisualizer: React.FC<HitboxVisualizerProps> = ({
         <primitive object={playerMat} attach="material" />
       </mesh>
 
-      {/* Visualisation des colliders */}
-  {all.map((c, i) => {
+    {/* Visualisation des colliders */}
+  {filtered.map((c, i) => {
         const color = colorFor(c.name)
 
         return (
