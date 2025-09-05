@@ -33,7 +33,7 @@ const POPClemGLTF: React.FC<Props> = ({
   maxSpeed = 0.6, 
   playerControlled = false, 
   moveSpeed = 2, 
-  cameraDistance = 0.2, 
+  cameraDistance = 0.5, 
   cameraHeight = 0.5,
   showHitboxes = false 
 }) => {
@@ -248,7 +248,7 @@ const POPClemGLTF: React.FC<Props> = ({
   const lastMouseX = useRef(0)
   const lastMouseY = useRef(0)
   const camYawOffset = useRef(0) // radians added to player yaw
-  const camPitch = useRef(-0.25) // initial pitch (radians), negative = look down
+  const camPitch = useRef(0.15) // initial pitch (radians), positive => camera slightly above the pivot
   // camera distance ref so wheel can update it
   const cameraDistanceRef = useRef(cameraDistance)
   // camera distance limits (ajuste ici pour rapprocher/éloigner la caméra)

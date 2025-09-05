@@ -31,7 +31,9 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ onEnterPortfolio }) => {
       <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
         {/* Titre principal */}
         <h1 className="text-6xl md:text-8xl font-bold bg-gradient-to-r from-purple-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent mb-6 animate-fade-in-up">
-          Mon Portfolio
+          Clément
+          <br />
+          DE TEMMERMAN
         </h1>
         
         {/* Sous-titre */}
@@ -42,12 +44,12 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ onEnterPortfolio }) => {
         {/* Description */}
         <div className="max-w-2xl mx-auto mb-12 animate-fade-in-up animation-delay-600">
           <p className="text-lg md:text-xl text-white/80 leading-relaxed mb-6">
-            Bienvenue dans mon univers interactif en 3D ! Chaque élément de cette île paradisiaque 
-            représente une étape importante de mon parcours dans le développement.
+            Salut ! Je m'appelle Clément et je commence ma carrière de développeur Fullstack !
+            Si vous êtes curieux de découvrir mon travail, et ses évolutions vous êtes au bon endroit !
           </p>
           <p className="text-base md:text-lg text-white/70">
-            Explorez mes projets, découvrez mes compétences et plongez dans mon expérience 
-            à travers une navigation immersive et intuitive.
+            Explorez mes projets, découvrez mes compétences et plongez dans mon univers
+            dans un monde en 3D intéractif.
           </p>
         </div>
 
@@ -78,7 +80,7 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ onEnterPortfolio }) => {
           aria-disabled={!loaded}
         >
           <span className="relative z-10 flex items-center gap-3">
-            {loaded ? 'Entrer dans le Portfolio' : `Chargement ${Math.round(progress)}%`}
+            {loaded ? 'Entrez dans mon monde !' : `Chargement ${Math.round(progress)}%`}
             <svg className={`w-6 h-6 transition-transform duration-300 ${loaded ? 'group-hover:translate-x-1' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>

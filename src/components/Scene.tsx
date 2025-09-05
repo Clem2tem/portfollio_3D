@@ -15,7 +15,7 @@ interface SceneProps {
   onAnimationComplete?: () => void
 }
 
-const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimationComplete }) => {
+const Scene: React.FC<SceneProps> = ({ isNightMode, onAnimationComplete }) => {
   const sceneRef = useRef<THREE.Group>(null)
   const lightRef = useRef<THREE.SpotLight>(null)
   const targetRef = useRef<THREE.Object3D>(null)
@@ -36,28 +36,12 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, isEntering = false, onAnimat
     startPosition: THREE.Vector3
     endPosition: THREE.Vector3
   } | null>(null)
-  const [hasAnimated, setHasAnimated] = useState(false)
 
   // Fonction easing
   const easeOutCubic = (t: number): number => {
     return 1 - Math.pow(1 - t, 3)
   }
 
-  // Démarrer l'animation d'entrée
-  useEffect(() => {
-    if (isEntering && !animationState && !hasAnimated) {
-      const startPos = new THREE.Vector3(0, 2, 0) // Position du portail
-      const endPos = new THREE.Vector3(0, 6, 10) // Position finale optimale pour OrbitControls
-      
-      setAnimationState({
-        isAnimating: true,
-        startTime: Date.now(),
-        startPosition: startPos,
-        endPosition: endPos
-      })
-      setHasAnimated(true)
-    }
-  }, [isEntering, animationState, hasAnimated])
 
   // Empêcher le comportement de drag du canvas
   useEffect(() => {
