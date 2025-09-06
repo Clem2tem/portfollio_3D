@@ -104,7 +104,7 @@ const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode }) => {
         </div>
       </div>
     {viewedProject && (
-      <div className="absolute left-6 top-1/2 transform -translate-y-3/4 z-40 w-s">
+      <div className="absolute left-6 top-1/2 transform -translate-y-3/4 z-40 min-w-[200px] max-w-xs">
         <div
           id="controls-panel"
           className="mt-3 p-3 bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-white space-y-3 shadow-lg w-s"
@@ -128,13 +128,7 @@ const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode }) => {
         >
           <div className="h-full overflow-auto p-6">
             <div className="w-full h-full grid grid-rows-[auto_1fr] sm:grid-rows-1 sm:grid-cols-[220px_1fr_1fr] gap-4">
-              {/* Left column: technologies */}
-              <div className="bg-gray-800 rounded-lg p-4 shadow-inner sm:row-span-2">
-                
-                <div className="flex flex-col gap-2">
-                  
-                </div>
-              </div>
+
 
               {/* Title + description */}
               <div className="bg-gray-800 rounded-lg p-4">
