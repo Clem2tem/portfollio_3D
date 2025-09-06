@@ -4,7 +4,7 @@ import * as THREE from 'three'
 
 const Island: React.FC = () => {
 
-    const gltf = useGLTF('models/Island/Island.gltf')
+    const gltf = useGLTF('models/Island/Island.glb')
 
                         // Patch matériaux pour cohérence visuelle et ombres
                         React.useEffect(() => {
@@ -34,12 +34,12 @@ const Island: React.FC = () => {
                                     if (newMaterial.map) {
                                         newMaterial.map.wrapS = THREE.RepeatWrapping;
                                         newMaterial.map.wrapT = THREE.RepeatWrapping;
-                                        newMaterial.map.repeat.set(10, 10); // Réduit la taille des textures
+                                        newMaterial.map.repeat.set(100, 100); // Réduit la taille des textures
                                     }
                                     if (newMaterial.normalMap) {
                                         newMaterial.normalMap.wrapS = THREE.RepeatWrapping;
                                         newMaterial.normalMap.wrapT = THREE.RepeatWrapping;
-                                        newMaterial.normalMap.repeat.set(10, 10); // Réduit la taille des textures normales
+                                        newMaterial.normalMap.repeat.set(100, 100); // Réduit la taille des textures normales
                                     }
                                     
                                     child.material = newMaterial;
@@ -52,8 +52,8 @@ const Island: React.FC = () => {
                         return (
                             <primitive
                                 object={gltf.scene}
-                                scale={[0.4, 0.4, 0.4]}
-                                position={[0, -0.5, 0]}
+                                scale={[1.5, 1.5, 1.5]}
+                                position={[0, -3.04, 0]}
                                 rotation={[0, -Math.PI / 3, 0]}
                             />
                         )
