@@ -195,42 +195,68 @@ useEffect(() => {
           }
 
           scene.traverse((child) => {
-            // Chercher l'île - doit être près de l'origine avec des meshes
+            // Chercher l'île / hôpital / excavator - prioriser userData.collisionName et le nom du node
+            // tout en conservant les heuristiques de position en fallback (ne pas les supprimer).
             if (child.type === 'Group' && child.children.length > 0) {
               const worldPos = new THREE.Vector3()
               child.getWorldPosition(worldPos)
-              
+
+              const ud = (child as any).userData || {}
+
+              // compute once: does this node contain any Mesh children?
+              let hasMeshes = false
+              child.traverse((subChild) => { if (subChild.type === 'Mesh') hasMeshes = true })
+              if (!hasMeshes) return
+
+              // 1) If the GLTF explicitly marks this node for collisions, prefer that
+              if (ud && ud.collisionName) {
+                const name = String(ud.collisionName)
+                if (!gltfObjects.find(obj => obj.name === name)) {
+                  gltfObjects.push({ object3D: child, name, animated: ud.animated ?? detectAnimated(child) })
+                  console.log(`${name} trouvé via userData.collisionName à la position:`, worldPos, 'taille:', child.children.length)
+                  return
+                }
+              }
+
+              // 2) Try to detect by the node's name (case-insensitive contains). This allows
+              // GLTFs that keep useful names to be found even when moved in the scene.
+              const lname = (child.name || '').toLowerCase()
+              if (lname.includes('hospital') && !gltfObjects.find(obj => obj.name === 'hospital')) {
+                gltfObjects.push({ object3D: child, name: 'hospital', animated: detectAnimated(child) })
+                console.log('Hôpital trouvé via child.name:', child.name, 'position:', worldPos)
+                return
+              }
+              if (lname.includes('excavator') && !gltfObjects.find(obj => obj.name === 'excavator')) {
+                gltfObjects.push({ object3D: child, name: 'excavator', animated: true })
+                console.log('Excavator trouvé via child.name:', child.name, 'position:', worldPos)
+                return
+              }
+              if ((lname.includes('island') || lname.includes('ile') || lname.includes('isle')) && !gltfObjects.find(obj => obj.name === 'island')) {
+                gltfObjects.push({ object3D: child, name: 'island', animated: detectAnimated(child) })
+                console.log('Île trouvée via child.name:', child.name, 'position:', worldPos)
+                return
+              }
+
+              // 3) Fallback: keep the existing positional heuristics (do not remove them)
               // Vérifier si c'est l'île (proche de l'origine)
               if (Math.abs(worldPos.x) < 0.5 && Math.abs(worldPos.z) < 0.5 && worldPos.y < 1) {
-                let hasMeshes = false
-                child.traverse((subChild) => {
-                  if (subChild.type === 'Mesh') hasMeshes = true
-                })
-                if (hasMeshes && !gltfObjects.find(obj => obj.name === 'island')) {
+                if (!gltfObjects.find(obj => obj.name === 'island')) {
                   gltfObjects.push({ object3D: child, name: 'island', animated: detectAnimated(child) })
                   console.log('Île trouvée à la position:', worldPos, 'taille:', child.children.length)
                 }
               }
-              
+
               // Vérifier si c'est l'hôpital (position négative en X, positive en Z)
               else if (worldPos.x < -0.5 && worldPos.z > 0.5) {
-                let hasMeshes = false
-                child.traverse((subChild) => {
-                  if (subChild.type === 'Mesh') hasMeshes = true
-                })
-                if (hasMeshes && !gltfObjects.find(obj => obj.name === 'hospital')) {
+                if (!gltfObjects.find(obj => obj.name === 'hospital')) {
                   gltfObjects.push({ object3D: child, name: 'hospital', animated: detectAnimated(child) })
                   console.log('Hôpital trouvé à la position:', worldPos, 'taille:', child.children.length)
                 }
               }
-              
+
               // Vérifier si c'est l'excavator (position positive en X, négative en Z)
               else if (worldPos.x > 0.5 && worldPos.z < -0.5) {
-                let hasMeshes = false
-                child.traverse((subChild) => {
-                  if (subChild.type === 'Mesh') hasMeshes = true
-                })
-                if (hasMeshes && !gltfObjects.find(obj => obj.name === 'excavator')) {
+                if (!gltfObjects.find(obj => obj.name === 'excavator')) {
                   gltfObjects.push({ object3D: child, name: 'excavator', animated: true })
                   console.log('Excavator trouvé à la position:', worldPos, 'taille:', child.children.length)
                 }

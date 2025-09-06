@@ -21,6 +21,13 @@ const HospitalGLTF = forwardRef<THREE.Group, { position: [number, number, number
                 }
             }
         });
+        // mark the root scene so collision discovery can find this object regardless of its world position
+        try {
+            if (gltf.scene) {
+                if (!gltf.scene.name) gltf.scene.name = 'hospital'
+                gltf.scene.userData = { ...(gltf.scene.userData || {}), collisionName: 'hospital', animated: false }
+            }
+        } catch (e) {}
     }, [gltf]);
 
 

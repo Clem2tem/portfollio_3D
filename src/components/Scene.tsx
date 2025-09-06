@@ -304,7 +304,7 @@ useFrame(() => {
       <Portal />
 
       {/* Océan infini adaptatif */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.3, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]}>
         <planeGeometry args={[500, 500]} />
         <meshStandardMaterial
           color={isNightMode ? "#050510" : "#1E90FF"}
