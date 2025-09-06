@@ -51,7 +51,7 @@ const HospitalGLTF = forwardRef<THREE.Group, { position: [number, number, number
                 onPointerOver={() => setHovered(true)}
                 onPointerOut={() => setHovered(false)}
                 ref={logoRef}
-                position={[position[0]-0.95, 0, position[2]-0.9]}
+                position={[position[0]-1, 0, position[2]-1.1]}
                 onClick={() => window.open('https://www.medchemstructuregenius.eu/', '_blank')}
             >
                 <boxGeometry args={[0.25, 0.25, 0.04]} />

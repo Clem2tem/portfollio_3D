@@ -122,6 +122,19 @@ const Portal: React.FC = () => {
     const { scene: structureScene, animations: structureAnimations } = useGLTF('models/Portal_Structure/Portal_Structure.gltf') as any;
     const mixerRef = useRef<THREE.AnimationMixer | null>(null);
     const structureMixerRef = useRef<THREE.AnimationMixer | null>(null);
+    const structureGltf = useGLTF('models/Portal_Structure/Portal_Structure.gltf') as any;
+
+        React.useEffect(() => {
+                if (!structureGltf) return;
+                // mark the root scene so collision discovery can find this object regardless of its world position
+                try {
+                    if (structureGltf.scene) {
+                        if (!structureGltf.scene.name) structureGltf.scene.name = 'portal'
+                        structureGltf.scene.userData = { ...(structureGltf.scene.userData || {}), collisionName: 'portal', animated: false }
+                    }
+                } catch (e) {}
+            }, [structureGltf]);
+
 
     // Optionnel : forcer les ombres sur tous les meshes
 
@@ -202,8 +215,8 @@ const Portal: React.FC = () => {
     // S'assurer que le portail est rendu après la structure pour la transparence
     return (
         <group>
-            <primitive object={structureScene} scale={[0.2, 0.2, 0.2]} position={[0, 0, 0]} />
-            <primitive object={scene} scale={[0.2, 0.2, 0.2]} position={[0, 0, 0]} />
+            <primitive object={structureScene} scale={[0.2, 0.2, 0.2]} position={[0, -0.415, 1]} />
+            <primitive object={scene} scale={[0.2, 0.2, 0.2]} position={[0, -0.415, 1]} />
         </group>
     )
 }

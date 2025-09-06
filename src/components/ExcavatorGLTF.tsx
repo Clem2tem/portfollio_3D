@@ -16,6 +16,7 @@ const ExcavatorGLTF = forwardRef<THREE.Group, { position: [number, number, numbe
     const pauseBetweenLoopsRef = React.useRef(false);
     const eventListenerAddedRef = React.useRef(false);
 
+
     React.useEffect(() => {
         if (!anims || !gltf || !anims.actions || Object.keys(anims.actions).length === 0) return;
         if (!mixerRef.current) mixerRef.current = anims.mixer;
@@ -89,9 +90,9 @@ const ExcavatorGLTF = forwardRef<THREE.Group, { position: [number, number, numbe
     const rotationInitialised = React.useRef(false);
     useFrame(() => {
         if (excavatorRef.current && !rotationInitialised.current) {
-            excavatorRef.current.rotateX(THREE.MathUtils.degToRad(-5));
-            excavatorRef.current.rotateZ(THREE.MathUtils.degToRad(-3));
-            excavatorRef.current.rotateY(THREE.MathUtils.degToRad(-20));
+            excavatorRef.current.rotateX(THREE.MathUtils.degToRad(0));
+            excavatorRef.current.rotateZ(THREE.MathUtils.degToRad(0));
+            excavatorRef.current.rotateY(THREE.MathUtils.degToRad(0));
             rotationInitialised.current = true; // éviter de réinitialiser à chaque frame
         }
     });
@@ -117,6 +118,7 @@ const ExcavatorGLTF = forwardRef<THREE.Group, { position: [number, number, numbe
                 object={gltf.scene}
                 scale={[0.2, 0.2, 0.2]}
                 position={position}
+                rotation={[0, -3 * Math.PI / 4, 0]}
             />
             {/* Logo SVG 3D extrudé avec scale adapté */}
             <SVGLogo3D

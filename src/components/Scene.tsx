@@ -85,31 +85,31 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, onAnimationComplete }) => {
   // Synchronize spotlight position with camera + animation de caméra
   // small helper to smoothly apply an externally-requested lookAt (set by ProjectBuildings)
   const requestedLookAtRef = useRef<THREE.Vector3 | null>(null)
-const lookAtExpireRef = useRef<number | null>(null)
-useFrame(() => {
+  const lookAtExpireRef = useRef<number | null>(null)
+  useFrame(() => {
     // If an external lookAt was requested via window.__requestedCameraLookAt, pick it up and expire after a short time
     const req = (window as any).__requestedCameraLookAt as { x: number; y: number; z: number } | undefined
-  if (req) {
-    requestedLookAtRef.current = new THREE.Vector3(req.x, req.y, req.z)
-    lookAtExpireRef.current = Date.now() + 3000 // keep focus for 3s by default
-    // remove the global request so it won't be re-read repeatedly
-    try { delete (window as any).__requestedCameraLookAt } catch (e) {}
-  }
-  // if we have an active requested lookAt, move camera to frame it smoothly
-  const nowMs = Date.now()
-  if (requestedLookAtRef.current && lookAtExpireRef.current && nowMs < lookAtExpireRef.current) {
-    const target = requestedLookAtRef.current
-    // desired camera offset relative to the target so the building and player are visible near center/top
-    const desiredCam = new THREE.Vector3(target.x + 0.6, target.y + PLAYER_CAM_HEIGHT, target.z + PLAYER_CAM_DISTANCE * 0.6)
-    camera.position.lerp(desiredCam, 0.08)
-    camera.lookAt(target)
-    // continue with rest of frame logic (lighting update) below
-  } else if (lookAtExpireRef.current && nowMs >= (lookAtExpireRef.current || 0)) {
-    // expired: clear refs so normal camera behavior resumes
-    requestedLookAtRef.current = null
-    lookAtExpireRef.current = null
-  }
-    
+    if (req) {
+      requestedLookAtRef.current = new THREE.Vector3(req.x, req.y, req.z)
+      lookAtExpireRef.current = Date.now() + 3000 // keep focus for 3s by default
+      // remove the global request so it won't be re-read repeatedly
+      try { delete (window as any).__requestedCameraLookAt } catch (e) { }
+    }
+    // if we have an active requested lookAt, move camera to frame it smoothly
+    const nowMs = Date.now()
+    if (requestedLookAtRef.current && lookAtExpireRef.current && nowMs < lookAtExpireRef.current) {
+      const target = requestedLookAtRef.current
+      // desired camera offset relative to the target so the building and player are visible near center/top
+      const desiredCam = new THREE.Vector3(target.x + 0.6, target.y + PLAYER_CAM_HEIGHT, target.z + PLAYER_CAM_DISTANCE * 0.6)
+      camera.position.lerp(desiredCam, 0.08)
+      camera.lookAt(target)
+      // continue with rest of frame logic (lighting update) below
+    } else if (lookAtExpireRef.current && nowMs >= (lookAtExpireRef.current || 0)) {
+      // expired: clear refs so normal camera behavior resumes
+      requestedLookAtRef.current = null
+      lookAtExpireRef.current = null
+    }
+
     // Gérer l'animation de caméra
     if (animationState?.isAnimating) {
       const elapsed = Date.now() - animationState.startTime
@@ -119,7 +119,7 @@ useFrame(() => {
 
       // Interpoler la position
       const currentPos = animationState.startPosition.clone().lerp(
-        animationState.endPosition, 
+        animationState.endPosition,
         easedProgress
       )
       camera.position.copy(currentPos)
@@ -287,10 +287,10 @@ useFrame(() => {
 
         {/* Les bâtiments représentant les projets */}
       </group>
-        <ProjectBuildings isNightMode={isNightMode} />s
+      <ProjectBuildings isNightMode={isNightMode} />s
 
       /* Nuage d'étoiles 3D dans le ciel - seulement en mode nuit */
-      {isNightMode && <StarField count={1200} radius={180} color="#fff" size={8} /> || 
+      {isNightMode && <StarField count={1200} radius={180} color="#fff" size={8} /> ||
         <Sky
           sunPosition={[100, 100, 100]}
           distance={450000}
@@ -315,25 +315,25 @@ useFrame(() => {
         />
       </mesh>
 
-  <POPClemGLTF 
-  position={[0, 1, 1]} 
-  scale={0.02} 
-  playerControlled={PLAYER_CONTROLLED} 
-  moveSpeed={2.2} 
-  cameraDistance={PLAYER_CAM_DISTANCE} 
-  cameraHeight={PLAYER_CAM_HEIGHT} 
-  showHitboxes={false} 
-  />
+      <POPClemGLTF
+        position={[0, 1, 1]}
+        scale={0.02}
+        playerControlled={PLAYER_CONTROLLED}
+        moveSpeed={2.2}
+        cameraDistance={PLAYER_CAM_DISTANCE}
+        cameraHeight={PLAYER_CAM_HEIGHT}
+        showHitboxes={false}
+      />
 
       {/* Fog pour l'atmosphère adaptatif */}
       <fog attach="fog" args={[isNightMode ? '#000005' : '#87CEEB', 8, 25]} />
 
       {/* Lumière ponctuelle violette seulement en mode nuit */}
-        <pointLight
-          position={[0, 2, 0]}
-          intensity={4.5}
-          color="#8844ff"
-        />
+      <pointLight
+        position={[0, 2, 0]}
+        intensity={4.5}
+        color="#8844ff"
+      />
     </>
   )
 }

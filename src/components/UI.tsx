@@ -9,7 +9,7 @@ interface UIProps {
 
 const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode }) => {
   // Use global project view state so camera-driven selection can show details here
-  const { viewedProject, setViewedProject, panelVisible, setPanelVisible } = useProjectView()
+  const { viewedProject, setViewedProject, setPanelVisible } = useProjectView()
   const [showContactModal, setShowContactModal] = useState(false)
 
   return (
@@ -103,57 +103,52 @@ const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode }) => {
           </div>
         </div>
       </div>
-    {viewedProject && (
-      <div className="absolute left-6 top-1/2 transform -translate-y-3/4 z-40 min-w-[200px] max-w-xs">
-        <div
-          id="controls-panel"
-          className="mt-3 p-3 bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-white space-y-3 shadow-lg w-s"
-        >
-          <h3 className="font-semibold text-white mb-3">Technologies</h3>
-          {viewedProject.technologies.map((tech, index) => (
-                    <div key={index} className="flex items-center gap-3 bg-gray-700/40 p-2 rounded w-s">
-                      <img src={`/logos/${tech.replace(/\s+/g, '_')}.png`} alt={tech} className="w-8 h-8 object-contain" onError={(e) => {(e.currentTarget as HTMLImageElement).style.display = 'none'}} />
-                      <span className="text-sm text-gray-200">{tech}</span>
-                    </div>
-                  ))}
-        </div>
-      </div>
-      )}
-      {/* Project detail side panel (inlined) */}
       {viewedProject && (
-        <aside
-          className={`fixed top-0 right-0 h-full z-50 w-full sm:w-[900px] bg-gray-900 border-l border-gray-800 shadow-2xl transform transition-transform duration-200 ease-out ${panelVisible ? 'translate-x-0' : 'translate-x-full'}`}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="h-full overflow-auto p-6">
-            <div className="w-full h-full grid grid-rows-[auto_1fr] sm:grid-rows-1 sm:grid-cols-[220px_1fr_1fr] gap-4">
-
-
-              {/* Title + description */}
-              <div className="bg-gray-800 rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-3xl">{(() => {
-                        const icons: Record<string, string> = { hospital: '🏥', office: '🏢', house: '🏠', tower: '🗼', factory: '🏭', school: '🏫' }
-                        return icons[viewedProject.buildingType] || '🏗️'
-                      })()}</span>
-                      <h2 className="text-2xl font-bold text-white">{viewedProject.title}</h2>
-                    </div>
-                    <p className="text-gray-300">{viewedProject.description}</p>
-                  </div>
-                  <button onClick={() => { setPanelVisible(false); setTimeout(() => setViewedProject(null), 220) }} className="text-gray-400 hover:text-white ml-4">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
+        <>
+          <div className="absolute left-6 top-1/2 transform -translate-y-3/4 z-40 min-w-[200px] max-w-xs">
+            <div
+              id="controls-panel"
+              className="mt-3 p-3 bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-white space-y-3 shadow-lg w-s"
+            >
+              <h3 className="font-semibold text-white mb-3">Technologies</h3>
+              {viewedProject.technologies.map((tech, index) => (
+                <div key={index} className="flex items-center gap-3 bg-gray-700/40 p-2 rounded w-s">
+                  <img src={`/logos/${tech.replace(/\s+/g, '_')}.png`} alt={tech} className="w-8 h-8 object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                  <span className="text-sm text-gray-200">{tech}</span>
                 </div>
+              ))}
+            </div>
+          </div>
+          <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-40 min-w-[500px] max-w-lg">
+            <div
+              id="controls-panel"
+              className="mt-3 p-3 bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-white space-y-3 shadow-lg w-s"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-3xl">{(() => {
+                      const icons: Record<string, string> = { hospital: '🏥', office: '🏢', house: '🏠', tower: '🗼', factory: '🏭', school: '🏫' }
+                      return icons[viewedProject.buildingType] || '🏗️'
+                    })()}</span>
+                    <h2 className="text-2xl font-bold text-white">{viewedProject.title}</h2>
+                  </div>
+                  <p className="text-gray-300">{viewedProject.description}</p>
+                </div>
+                <button onClick={() => { setPanelVisible(false); setTimeout(() => setViewedProject(null), 220) }} className="text-gray-400 hover:text-white ml-4">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-
-              {/* Details */}
-              <div className="bg-gray-800 rounded-lg p-4">
-                <div className="space-y-4">
+            </div>
+          </div>
+          <div className="absolute right-6 top-1/2 transform -translate-y-1/2 z-40 min-w-[200px] max-w-xs">
+            <div
+              id="controls-panel"
+              className="mt-3 p-3 bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-white space-y-3 shadow-lg w-s"
+            >
+              <div className="space-y-4">
                   <div>
                     <h3 className="font-semibold text-white mb-2">🎯 Défi</h3>
                     <p className="text-gray-300">{viewedProject.details.challenge}</p>
@@ -182,23 +177,10 @@ const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode }) => {
                     </ul>
                   </div>
                 </div>
-
-                <div className="mt-6 flex gap-3">
-                  {viewedProject.liveUrl && (
-                    <a href={viewedProject.liveUrl} target="_blank" rel="noopener noreferrer" className="flex-1 bg-blue-600 text-white text-center py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
-                      🌐 Voir le projet
-                    </a>
-                  )}
-                  {viewedProject.githubUrl && (
-                    <a href={viewedProject.githubUrl} target="_blank" rel="noopener noreferrer" className="flex-1 bg-gray-800 text-white text-center py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors">
-                      📁 Code source
-                    </a>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
-        </aside>
+          
+        </>
       )}
 
       {/* Modal de contact */}

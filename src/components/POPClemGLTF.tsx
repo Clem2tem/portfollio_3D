@@ -236,6 +236,11 @@ useEffect(() => {
                 console.log('Île trouvée via child.name:', child.name, 'position:', worldPos)
                 return
               }
+              if ((lname.includes('portal')) && !gltfObjects.find(obj => obj.name === 'portal')) {
+                gltfObjects.push({ object3D: child, name: 'portal', animated: detectAnimated(child) })
+                console.log('Portal trouvé via child.name:', child.name, 'position:', worldPos)
+                return
+              }
 
               // 3) Fallback: keep the existing positional heuristics (do not remove them)
               // Vérifier si c'est l'île (proche de l'origine)

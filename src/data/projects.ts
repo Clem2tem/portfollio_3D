@@ -91,7 +91,7 @@ export const projects: Project[] = [
     description: 'SaaS pour la gestion de chantiers et la création de devis automatiques',
     technologies: ['React', 'TypeScript', 'Firebase', 'Git', 'Google Cloud'],
     category: 'fullstack',
-    position: [1.8, 0.20, -1.8],
+    position: [3.4, 0, -0.3],
     buildingType: 'factory',
     details: {
       challenge: 'Visualiser en temps réel des milliers de points de données provenant de capteurs industriels.',

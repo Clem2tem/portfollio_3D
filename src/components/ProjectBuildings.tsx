@@ -116,22 +116,8 @@ const ProjectBuildings: React.FC<ProjectBuildingsProps> = ({ isNightMode = false
             >
                 {project.buildingType === 'hospital' ? (
                     <HospitalGLTF position={project.position} />
-                ) : project.buildingType === 'factory' ? null : project.buildingType === 'office' ? (
-                    <>
-                        <Box args={[0.6, 1.5, 0.6]} position={[0, 0.75, 0]}>
-                            <meshStandardMaterial color={'#374151'} emissive={'#374151'} emissiveIntensity={0} />
-                        </Box>
-                        {Array.from({ length: 6 }).map((_, i) => (
-                            <Box key={i} args={[0.15, 0.15, 0.02]} position={[-0.2, 0.3 + i * 0.2, 0.31]}>
-                                <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.4} />
-                            </Box>
-                        ))}
-                        {Array.from({ length: 6 }).map((_, i) => (
-                            <Box key={i + 6} args={[0.15, 0.15, 0.02]} position={[0.2, 0.3 + i * 0.2, 0.31]}>
-                                <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.4} />
-                            </Box>
-                        ))}
-                    </>
+                ) : project.buildingType === 'factory' ? (
+                    <ExcavatorGLTF position={project.position} />
                 ) : (
                     <Box args={[0.8, 1, 0.8]} position={[0, 0.5, 0]}>
                         <meshStandardMaterial color={'#374151'} emissive={'#374151'} emissiveIntensity={0} />
@@ -142,7 +128,6 @@ const ProjectBuildings: React.FC<ProjectBuildingsProps> = ({ isNightMode = false
     }
 
     const hoveredProjectData = projects.find((p) => p.id === hoveredProject) || lastHoveredProjectData
-    const factoryProject = projects.find((p) => p.buildingType === 'factory')
 
     return (
         <>
@@ -152,7 +137,6 @@ const ProjectBuildings: React.FC<ProjectBuildingsProps> = ({ isNightMode = false
                 ))}
             </group>
 
-            {factoryProject && <ExcavatorGLTF position={factoryProject.position} />}
 
             <Html as="div" center occlude={false} className="cursor-none" style={{ position: 'fixed', top: '-45vh', left: '50%', transform: 'translateX(-50%)', zIndex: 100, pointerEvents: 'auto', width: 'auto', opacity: hoveredProject ? 1 : 0, transition: 'opacity 0.2s ease-in-out' }}>
                 <div className={`${isNightMode ? 'text-white' : 'text-gray-900'} max-w-xl cursor-none`}>
