@@ -10,17 +10,6 @@ const HospitalGLTF = forwardRef<THREE.Group, { position: [number, number, number
 
     React.useEffect(() => {
         if (!gltf) return;
-        gltf.scene.traverse((child: any) => {
-            if (child.isMesh) {
-                child.castShadow = true;
-                child.receiveShadow = true;
-                // Optionnel : patch matériau pour cohérence visuelle
-                if (child.material) {
-                    child.material.roughness = 0.7;
-                    child.material.metalness = 0.1;
-                }
-            }
-        });
         // mark the root scene so collision discovery can find this object regardless of its world position
         try {
             if (gltf.scene) {
@@ -43,7 +32,7 @@ const HospitalGLTF = forwardRef<THREE.Group, { position: [number, number, number
         if (logoRef.current) {
             // Flottement vertical
             const t = state.clock.getElapsedTime();
-            logoRef.current.position.y = 0.7 + Math.sin(t * 2) * 0.05;
+            logoRef.current.position.y = 0.8 + Math.sin(t * 2) * 0.05;
             // Rotation
             logoRef.current.rotation.y = t * 0.8;
         }
@@ -52,9 +41,9 @@ const HospitalGLTF = forwardRef<THREE.Group, { position: [number, number, number
         <group ref={ref}>
             <primitive
                 object={gltf.scene}
-                scale={[0.2, 0.2, 0.2]}
+                scale={[0.3, 0.3, 0.3]}
                 position={position}
-                rotation={[0, -Math.PI / 1.85, 0]}
+                rotation={[0, Math.PI / 1.895, 0]}
             />
             {/* Logo medchem flottant */}
             <mesh
@@ -62,7 +51,7 @@ const HospitalGLTF = forwardRef<THREE.Group, { position: [number, number, number
                 onPointerOver={() => setHovered(true)}
                 onPointerOut={() => setHovered(false)}
                 ref={logoRef}
-                position={[position[0]+0.5, 0, position[2]+0.9]}
+                position={[position[0]-0.95, 0, position[2]-0.9]}
                 onClick={() => window.open('https://www.medchemstructuregenius.eu/', '_blank')}
             >
                 <boxGeometry args={[0.25, 0.25, 0.04]} />

@@ -7,7 +7,7 @@ export const projects: Project[] = [
     description: 'Application complète pour la gestion des patients, rendez-vous et dossiers médicaux.',
     technologies: ['React', 'Node.js', 'PostgreSQL', 'Express', 'JWT', 'Socket.io'],
     category: 'fullstack',
-    position: [2, -0.02, 6],
+    position: [2.8, -0.02, 6],
     buildingType: 'hospital',
     details: {
       challenge: 'Créer un système sécurisé et efficient pour gérer les données sensibles des patients tout en respectant les normes HIPAA.',

@@ -104,47 +104,18 @@ const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode }) => {
         </div>
       </div>
     {viewedProject && (
-      <div className="absolute left-6 z-40 w-s">
+      <div className="absolute left-6 top-1/2 transform -translate-y-3/4 z-40 w-s">
         <div
           id="controls-panel"
-          className="mt-3 p-3 bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-white space-y-3 shadow-lg"
+          className="mt-3 p-3 bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-white space-y-3 shadow-lg w-s"
         >
-          <div className="flex items-start gap-3">
-            <div className="text-sm">
-              <div className="font-semibold">Déplacement</div>
-              <div className="text-xs text-white/70 flex gap-2 mt-1">
-                <kbd className="bg-white/10 px-2 py-1 rounded">Z/W</kbd>
-                <kbd className="bg-white/10 px-2 py-1 rounded">Q/A</kbd>
-                <kbd className="bg-white/10 px-2 py-1 rounded">S</kbd>
-                <kbd className="bg-white/10 px-2 py-1 rounded">D</kbd>
-                <span className="ml-2 mt-1">Se déplacer</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <div className="text-sm">
-              <div className="font-semibold">Saut & Interaction</div>
-              <div className="text-xs text-white/70 flex gap-3 mt-1">
-                <div><kbd className="bg-white/10 px-2 py-1 mr-2 rounded">SPACE</kbd> Sauter</div>
-                <div><kbd className="bg-white/10 px-2 py-1 mr-2 rounded">Clic</kbd> Interagir</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <div className="text-sm">
-              <div className="font-semibold">Caméra</div>
-              <div className="text-xs text-white/70 mt-1 flex items-center gap-3">
-                <div><kbd className="bg-white/10 px-2 py-1 mr-2 rounded">Scroll</kbd> Zoom</div>
-                <div className="ml-2">Maintenez clic gauche + déplacer pour orienter</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-2 border-t border-white/5 flex items-center justify-between">
-            <div className="text-xs text-white/60">Astuce : cliquez sur l&apos;icône d&apos;un b&acirc;timent pour voir le projet</div>
-          </div>
+          <h3 className="font-semibold text-white mb-3">Technologies</h3>
+          {viewedProject.technologies.map((tech, index) => (
+                    <div key={index} className="flex items-center gap-3 bg-gray-700/40 p-2 rounded w-s">
+                      <img src={`/logos/${tech.replace(/\s+/g, '_')}.png`} alt={tech} className="w-8 h-8 object-contain" onError={(e) => {(e.currentTarget as HTMLImageElement).style.display = 'none'}} />
+                      <span className="text-sm text-gray-200">{tech}</span>
+                    </div>
+                  ))}
         </div>
       </div>
       )}
@@ -159,14 +130,9 @@ const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode }) => {
             <div className="w-full h-full grid grid-rows-[auto_1fr] sm:grid-rows-1 sm:grid-cols-[220px_1fr_1fr] gap-4">
               {/* Left column: technologies */}
               <div className="bg-gray-800 rounded-lg p-4 shadow-inner sm:row-span-2">
-                <h3 className="font-semibold text-white mb-3">Technologies</h3>
+                
                 <div className="flex flex-col gap-2">
-                  {viewedProject.technologies.map((tech, index) => (
-                    <div key={index} className="flex items-center gap-3 bg-gray-700/40 p-2 rounded">
-                      <img src={`/logos/${tech.replace(/\s+/g, '_')}.png`} alt={tech} className="w-8 h-8 object-contain" onError={(e) => {(e.currentTarget as HTMLImageElement).style.display = 'none'}} />
-                      <span className="text-sm text-gray-200">{tech}</span>
-                    </div>
-                  ))}
+                  
                 </div>
               </div>
 
