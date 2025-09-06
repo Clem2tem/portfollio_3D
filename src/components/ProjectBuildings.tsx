@@ -95,37 +95,49 @@ const ProjectBuildings: React.FC<ProjectBuildingsProps> = ({ isNightMode = false
         if (found) setLastHoveredProjectData(found)
     }, [hoveredProject])
 
-    const handleBuildingClick = (projectId: string, e?: any) => {
-        e?.stopPropagation()
-        viewProjectById(projectId)
-        // set cooldown so auto-select won't immediately override a manual click
-        lastAutoSelectAt.current = Date.now()
-        if (nearestTimer.current) {
-            window.clearTimeout(nearestTimer.current)
-            nearestTimer.current = null
-        }
-    }
 
-    const BuildingComponent: React.FC<{ project: Project }> = ({ project }) => {
-        return (
-            <group
-                position={project.position as unknown as [number, number, number]}
-                onClick={(e) => handleBuildingClick(project.id, e)}
-                onPointerOver={() => setHoveredProject(project.id)}
-                onPointerOut={() => setHoveredProject(null)}
-            >
-                {project.buildingType === 'hospital' ? (
-                    <HospitalGLTF position={project.position} />
-                ) : project.buildingType === 'factory' ? (
-                    <ExcavatorGLTF position={project.position} />
-                ) : (
-                    <Box args={[0.8, 1, 0.8]} position={[0, 0.5, 0]}>
-                        <meshStandardMaterial color={'#374151'} emissive={'#374151'} emissiveIntensity={0} />
-                    </Box>
-                )}
-            </group>
-        )
-    }
+    // Crée un composant BuildingComponent stable (identity memoisée) pour éviter
+    // qu'il soit recréé à chaque re-render parent non lié.
+    const viewProjectByIdRef = useRef(viewProjectById)
+    useEffect(() => {
+        viewProjectByIdRef.current = viewProjectById
+    }, [viewProjectById])
+
+    const BuildingComponent = React.useMemo(
+        () =>
+            React.memo(({ project }: { project: Project }) => {
+                const handleClickLocal = (e?: any) => {
+                    e?.stopPropagation()
+                    viewProjectByIdRef.current(project.id)
+                    // set cooldown pour que l'auto-select n'écrase pas le click manuel
+                    lastAutoSelectAt.current = Date.now()
+                    if (nearestTimer.current) {
+                        window.clearTimeout(nearestTimer.current)
+                        nearestTimer.current = null
+                    }
+                }
+
+                return (
+                    <group
+                        position={project.position as unknown as [number, number, number]}
+                        onClick={handleClickLocal}
+                        onPointerOver={() => setHoveredProject(project.id)}
+                        onPointerOut={() => setHoveredProject(null)}
+                    >
+                        {project.buildingType === 'hospital' ? (
+                            <HospitalGLTF position={project.position} />
+                        ) : project.buildingType === 'factory' ? (
+                            <ExcavatorGLTF position={project.position} />
+                        ) : (
+                            <Box args={[0.8, 1, 0.8]} position={[0, 0.5, 0]}>
+                                <meshStandardMaterial color={'#374151'} emissive={'#374151'} emissiveIntensity={0} />
+                            </Box>
+                        )}
+                    </group>
+                )
+            }),
+        [] // component identity stable : ne se recrée pas sauf si on change explicitement ces dépendances
+    )
 
     const hoveredProjectData = projects.find((p) => p.id === hoveredProject) || lastHoveredProjectData
 
