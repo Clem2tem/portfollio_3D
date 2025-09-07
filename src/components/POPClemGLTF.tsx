@@ -111,9 +111,9 @@ const POPClemGLTF: React.FC<Props> = ({
       const box = new THREE.Box3().setFromObject(scene)
       const height = box.max.y - box.min.y
       // pick a point a bit above the model bottom (tweak the 0.75 factor if needed)
-      const eyeLocal = box.min.y + height * 1
+      const eyeLocal = box.min.y + height * scale * 0.75
       // account for the group's scale prop
-      const eyeWorld = eyeLocal * 0.1
+      const eyeWorld = eyeLocal
       modelEyeOffsetRef.current = Math.max(0, eyeWorld)
       // eslint-disable-next-line no-console
       console.log('[POPClemGLTF] computed model eye offset', modelEyeOffsetRef.current)
