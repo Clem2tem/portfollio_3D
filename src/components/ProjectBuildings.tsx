@@ -8,6 +8,7 @@ import { projects } from '../data/projects'
 import { Project } from '../types/Project'
 import { useProjectView } from '../contexts/ProjectViewContext'
 import { usePlayerPosition } from '../contexts/PlayerPositionContext'
+import House from './House'
 
 interface ProjectBuildingsProps {
     isNightMode?: boolean
@@ -121,13 +122,16 @@ const ProjectBuildings: React.FC<ProjectBuildingsProps> = ({ isNightMode = false
                     <group
                         position={project.position as unknown as [number, number, number]}
                         onClick={handleClickLocal}
-                        onPointerOver={() => setHoveredProject(project.id)}
+                        onPointerOver={() => viewProjectById(project.id)}
                         onPointerOut={() => setHoveredProject(null)}
                     >
                         {project.buildingType === 'hospital' ? (
                             <HospitalGLTF position={project.position} />
                         ) : project.buildingType === 'factory' ? (
-                            <ExcavatorGLTF position={project.position} />
+                            <>
+                                <ExcavatorGLTF position={project.position} />
+                                <House position={project.position} />
+                            </>
                         ) : (
                             <Box args={[0.8, 1, 0.8]} position={[0, 0.5, 0]}>
                                 <meshStandardMaterial color={'#374151'} emissive={'#374151'} emissiveIntensity={0} />
@@ -157,7 +161,7 @@ const ProjectBuildings: React.FC<ProjectBuildingsProps> = ({ isNightMode = false
                             <button className={`${isNightMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-800'} transition-colors px-1 cursor-none`} onClick={e => { e.stopPropagation(); setTechIndex((prev) => { if (!hoveredProjectData || !hoveredProjectData.technologies) return 0; return prev === 0 ? hoveredProjectData.technologies.length - 1 : prev - 1; }); }} tabIndex={-1} aria-label="Précédent">
                                 <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                             </button>
-                            {hoveredProjectData && hoveredProjectData.technologies ? (<img src={`/logos/${hoveredProjectData.technologies[techIndex].replace(/\s+/g, '_')}.png`} alt={hoveredProjectData.technologies[techIndex]} className="w-8 h-8 object-contain rounded" onError={(e) => {(e.currentTarget as HTMLImageElement).style.display = 'none'}} />) : null}
+                            {hoveredProjectData && hoveredProjectData.technologies ? (<img src={`/logos/${hoveredProjectData.technologies[techIndex].replace(/\s+/g, '_')}.png`} alt={hoveredProjectData.technologies[techIndex]} className="w-8 h-8 object-contain rounded" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />) : null}
                             <button className={`${isNightMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors px-1 cursor-none`} onClick={e => { e.stopPropagation(); setTechIndex((prev) => { if (!hoveredProjectData || !hoveredProjectData.technologies) return 0; return prev === hoveredProjectData.technologies.length - 1 ? 0 : prev + 1; }); }} tabIndex={-1} aria-label="Suivant">
                                 <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                             </button>

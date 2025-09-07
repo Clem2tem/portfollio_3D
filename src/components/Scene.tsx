@@ -8,7 +8,6 @@ import Island from './Island'
 import ProjectBuildings from './ProjectBuildings'
 import Portal from './Portal'
 import POPClemGLTF from './POPClemGLTF'
-import House from './House'
 
 interface SceneProps {
   isNightMode: boolean
@@ -325,8 +324,6 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, onAnimationComplete }) => {
         cameraHeight={PLAYER_CAM_HEIGHT}
         showHitboxes={false}
       />
-
-      <House position={[0, 0, 0]} />
 
       {/* Fog pour l'atmosphère adaptatif */}
       <fog attach="fog" args={[isNightMode ? '#000005' : '#87CEEB', 8, 25]} />

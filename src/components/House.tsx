@@ -20,7 +20,7 @@ const House = forwardRef<THREE.Group, { position: [number, number, number] }>(({
                                 <primitive
                                     object={gltf.scene}
                                     scale={0.3}
-                                    position= {[position[0]-3, position[1], position[2]+5]}
+                                    position= {[position[0]-3, position[1]+0.04, position[2]+3]}
                                     rotation={[0, -3.65 * Math.PI/4, 0]}
                                 />
                         )
