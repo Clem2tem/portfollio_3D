@@ -260,6 +260,8 @@ const POPClemGLTF: React.FC<Props> = ({
   const camPitch = useRef(0.15) // initial pitch (radians), positive => camera slightly above the pivot
   // camera distance ref so wheel can update it
   const cameraDistanceRef = useRef(cameraDistance)
+  // raycaster for camera occlusion checks (prevent camera being behind geometry)
+  const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster())
   // camera distance limits (ajuste ici pour rapprocher/éloigner la caméra)
   const MIN_CAM_DIST = 0.5
   const MAX_CAM_DIST = 4
@@ -580,8 +582,56 @@ const POPClemGLTF: React.FC<Props> = ({
       pivot.y += computedEye
 
       // position = pivot + dir * r (zoom only changes distance r)
-      const camPos = pivot.clone().add(dir.multiplyScalar(r))
-      cam.position.lerp(camPos, Math.min(1, 8 * delta))
+      const camPos = pivot.clone().add(dir.clone().multiplyScalar(r))
+
+      // Occlusion handling: if something is between pivot (player) and desired camPos,
+      // move the camera forward to sit just in front of the obstacle, otherwise use camPos.
+      try {
+        const raycaster = raycasterRef.current
+        const dirToCam = camPos.clone().sub(pivot).normalize()
+        raycaster.set(pivot, dirToCam)
+        raycaster.far = r
+
+        // intersect the whole scene; filter to Meshes and ignore the player group
+        const hits = raycaster.intersectObjects(state.scene.children, true).filter(i => i.object.type === 'Mesh')
+
+        const isDescendantOf = (node: THREE.Object3D | null, ancestor: THREE.Object3D | null) => {
+          let n: THREE.Object3D | null = node
+          while (n) {
+            if (n === ancestor) return true
+            n = n.parent
+          }
+          return false
+        }
+
+        // find the first hit that isn't part of the player group
+        let validHit: THREE.Intersection | null = null
+        for (const h of hits) {
+          if (!group.current) { validHit = h; break }
+          if (!isDescendantOf(h.object, group.current)) { validHit = h; break }
+        }
+
+        if (validHit) {
+          // place the camera slightly in front of the hit point to avoid clipping
+          // Allow the camera to come closer than the normal MIN_CAM_DIST when occluded.
+          const EPS = 0.15
+          const OCCLUSION_MIN_DIST = 0.15 // how close the camera may get when pushing through occluders
+          let safeDist = (validHit.distance || 0) - EPS
+          // clamp to a small occlusion min distance to avoid camera collapsing into the player
+          safeDist = Math.max(OCCLUSION_MIN_DIST, safeDist)
+          // also don't exceed the intended radius r
+          safeDist = Math.min(r, safeDist)
+          const collisionCamPos = pivot.clone().add(dirToCam.clone().multiplyScalar(safeDist))
+          cam.position.lerp(collisionCamPos, Math.min(1, 12 * delta))
+        } else {
+          // no obstruction -> normal follow
+          cam.position.lerp(camPos, Math.min(1, 8 * delta))
+        }
+      } catch (e) {
+        // on any raycast error, fall back to normal behaviour
+        cam.position.lerp(camPos, Math.min(1, 8 * delta))
+      }
+
       cam.lookAt(pivot)
 
       return
