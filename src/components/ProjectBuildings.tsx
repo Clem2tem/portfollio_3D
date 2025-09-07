@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useFrame } from '@react-three/fiber'
 import { Box } from '@react-three/drei'
 import * as THREE from 'three'
 import ExcavatorGLTF from './ExcavatorGLTF'
@@ -8,7 +7,6 @@ import HospitalGLTF from './HospitalGLTF'
 import { projects } from '../data/projects'
 import { Project } from '../types/Project'
 import { useProjectView } from '../contexts/ProjectViewContext'
-import { usePlayerPosition } from '../contexts/PlayerPositionContext'
 import House from './House'
 
 interface ProjectBuildingsProps {
@@ -19,66 +17,12 @@ interface ProjectBuildingsProps {
 const ProjectBuildings: React.FC<ProjectBuildingsProps> = () => {
     const buildingsRef = useRef<THREE.Group | null>(null)
 
-    const { viewedProject, viewProjectById } = useProjectView()
-    const { position: playerPosition } = usePlayerPosition()
+    const { viewProjectById } = useProjectView()
     // which project id the player is currently inside (or null)
     const [inZone, setInZone] = useState<string | null>(null)
     const [hoveredProjectId, setHoveredProjectId] = useState<string | null>(null)
 
-    // timers (DOM setTimeout returns number in browser env)
-    const nearestTimer = useRef<number | null>(null)
-    const lastAutoSelectAt = useRef<number>(0)
-    const AUTOSELECT_COOLDOWN_MS = 800
-    const AUTOSELECT_DEBOUNCE_MS = 250
 
-
-    useEffect(() => {
-        return () => {
-            if (nearestTimer.current) {
-                window.clearTimeout(nearestTimer.current)
-                nearestTimer.current = null
-            }
-        }
-    }, [])
-
-    // Auto-select the nearest project to the player's XZ position.
-    useFrame(() => {
-        if (!playerPosition) return
-        const px = playerPosition.x
-        const pz = playerPosition.z
-
-        let nearest: Project | null = null
-        let nearestDistSq = Infinity
-        for (const p of projects) {
-            const dx = p.position[0] - px
-            const dz = p.position[2] - pz
-            const d2 = dx * dx + dz * dz
-            if (d2 < nearestDistSq) {
-                nearestDistSq = d2
-                nearest = p
-            }
-        }
-        if (!nearest) return
-
-        const now = Date.now()
-        if (now - lastAutoSelectAt.current < AUTOSELECT_COOLDOWN_MS) return
-
-        // If nearest changed, (re)start debounce timer
-        if (nearest.id !== viewedProject?.id) {
-            if (nearestTimer.current) {
-                window.clearTimeout(nearestTimer.current)
-                nearestTimer.current = null
-            }
-            nearestTimer.current = window.setTimeout(() => {
-                viewProjectById(nearest!.id)
-                lastAutoSelectAt.current = Date.now()
-                if (nearestTimer.current) {
-                    window.clearTimeout(nearestTimer.current)
-                    nearestTimer.current = null
-                }
-            }, AUTOSELECT_DEBOUNCE_MS) as unknown as number
-        }
-    })
 
     useEffect(() => {
         if (hoveredProjectId || inZone) {
@@ -105,12 +49,6 @@ const ProjectBuildings: React.FC<ProjectBuildingsProps> = () => {
                 const handleClickLocal = (e?: any) => {
                     e?.stopPropagation()
                     viewProjectByIdRef.current(project.id)
-                    // set cooldown pour que l'auto-select n'écrase pas le click manuel
-                    lastAutoSelectAt.current = Date.now()
-                    if (nearestTimer.current) {
-                        window.clearTimeout(nearestTimer.current)
-                        nearestTimer.current = null
-                    }
                 }
 
                 // Ensure the group's local position corresponds to the desired world position
