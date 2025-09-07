@@ -43,7 +43,7 @@ const HospitalGLTF = forwardRef<THREE.Group, { position: [number, number, number
                 object={gltf.scene}
                 scale={[0.3, 0.3, 0.3]}
                 position={position}
-                rotation={[0, Math.PI / 1.895, 0]}
+                rotation={[0, 2 * Math.PI / 3, 0]}
             />
             {/* Logo medchem flottant */}
             <mesh

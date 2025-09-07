@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Box } from '@react-three/drei'
 import * as THREE from 'three'
 import ExcavatorGLTF from './ExcavatorGLTF'
+import ProjectZone from './ProjectZone'
 import HospitalGLTF from './HospitalGLTF'
 import { projects } from '../data/projects'
 import { Project } from '../types/Project'
@@ -20,6 +21,9 @@ const ProjectBuildings: React.FC<ProjectBuildingsProps> = () => {
 
     const { viewedProject, viewProjectById } = useProjectView()
     const { position: playerPosition } = usePlayerPosition()
+    // which project id the player is currently inside (or null)
+    const [inZone, setInZone] = useState<string | null>(null)
+    const [hoveredProjectId, setHoveredProjectId] = useState<string | null>(null)
 
     // timers (DOM setTimeout returns number in browser env)
     const nearestTimer = useRef<number | null>(null)
@@ -76,16 +80,14 @@ const ProjectBuildings: React.FC<ProjectBuildingsProps> = () => {
         }
     })
 
-    // simple outward-facing rotation so buildings look natural
-    useFrame(() => {
-        if (!buildingsRef.current) return
-        buildingsRef.current.children.forEach((building) => {
-            const worldPos = new THREE.Vector3()
-            building.getWorldPosition(worldPos)
-            const angle = Math.atan2(worldPos.x, worldPos.z)
-            building.rotation.y = angle
-        })
-    })
+    useEffect(() => {
+        if (hoveredProjectId || inZone) {
+            viewProjectByIdRef.current(hoveredProjectId || inZone)
+        }else {
+            // clear only if not in a zone
+            viewProjectByIdRef.current(null)
+        }
+    }, [hoveredProjectId, inZone])
 
 
     // Crée un composant BuildingComponent stable (identity memoisée) pour éviter
@@ -98,6 +100,8 @@ const ProjectBuildings: React.FC<ProjectBuildingsProps> = () => {
     const BuildingComponent = React.useMemo(
         () =>
             React.memo(({ project }: { project: Project }) => {
+                const groupRef = useRef<THREE.Group | null>(null)
+
                 const handleClickLocal = (e?: any) => {
                     e?.stopPropagation()
                     viewProjectByIdRef.current(project.id)
@@ -109,19 +113,43 @@ const ProjectBuildings: React.FC<ProjectBuildingsProps> = () => {
                     }
                 }
 
+                // Ensure the group's local position corresponds to the desired world position
+                useEffect(() => {
+                    if (!groupRef.current) return
+                    try {
+                        const worldPos = new THREE.Vector3(
+                            project.position[0],
+                            project.position[1],
+                            project.position[2]
+                        )
+                        if (groupRef.current.parent) {
+                            const inv = new THREE.Matrix4().copy(groupRef.current.parent.matrixWorld).invert()
+                            const local = worldPos.clone().applyMatrix4(inv)
+                            groupRef.current.position.copy(local)
+                        } else {
+                            groupRef.current.position.copy(worldPos)
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
+                }, [project.position])
+
                 return (
                     <group
-                        position={project.position as unknown as [number, number, number]}
+                        ref={groupRef}
+                        // initial local position is zero; useEffect will set world-corrected local pos
+                        position={[0, 0, 0]}
                         onClick={handleClickLocal}
-                        onPointerOver={() => viewProjectById(project.id)}
-                        onPointerOut={() => {}}
+                        onPointerOver={() => setHoveredProjectId(project.id)}
+                        onPointerOut={() => setHoveredProjectId(null)}
                     >
                         {project.buildingType === 'hospital' ? (
-                            <HospitalGLTF position={project.position} />
+                            // children are placed relative to the group's local origin
+                            <HospitalGLTF position={[0, 0, 0]} />
                         ) : project.buildingType === 'factory' ? (
                             <>
-                                <ExcavatorGLTF position={project.position} />
-                                <House position={project.position} />
+                                <ExcavatorGLTF position={[0, 0, 0]} />
+                                <House position={[0, 0, 0]} />
                             </>
                         ) : (
                             <Box args={[0.8, 1, 0.8]} position={[0, 0.5, 0]}>
@@ -135,11 +163,17 @@ const ProjectBuildings: React.FC<ProjectBuildingsProps> = () => {
     )
 
 
+    // showZones can be toggled for debugging; default off
+    const [showZones] = useState(true)
+
     return (
         <>
             <group ref={buildingsRef}>
                 {projects.map((project) => (
-                    <BuildingComponent key={project.id} project={project} />
+                    <React.Fragment key={project.id}>
+                        <BuildingComponent project={project} />
+                        <ProjectZone project={project} radius={project.radius ? project.radius : 3} visible={showZones} setInZone={(id) => setInZone(id)} currentInZone={inZone} />
+                    </React.Fragment>
                 ))}
             </group>
         </>

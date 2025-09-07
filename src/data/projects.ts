@@ -7,7 +7,7 @@ export const projects: Project[] = [
     description: 'Application complète pour la gestion des patients, rendez-vous et dossiers médicaux.',
     technologies: ['React', 'Node.js', 'PostgreSQL', 'Express', 'JWT', 'Socket.io'],
     category: 'fullstack',
-    position: [2.8, -0.02, 6],
+    position: [7.5, -0.02, 9.5],
     buildingType: 'hospital',
     details: {
       challenge: 'Créer un système sécurisé et efficient pour gérer les données sensibles des patients tout en respectant les normes HIPAA.',
@@ -27,7 +27,8 @@ export const projects: Project[] = [
       ]
     },
     liveUrl: 'https://hospital-demo.example.com',
-    githubUrl: 'https://github.com/user/hospital-system'
+    githubUrl: 'https://github.com/user/hospital-system',
+    radius: 4
   },
   // {
   //   id: 'ecommerce-platform',
@@ -91,7 +92,7 @@ export const projects: Project[] = [
     description: 'SaaS pour la gestion de chantiers et la création de devis automatiques',
     technologies: ['React', 'TypeScript', 'Firebase', 'Git', 'Google Cloud'],
     category: 'fullstack',
-    position: [3.4, 0, -0.3],
+    position: [6, 0, -1],
     buildingType: 'factory',
     details: {
       challenge: 'Visualiser en temps réel des milliers de points de données provenant de capteurs industriels.',
@@ -111,6 +112,7 @@ export const projects: Project[] = [
       ]
     },
     liveUrl: 'https://iot-dashboard-demo.example.com',
-    githubUrl: 'https://github.com/user/iot-dashboard'
+    githubUrl: 'https://github.com/user/iot-dashboard',
+    radius: 4
   }
 ]

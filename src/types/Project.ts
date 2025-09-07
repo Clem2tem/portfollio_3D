@@ -14,5 +14,7 @@ export interface Project {
     learnings: string[]
   }
   position: [number, number, number] // Position 3D sur l'île
+  rotation?: [number, number, number] // Rotation 3D optionnelle  
   buildingType: 'hospital' | 'office' | 'house' | 'tower' | 'factory' | 'school'
+  radius?: number // Rayon de la zone interactive autour du bâtiment
 }

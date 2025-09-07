@@ -128,13 +128,13 @@ const ExcavatorGLTF = forwardRef<THREE.Group, { position: [number, number, numbe
                 ref={excavatorRef}
                 object={gltf.scene}
                 scale={[0.2, 0.2, 0.2]}
-                position={position}
-                rotation={[0, -3 * Math.PI / 4, 0]}
+                position={[-3.2, position[1], -2.7]}
+                rotation={[0, -Math.PI / 4, 0]}
             />
             {/* Logo SVG 3D extrudé avec scale adapté */}
             <SVGLogo3D
                 url={"/logos/EGS.svg"}
-                position={[position[0] - 0.15, position[1], position[2] - 0.1]}
+                position={[-2,0 , 0]}
                 scale={0.0010}
                 onClick={() => window.open('https://egs.fr', '_blank')}
                 private={true}
