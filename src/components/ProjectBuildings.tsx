@@ -164,7 +164,9 @@ const ProjectBuildings: React.FC<ProjectBuildingsProps> = () => {
 
 
     // showZones can be toggled for debugging; default off
-    const [showZones] = useState(true)
+    const [showZones] = useState(false)
+
+    // Debug logs removed
 
     return (
         <>

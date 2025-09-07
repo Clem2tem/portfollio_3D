@@ -28,10 +28,14 @@ const ProjectZone: React.FC<Props> = ({ project, radius = 2.5, visible = false, 
       const distSq = dx * dx + dz * dz
       if (distSq <= radius * radius) {
         // only set if not already the current
-        if (currentInZone !== project.id) setInZone(project.id)
+        if (currentInZone !== project.id) {
+          setInZone(project.id)
+        }
       } else {
         // if we were the one setting it, clear it; otherwise leave it alone
-        if (currentInZone === project.id) setInZone(null)
+        if (currentInZone === project.id) {
+          setInZone(null)
+        }
       }
     } catch (e) {
       // ignore

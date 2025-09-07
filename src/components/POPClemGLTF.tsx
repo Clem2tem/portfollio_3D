@@ -158,6 +158,27 @@ const POPClemGLTF: React.FC<Props> = ({
     }
   }, [])
 
+  // DEBUG: periodic publisher to ensure PlayerPositionContext receives updates
+  useEffect(() => {
+    let id: number | null = null
+    try {
+      id = window.setInterval(() => {
+        if (!group.current) return
+        try {
+          const p = new THREE.Vector3()
+          group.current.getWorldPosition(p)
+          // send without spamming if identical
+          const prev = lastSentPos.current
+          if (!prev || prev.distanceTo(p) > 0.001) {
+            lastSentPos.current = p.clone()
+            playerPosApi.setPosition({ x: p.x, y: p.y, z: p.z })
+          }
+        } catch (e) {}
+      }, 200)
+    } catch (e) {}
+    return () => { if (id) window.clearInterval(id) }
+  }, [])
+
   // Initialize collisions with real GLTF objects from the scene
   useEffect(() => {
     if (!playerControlled) return
@@ -268,6 +289,8 @@ const POPClemGLTF: React.FC<Props> = ({
   // ensure initial is clamped
   cameraDistanceRef.current = Math.max(MIN_CAM_DIST, Math.min(MAX_CAM_DIST, cameraDistanceRef.current))
   const stopCounter = useRef(0)
+  // remember last position we pushed to context to avoid emission every frame
+  const lastSentPos = useRef<THREE.Vector3 | null>(null)
   // keep an unwrapped camera angle so full rotations (±n * 2PI) are tracked
   const cameraUnwrapped = useRef<number | null>(null)
   const prevWrapped = useRef<number | null>(null)
