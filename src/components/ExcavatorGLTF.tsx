@@ -16,6 +16,17 @@ const ExcavatorGLTF = forwardRef<THREE.Group, { position: [number, number, numbe
     const pauseBetweenLoopsRef = React.useRef(false);
     const eventListenerAddedRef = React.useRef(false);
 
+    React.useEffect(() => {
+                            if (!gltf) return;
+                            // mark the root scene so collision discovery can find this object regardless of its world position
+                            try {
+                                if (gltf.scene) {
+                                    if (!gltf.scene.name) gltf.scene.name = 'excavator'
+                                    gltf.scene.userData = { ...(gltf.scene.userData || {}), collisionName: 'excavator', animated: false }
+                                }
+                            } catch (e) {}
+                        }, [gltf]);
+
 
     React.useEffect(() => {
         if (!anims || !gltf || !anims.actions || Object.keys(anims.actions).length === 0) return;

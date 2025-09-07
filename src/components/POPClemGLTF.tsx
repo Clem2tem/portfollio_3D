@@ -27,15 +27,15 @@ type Props = {
  * - Uses smooth crossfades between animations
  * - Includes physics system with gravity, jumping and collision detection
  */
-const POPClemGLTF: React.FC<Props> = ({ 
-  position = [0, 1.5, 0], 
-  scale = 0.05, 
-  maxSpeed = 0.6, 
-  playerControlled = false, 
-  moveSpeed = 2, 
+const POPClemGLTF: React.FC<Props> = ({
+  position = [0, 1.5, 0],
+  scale = 0.05,
+  maxSpeed = 0.6,
+  playerControlled = false,
+  moveSpeed = 2,
   cameraDistance = 0.5,
   cameraHeight = 1,
-  showHitboxes = false 
+  showHitboxes = false
 }) => {
   const group = useRef<THREE.Group | null>(null)
   // prefer unencoded path and encode once so bundler/browser can find it reliably
@@ -44,7 +44,7 @@ const POPClemGLTF: React.FC<Props> = ({
 
   // Initialize physics system with precise GLTF collision detection
   const { updatePhysics, initializeCollisions, collisionObjects } = usePrecisePlayerPhysics()
-  
+
   // États pour le visualiseur de hitboxes
   const [playerPosition, setPlayerPosition] = useState(new THREE.Vector3(...position))
   const [showHitboxesState, setShowHitboxesState] = useState(showHitboxes)
@@ -54,32 +54,32 @@ const POPClemGLTF: React.FC<Props> = ({
   const playerPosApi = usePlayerPosition()
 
   // React to external focus/position requests (e.g. when clicking a building)
-useEffect(() => {
-  const req = playerPosApi.position
-  if (!req || !group.current) return
-  try {
-    // Smoothly move the player to the requested position over a short period.
-    const target = new THREE.Vector3(req.x, req.y, req.z)
-    // if parented, convert to local
-    if (group.current.parent) {
-      const inv = new THREE.Matrix4().copy(group.current.parent.matrixWorld).invert()
-      target.applyMatrix4(inv)
+  useEffect(() => {
+    const req = playerPosApi.position
+    if (!req || !group.current) return
+    try {
+      // Smoothly move the player to the requested position over a short period.
+      const target = new THREE.Vector3(req.x, req.y, req.z)
+      // if parented, convert to local
+      if (group.current.parent) {
+        const inv = new THREE.Matrix4().copy(group.current.parent.matrixWorld).invert()
+        target.applyMatrix4(inv)
+      }
+      // immediate set to avoid physics fight; leave physics to reconcile next frames
+      group.current.position.lerp(target, 1)
+      // if a lookAt is provided, set the camera to face it briefly by storing to a custom flag on window
+      if (req.lookAt) {
+        try {
+          // small helper: set a global requested camera lookAt so Scene/POPClem can pick it up if needed
+          ; (window as any).__requestedCameraLookAt = { x: req.lookAt.x, y: req.lookAt.y ?? 0, z: req.lookAt.z }
+        } catch (e) { }
+      }
+    } catch (e) {
+      // ignore
     }
-    // immediate set to avoid physics fight; leave physics to reconcile next frames
-    group.current.position.lerp(target, 1)
-    // if a lookAt is provided, set the camera to face it briefly by storing to a custom flag on window
-    if (req.lookAt) {
-      try {
-        // small helper: set a global requested camera lookAt so Scene/POPClem can pick it up if needed
-        ;(window as any).__requestedCameraLookAt = { x: req.lookAt.x, y: req.lookAt.y ?? 0, z: req.lookAt.z }
-      } catch (e) {}
-    }
-  } catch (e) {
-    // ignore
-  }
-  // clear the request after applying once
-  playerPosApi.clearPosition()
-}, [playerPosApi.position])
+    // clear the request after applying once
+    playerPosApi.clearPosition()
+  }, [playerPosApi.position])
 
   // Écouter les touches H/J pour basculer l'affichage et filtrer
   useEffect(() => {
@@ -110,8 +110,8 @@ useEffect(() => {
       scene.updateMatrixWorld(true)
       const box = new THREE.Box3().setFromObject(scene)
       const height = box.max.y - box.min.y
-  // pick a point a bit above the model bottom (tweak the 0.75 factor if needed)
-  const eyeLocal = box.min.y + height * 1
+      // pick a point a bit above the model bottom (tweak the 0.75 factor if needed)
+      const eyeLocal = box.min.y + height * 1
       // account for the group's scale prop
       const eyeWorld = eyeLocal * 0.1
       modelEyeOffsetRef.current = Math.max(0, eyeWorld)
@@ -140,7 +140,7 @@ useEffect(() => {
       // fallback: just set from props
       if (group.current) group.current.position.fromArray(position)
     }
-  // run only on mount
+    // run only on mount
   }, [])
 
   // Persist player position on unmount so remounts can restore it
@@ -161,18 +161,18 @@ useEffect(() => {
   // Initialize collisions with real GLTF objects from the scene
   useEffect(() => {
     if (!playerControlled) return
-    
+
     // Wait for GLTF models to load, then get their references
     const timer = setTimeout(() => {
       try {
-  const gltfObjects: Array<{ object3D: THREE.Object3D; name: string; animated?: boolean }> = []
-        
-  // Chercher spécifiquement les refs des composants GLTF chargés
-  if (group.current && group.current.parent) {
+        const gltfObjects: Array<{ object3D: THREE.Object3D; name: string; animated?: boolean }> = []
+
+        // Chercher spécifiquement les refs des composants GLTF chargés
+        if (group.current && group.current.parent) {
           const scene = group.current.parent
-          
+
           console.log('Analyse de la scène pour les objets GLTF...')
-          
+
           // helper: detect if this node should be considered animated
           const detectAnimated = (node: THREE.Object3D) => {
             // explicit flag on userData still honoured
@@ -208,7 +208,6 @@ useEffect(() => {
               child.traverse((subChild) => { if (subChild.type === 'Mesh') hasMeshes = true })
               if (!hasMeshes) return
 
-              // 1) If the GLTF explicitly marks this node for collisions, prefer that
               if (ud && ud.collisionName) {
                 const name = String(ud.collisionName)
                 if (!gltfObjects.find(obj => obj.name === name)) {
@@ -217,66 +216,17 @@ useEffect(() => {
                   return
                 }
               }
-
-              // 2) Try to detect by the node's name (case-insensitive contains). This allows
-              // GLTFs that keep useful names to be found even when moved in the scene.
-              const lname = (child.name || '').toLowerCase()
-              if (lname.includes('hospital') && !gltfObjects.find(obj => obj.name === 'hospital')) {
-                gltfObjects.push({ object3D: child, name: 'hospital', animated: detectAnimated(child) })
-                console.log('Hôpital trouvé via child.name:', child.name, 'position:', worldPos)
-                return
-              }
-              if (lname.includes('excavator') && !gltfObjects.find(obj => obj.name === 'excavator')) {
-                gltfObjects.push({ object3D: child, name: 'excavator', animated: true })
-                console.log('Excavator trouvé via child.name:', child.name, 'position:', worldPos)
-                return
-              }
-              if ((lname.includes('island') || lname.includes('ile') || lname.includes('isle')) && !gltfObjects.find(obj => obj.name === 'island')) {
-                gltfObjects.push({ object3D: child, name: 'island', animated: detectAnimated(child) })
-                console.log('Île trouvée via child.name:', child.name, 'position:', worldPos)
-                return
-              }
-              if ((lname.includes('portal')) && !gltfObjects.find(obj => obj.name === 'portal')) {
-                gltfObjects.push({ object3D: child, name: 'portal', animated: detectAnimated(child) })
-                console.log('Portal trouvé via child.name:', child.name, 'position:', worldPos)
-                return
-              }
-
-              // 3) Fallback: keep the existing positional heuristics (do not remove them)
-              // Vérifier si c'est l'île (proche de l'origine)
-              if (Math.abs(worldPos.x) < 0.5 && Math.abs(worldPos.z) < 0.5 && worldPos.y < 1) {
-                if (!gltfObjects.find(obj => obj.name === 'island')) {
-                  gltfObjects.push({ object3D: child, name: 'island', animated: detectAnimated(child) })
-                  console.log('Île trouvée à la position:', worldPos, 'taille:', child.children.length)
-                }
-              }
-
-              // Vérifier si c'est l'hôpital (position négative en X, positive en Z)
-              else if (worldPos.x < -0.5 && worldPos.z > 0.5) {
-                if (!gltfObjects.find(obj => obj.name === 'hospital')) {
-                  gltfObjects.push({ object3D: child, name: 'hospital', animated: detectAnimated(child) })
-                  console.log('Hôpital trouvé à la position:', worldPos, 'taille:', child.children.length)
-                }
-              }
-
-              // Vérifier si c'est l'excavator (position positive en X, négative en Z)
-              else if (worldPos.x > 0.5 && worldPos.z < -0.5) {
-                if (!gltfObjects.find(obj => obj.name === 'excavator')) {
-                  gltfObjects.push({ object3D: child, name: 'excavator', animated: true })
-                  console.log('Excavator trouvé à la position:', worldPos, 'taille:', child.children.length)
-                }
-              }
             }
           })
         }
-        
+
         if (gltfObjects.length > 0) {
           initializeCollisions(gltfObjects)
-          console.log(`Collisions initialisées avec ${gltfObjects.length} objets principaux`)
+          console.log(`Collisions initialisées avec ${gltfObjects.map(obj => obj.name).join(', ')}`)
         } else {
           console.warn('Aucun objet GLTF principal trouvé pour les collisions')
           console.log('Tentative de recherche alternative...')
-          
+
           // Alternative: chercher par nom ou propriétés spécifiques
           scene.traverse((child) => {
             if (child.userData && Object.keys(child.userData).length > 0) {
@@ -284,7 +234,7 @@ useEffect(() => {
             }
           })
         }
-        
+
       } catch (error) {
         console.error('Erreur lors de la recherche des objets GLTF:', error)
       }
@@ -351,7 +301,7 @@ useEffect(() => {
     }
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
-  // mouse handlers for camera rotation while holding click
+    // mouse handlers for camera rotation while holding click
     const onMouseDown = (e: MouseEvent) => {
       if (e.button !== 0) return
       dragging.current = true
@@ -370,8 +320,8 @@ useEffect(() => {
       // sensitivity tuning
       const SENS = 0.005
       camYawOffset.current -= dx * SENS
-  // invert vertical drag: moving mouse up should increase elevation
-  camPitch.current = Math.max(-Math.PI / 3, Math.min(Math.PI / 6, camPitch.current + dy * SENS))
+      // invert vertical drag: moving mouse up should increase elevation
+      camPitch.current = Math.max(-Math.PI / 3, Math.min(Math.PI / 6, camPitch.current + dy * SENS))
     }
     // wheel to zoom camera distance (attach to canvas when possible)
     const onWheel: EventListener = (evt) => {
@@ -403,7 +353,7 @@ useEffect(() => {
       wheelTarget.removeEventListener('wheel', onWheel as any)
     }
   }, [playerControlled])
-  
+
 
   // helper: find action by name case-insensitive
   const getAction = (name: string) => {
@@ -415,9 +365,9 @@ useEffect(() => {
 
   // Crossfade to an action (looping by default)
   const fadeTo = (name: string, once = false) => {
-  if (!actions || !mixer) return
-  // do not interrupt Salut once started (except when explicitly asking for Salut)
-  if (salutPlaying.current && name.toLowerCase() !== 'salut') return
+    if (!actions || !mixer) return
+    // do not interrupt Salut once started (except when explicitly asking for Salut)
+    if (salutPlaying.current && name.toLowerCase() !== 'salut') return
 
     // resolve actual action key case-insensitively
     const key = Object.keys(actions).find(k => k.toLowerCase() === name.toLowerCase())
@@ -459,7 +409,7 @@ useEffect(() => {
         prev.crossFadeTo(next, BLEND, false)
       } else {
         // no prev -> ensure a clean start
-        try { mixer.stopAllAction() } catch (e) {}
+        try { mixer.stopAllAction() } catch (e) { }
         next.fadeIn(BLEND)
       }
       setCurrent(key)
@@ -467,7 +417,7 @@ useEffect(() => {
       // eslint-disable-next-line no-console
       console.warn('[POPClemGLTF] fadeTo error', e)
     }
-}
+  }
 
 
   // Play Salut once and return to appropriate state on finish
@@ -481,16 +431,16 @@ useEffect(() => {
       if (e.action !== salut) return
       mixer.removeEventListener('finished', onFinished)
       // return to walk or idle
-    salutPlaying.current = false
-    if (movingRef.current) fadeTo('Walk')
-    else fadeTo('Idle')
+      salutPlaying.current = false
+      if (movingRef.current) fadeTo('Walk')
+      else fadeTo('Idle')
     }
 
     mixer.addEventListener('finished', onFinished)
 
-  // Start salut (play once)
-  salutPlaying.current = true
-  fadeTo('Salut', true)
+    // Start salut (play once)
+    salutPlaying.current = true
+    fadeTo('Salut', true)
   }
 
   // init: play Idle when actions are ready
@@ -513,7 +463,7 @@ useEffect(() => {
     return () => {
       try {
         mixer?.stopAllAction()
-      } catch (e) {}
+      } catch (e) { }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actions])
@@ -531,14 +481,14 @@ useEffect(() => {
 
   // camera movement detection + follow target derived from camera angle (same circle as Scene)
   // Scene places the light on a circle radius=4.5, height=3
-  const FOLLOW_HEIGHT = 0.1 
+  const FOLLOW_HEIGHT = 0.1
 
   useFrame((state, delta) => {
     if (!state.camera) return
     const cam = state.camera
-  // authoritative camera distance (set by mouse wheel / user)
-  const r = cameraDistanceRef.current
-    
+    // authoritative camera distance (set by mouse wheel / user)
+    const r = cameraDistanceRef.current
+
     // player-controlled movement: WASD or ZQSD (Z/Q on AZERTY) + Space for jump
     if (playerControlled && group.current) {
       const forward = (keys.current['KeyW'] || keys.current['KeyZ']) ? 1 : 0
@@ -555,7 +505,7 @@ useEffect(() => {
       cam.getWorldDirection(camForward)
       camForward.y = 0
       if (camForward.lengthSq() > 1e-6) camForward.normalize()
-      
+
       // Right vector relative to camera; negate to match expected left/right input mapping
       const camRight = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), camForward).normalize().negate()
 
@@ -572,7 +522,7 @@ useEffect(() => {
       }
 
       const newPosition = updatePhysics(currentPosition, delta, inputVector, jump)
-      
+
       // Apply physics position to the model
       if (group.current.parent) {
         const inv = new THREE.Matrix4().copy(group.current.parent.matrixWorld).invert()
@@ -613,12 +563,12 @@ useEffect(() => {
       // camera follow behind the player
       const camTarget = new THREE.Vector3()
       group.current.getWorldPosition(camTarget)
-      
-  // apply camera yaw/pitch offsets from mouse drag
-  const totalYaw = camYawOffset.current
+
+      // apply camera yaw/pitch offsets from mouse drag
+      const totalYaw = camYawOffset.current
 
       // when playerControlled, slightly lower the camera pitch to appear closer to the model
-  const pitchAdjust = playerControlled ? -0.12 : 0
+      const pitchAdjust = playerControlled ? -0.12 : 0
       const elevation = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, camPitch.current + pitchAdjust))
       const dir = new THREE.Vector3(
         -Math.sin(totalYaw) * Math.cos(elevation),
@@ -690,20 +640,20 @@ useEffect(() => {
       }
     }
 
-  // While Salut is playing, keep the model completely still (no position/rotation updates).
-  // We still update cameraUnwrapped above for continuity, but exit early to avoid movement.
-  if (salutPlaying.current) return
+    // While Salut is playing, keep the model completely still (no position/rotation updates).
+    // We still update cameraUnwrapped above for continuity, but exit early to avoid movement.
+    if (salutPlaying.current) return
 
-  // target position is the point on the circle at `angle` and FOLLOW_RADIUS (used implicitly below)
+    // target position is the point on the circle at `angle` and FOLLOW_RADIUS (used implicitly below)
 
-  // current model position (world)
+    // current model position (world)
     const currentWorld = new THREE.Vector3()
     if (group.current) group.current.getWorldPosition(currentWorld)
-  // ARC FOLLOWING: move along the circle (angle) instead of cutting across
-  // Compute current radius on XZ plane
-  const currentRadius = Math.sqrt(currentWorld.x * currentWorld.x + currentWorld.z * currentWorld.z)
+    // ARC FOLLOWING: move along the circle (angle) instead of cutting across
+    // Compute current radius on XZ plane
+    const currentRadius = Math.sqrt(currentWorld.x * currentWorld.x + currentWorld.z * currentWorld.z)
 
-  // initialize modelAngle from current world orientation once
+    // initialize modelAngle from current world orientation once
     if (modelAngle.current === null) {
       const init = Math.atan2(currentWorld.z, currentWorld.x)
       // adjust initial modelAngle to the nearest equivalent to the camera's unwrapped angle
@@ -716,32 +666,32 @@ useEffect(() => {
       modelAngle.current = adjusted
     }
 
-  // target angle (continuous, unwrapped)
-  const targetAngle = cameraUnwrapped.current as number
-  // current model angle (continuous)
-  const curModelAngle = modelAngle.current as number
+    // target angle (continuous, unwrapped)
+    const targetAngle = cameraUnwrapped.current as number
+    // current model angle (continuous)
+    const curModelAngle = modelAngle.current as number
 
-  // compute nearest equivalent of targetAngle (add multiples of 2PI) so we always take the short way
-  const n = Math.round((curModelAngle - targetAngle) / TWO_PI)
-  const targetNearest = targetAngle + n * TWO_PI
-  // signed angular difference (already the shortest path)
-  const deltaAngle = targetNearest - curModelAngle
+    // compute nearest equivalent of targetAngle (add multiples of 2PI) so we always take the short way
+    const n = Math.round((curModelAngle - targetAngle) / TWO_PI)
+    const targetNearest = targetAngle + n * TWO_PI
+    // signed angular difference (already the shortest path)
+    const deltaAngle = targetNearest - curModelAngle
 
     // linear max step this frame
     const maxStep = maxSpeed * Math.max(0.016, delta)
     // use the authoritative user radius 'r' as the follow radius so zoom is preserved
     const desiredFollowRadius = r
     // convert to max angular step based on desiredFollowRadius (arc length = radius * angle)
-  const maxAngularStep = desiredFollowRadius > 0 ? maxStep / desiredFollowRadius : Math.sign(deltaAngle) * Math.abs(deltaAngle)
+    const maxAngularStep = desiredFollowRadius > 0 ? maxStep / desiredFollowRadius : Math.sign(deltaAngle) * Math.abs(deltaAngle)
 
-  // apply angular step (preserve direction) but based on modelAngle (continuous)
-  const angularStep = Math.abs(deltaAngle) > Math.abs(maxAngularStep) ? Math.sign(deltaAngle) * Math.abs(maxAngularStep) : deltaAngle
-  const newAngle = curModelAngle + angularStep
-  // store updated continuous model angle
-  modelAngle.current = newAngle
+    // apply angular step (preserve direction) but based on modelAngle (continuous)
+    const angularStep = Math.abs(deltaAngle) > Math.abs(maxAngularStep) ? Math.sign(deltaAngle) * Math.abs(maxAngularStep) : deltaAngle
+    const newAngle = curModelAngle + angularStep
+    // store updated continuous model angle
+    modelAngle.current = newAngle
 
-  // gently correct radial distance towards the desiredFollowRadius while respecting maxStep
-  const radiusDiff = desiredFollowRadius - currentRadius
+    // gently correct radial distance towards the desiredFollowRadius while respecting maxStep
+    const radiusDiff = desiredFollowRadius - currentRadius
     const radialStep = Math.abs(radiusDiff) > maxStep ? Math.sign(radiusDiff) * maxStep : radiusDiff
     const newRadius = currentRadius + radialStep
 
@@ -752,7 +702,7 @@ useEffect(() => {
       Math.sin(newAngle) * newRadius
     )
 
-  // facing logic moved below so it can use `reached` / idleConfirmed
+    // facing logic moved below so it can use `reached` / idleConfirmed
 
     // determine whether we've reached the target angle (modulo-aware)
     // normalize difference to [-PI, PI]
@@ -795,9 +745,9 @@ useEffect(() => {
     // - if model hasn't reached the angular target -> Walk
     // - else if model reached target and camera has been idle for IDLE_CONFIRM_MS -> Idle
     // - otherwise keep Walk until confirmed
-  const now2 = performance.now()
-  const idleConfirmed = idleConfirm.current !== null && (now2 - (idleConfirm.current as number) >= IDLE_CONFIRM_MS)
-  if (!reached) {
+    const now2 = performance.now()
+    const idleConfirmed = idleConfirm.current !== null && (now2 - (idleConfirm.current as number) >= IDLE_CONFIRM_MS)
+    if (!reached) {
       // still moving toward target
       fadeTo('Walk')
     } else if (idleConfirmed) {
@@ -827,7 +777,7 @@ useEffect(() => {
       <group ref={group} scale={[scale, scale, scale]} onClick={onClick} dispose={null}>
         <primitive object={scene} />
       </group>
-      
+
       {/* Visualiseur de hitboxes - placé en dehors du groupe du joueur */}
       <HitboxVisualizer
         visible={showHitboxesState}

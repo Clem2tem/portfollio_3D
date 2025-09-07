@@ -10,9 +10,9 @@ const GROUND_FRICTION = 0.98           // Friction au sol (plus proche de 1 = mo
 export const PLAYER_RADIUS = 0.11      // Rayon du joueur pour les collisions (position = pieds; centre sphère = y + R)
 const PLAYER_HEIGHT_OFFSET = 0          // Hauteur du joueur au-dessus du sol
 const MAX_SLOPE_DEG = 40               // Pente max montable (hors Island)
-const MAX_STEP_UP = 0.1               // Hauteur max d'une marche
+const MAX_STEP_UP = 0.2               // Hauteur max d'une marche (augmenté pour marches/escaliers)
 const MAX_STEP_DOWN = 0.5              // Descente max par frame
-const EPS = 0                          // petite marge pour éviter l'oscillation et le survol
+const EPS = 1e-3                       // petite marge pour éviter l'oscillation et le survol
 
 export const usePrecisePlayerPhysics = () => {
   const velocity = useRef(new THREE.Vector3())

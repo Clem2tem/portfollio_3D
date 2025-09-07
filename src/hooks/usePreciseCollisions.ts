@@ -43,7 +43,7 @@ export const usePreciseCollisions = () => {
 
     const shouldIncludeMesh = (mesh: THREE.Mesh) => {
       const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material
-      if (mat && (mat as any).transparent && (mat as any).opacity < 0.99) return false
+      if (mat && (mat as any).transparent && (mat as any).opacity < 0.1) return false
       const n = mesh.name.toLowerCase()
       if (n.includes('billboard') || n.includes('leaf') || n.includes('foliage')) return false
       return true
