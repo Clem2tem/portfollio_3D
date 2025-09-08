@@ -7,7 +7,6 @@ const POPClemStatic: React.FC = () => {
     const group = useRef<THREE.Group | null>(null)
     const gltf = useGLTF('models/POP/POPClem2.glb')
     const { actions, mixer } = useAnimations((gltf && gltf.animations) || [], group as any)
-    const [salutPlayed, setSalutPlayed] = React.useState(false)
     const salutPlayedRef = useRef(false)
     const salutPlaying = useRef(false)
 
@@ -27,9 +26,7 @@ const POPClemStatic: React.FC = () => {
         if (!actions) return
         if (salutPlaying.current) return
         if (salutPlayedRef.current) return
-        setSalutPlayed(true)
         salutPlayedRef.current = true
-        console.log('POPClemStatic: playSalutOnce triggered', salutPlayed)
         const salut = getSalutAction()
         if (!salut) return
 
@@ -112,10 +109,8 @@ const POPClemStatic: React.FC = () => {
                 if (id === 'popclem') {
                     // if `from` is missing (initial camera placement) or same as target, ignore
                     if (!from || from === 'popclem') {
-                        console.debug('[POPClemStatic] cameraArrived ignored (from missing or same):', { id, from })
                         return
                     }
-                    console.debug('[POPClemStatic] cameraArrived will trigger salut:', { id, from })
                     playSalutOnce()
                 }
             } catch (e) {}
