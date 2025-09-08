@@ -2,11 +2,13 @@ import React, { useRef, useEffect } from 'react'
 import { useGLTF, useAnimations } from '@react-three/drei'
 import * as THREE from 'three'
 
+
 const POPClemStatic: React.FC = () => {
     const group = useRef<THREE.Group | null>(null)
     const gltf = useGLTF('models/POP/POPClem2.glb')
     const { actions, mixer } = useAnimations((gltf && gltf.animations) || [], group as any)
-
+    const [salutPlayed, setSalutPlayed] = React.useState(false)
+    const salutPlayedRef = useRef(false)
     const salutPlaying = useRef(false)
 
     const getIdleAction = () => {
@@ -24,6 +26,10 @@ const POPClemStatic: React.FC = () => {
     const playSalutOnce = () => {
         if (!actions) return
         if (salutPlaying.current) return
+        if (salutPlayedRef.current) return
+        setSalutPlayed(true)
+        salutPlayedRef.current = true
+        console.log('POPClemStatic: playSalutOnce triggered', salutPlayed)
         const salut = getSalutAction()
         if (!salut) return
 
@@ -39,6 +45,17 @@ const POPClemStatic: React.FC = () => {
         }
 
         salutPlaying.current = true
+
+        // Attempt to stop/fade Idle to avoid mixing poses
+        try {
+            const idle = getIdleAction()
+            if (idle) {
+                try { idle.fadeOut(0.12) } catch (e) {}
+                // ensure idle is stopped shortly after fade out
+                try { window.setTimeout(() => { try { idle.stop() } catch (e) {} }, 200) } catch (e) {}
+            }
+        } catch (e) {}
+
         salut.reset()
         salut.setLoop(THREE.LoopOnce, 1)
         salut.clampWhenFinished = true
@@ -49,10 +66,12 @@ const POPClemStatic: React.FC = () => {
         const onFinished = (e: any) => {
             if (e.action === salut) {
                 salutPlaying.current = false
-                mixer.removeEventListener('finished', onFinished)
+                try { mixer.removeEventListener('finished', onFinished) } catch (e) {}
+                // Make sure idle restarts after salut
+                try { playIdle() } catch (e) {}
             }
         }
-        mixer.addEventListener('finished', onFinished)
+        try { mixer.addEventListener('finished', onFinished) } catch (e) {}
     }
 
     // removed auto-play of Salut on load; Salut will be triggered by camera arrival or click
@@ -88,7 +107,15 @@ const POPClemStatic: React.FC = () => {
             try {
                 const detail = (ev as CustomEvent).detail || {}
                 const id = detail.id
+                const from = detail.from
+                // Only salut when arriving specifically to popclem AND we came from another item
                 if (id === 'popclem') {
+                    // if `from` is missing (initial camera placement) or same as target, ignore
+                    if (!from || from === 'popclem') {
+                        console.debug('[POPClemStatic] cameraArrived ignored (from missing or same):', { id, from })
+                        return
+                    }
+                    console.debug('[POPClemStatic] cameraArrived will trigger salut:', { id, from })
                     playSalutOnce()
                 }
             } catch (e) {}

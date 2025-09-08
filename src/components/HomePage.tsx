@@ -1,4 +1,4 @@
-import React, { useState, Suspense, useRef } from 'react'
+import React, { useState, Suspense, useRef, useEffect } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Environment } from '@react-three/drei'
 import { projects } from '../data/projects'
@@ -67,6 +67,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     // Start on the 'default' entry (index 0)
     const [selectedIndex, setSelectedIndex] = useState<number>(0)
     const selectedItem = items[selectedIndex]
+    const prevSelectedRef = React.useRef<string | null>(null)
 
     // dialogue index within the currently selected item
     const [dialogIndex, setDialogIndex] = useState<number>(0)
@@ -129,6 +130,8 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     // navigation helper: move to next/previous item and optionally start at its last dialogue
     const navigateTo = (delta: number, startAtEnd = false) => {
         setSelectedIndex(prev => {
+            // remember previous selected id for camera event 'from'
+            try { prevSelectedRef.current = items[prev].id } catch (e) { prevSelectedRef.current = null }
             // No looping: clamp to [0, items.length - 1]
             let next = prev + delta
             if (next < 0) next = 0
@@ -189,6 +192,11 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
         const { camera } = useThree()
         const cameraArrivedRef = useRef(false)
 
+            // reset arrival flag when target changes so arrival will fire again
+            useEffect(() => {
+                cameraArrivedRef.current = false
+            }, [selectedItem.id])
+
         useFrame(() => {
             const itemCameraPositions: { [key: string]: [number, number, number] } = {
                 'hospital-project': [2, 3, 2],
@@ -224,9 +232,9 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     if (!cameraArrivedRef.current) {
                         cameraArrivedRef.current = true
                         try {
-                            const ev = new CustomEvent('cameraArrived', { detail: { id: selectedItem.id } })
-                            window.dispatchEvent(ev)
-                        } catch (e) {}
+                                    const ev = new CustomEvent('cameraArrived', { detail: { id: selectedItem.id, from: prevSelectedRef.current } })
+                                    window.dispatchEvent(ev)
+                                } catch (e) {}
                     }
                 }
             } catch (e) {}
@@ -284,7 +292,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     <div className="bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-2xl p-6 text-slate-100 shadow-lg">
                         <div className="flex items-start gap-4">
                             <div className="flex-1">
-                                <div className="text-sm text-slate-400">{selectedItem.title}</div>
+                                <div className="text-sm text-slate-400">Clément</div>
                                 <div className="mt-2 text-lg leading-relaxed">{getDialoguesFor(selectedItem)[dialogIndex]}</div>
 
                                 {selectedItem.id === 'portal' && dialogIndex !== 0 && (
