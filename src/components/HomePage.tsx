@@ -1,6 +1,6 @@
 import React, { useState, Suspense, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Environment, OrbitControls } from '@react-three/drei'
+import { Environment } from '@react-three/drei'
 import { projects } from '../data/projects'
 import type { Project } from '../types/Project'
 import * as THREE from 'three'
@@ -12,36 +12,88 @@ import Desk from './Desk'
 import ProjectBuildings from './ProjectBuildings'
 import Lighting from './Lighting'
 import Portal from './Portal'
+import POPClemGLTF from './POPClemGLTF'
+import POPClemStatic from './POPClemStatic'
 
 interface HomePageProps {
     onEnter3DMode: () => void
 }
 
+// Type pour les éléments navigables (projets + éléments spéciaux)
+type NavigableItem = Project | {
+    id: string
+    title: string
+    description: string
+    type: 'special'
+    category: string
+}
+
 const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
-    const [selectedProject, setSelectedProject] = useState<Project>(projects[0])
+    // Éléments spéciaux navigables
+    const specialItems = [
+        {
+            id: 'popclem',
+            title: 'POPClem',
+            description: 'Personnage 3D interactif - Explorez le monde avec votre avatar personnalisé',
+            type: 'special' as const,
+            category: 'Avatar 3D'
+        },
+        {
+            id: 'portal',
+            title: 'Portail',
+            description: 'Portail vers le monde 3D interactif - Entrez dans l\'expérience immersive',
+            type: 'special' as const,
+            category: 'Navigation 3D'
+        }
+    ]
+
+    // Tous les éléments navigables (projets + éléments spéciaux)
+    const allNavigableItems: NavigableItem[] = [...projects, ...specialItems]
+    
+    const [selectedItem, setSelectedItem] = useState<NavigableItem>(projects[0])
     const [logoMousePosition, setLogoMousePosition] = useState({ x: 0.5, y: 0.5 })
     const logoCanvasRef = useRef<HTMLDivElement>(null)
+    
+    // Fonction helper pour vérifier si l'item sélectionné est un projet
+    const isProject = (item: NavigableItem): item is Project => {
+        return 'technologies' in item
+    }
+    
+    // Référence pour la transition fluide du lookAt (persistante entre les re-rendus)
+    const lookAtTargetRef = useRef(new THREE.Vector3(-6, 1, 7)) // Initialisé avec la position du premier projet
 
     // Composant pour gérer la transition de caméra vers les projets
     const CameraController = () => {
         const { camera } = useThree()
         
         useFrame(() => {
-            // Positions de caméra pour chaque projet (vue maquette)
-            const projectCameraPositions: { [key: string]: [number, number, number] } = {
-                'hospital-project': [8, 6, 8],   // Vue sur l'hôpital
-                'SAAS-ERP-EGS': [0, 8, 12],      // Vue centrale sur la maison + excavatrice
-                'popclem': [-8, 6, 8],           // Vue sur POPClem
+            // Positions de caméra pour chaque élément (vue maquette)
+            const itemCameraPositions: { [key: string]: [number, number, number] } = {
+                'hospital-project': [2, 3, 2],   // Vue sur l'hôpital (côté gauche)
+                'SAAS-ERP-EGS': [0, 3, 0],       // Vue sur le projet EGS (côté droit)
+                'popclem': [-3, 4, 3],           // Vue sur POPClem
+                'portal': [3, 5, -2],            // Vue sur le portail
                 'default': [0, 10, 15]           // Vue générale de la maquette
             }
 
-            const targetPosition = projectCameraPositions[selectedProject.id] || projectCameraPositions['default']
+            // Points vers lesquels la caméra doit regarder
+            const itemLookAtPositions: { [key: string]: [number, number, number] } = {
+                'hospital-project': [-6, 1, 7],  // Position de l'hôpital dans la scène
+                'SAAS-ERP-EGS': [8, 0, -3],      // Position du projet EGS dans la scène
+                'popclem': [-2, 0, 2],           // Position approximative de POPClem
+                'portal': [2, 1, -1],            // Position approximative du portail
+                'default': [0, 0, 0]             // Centre de la maquette
+            }
+
+            const targetPosition = itemCameraPositions[selectedItem.id] || itemCameraPositions['default']
+            const lookAtTarget = itemLookAtPositions[selectedItem.id] || itemLookAtPositions['default']
             
             // Transition fluide vers la nouvelle position
             camera.position.lerp(new THREE.Vector3(...targetPosition), 0.02)
             
-            // La caméra regarde toujours le centre de la maquette
-            camera.lookAt(0, 0, 0)
+            // Transition fluide pour la direction lookAt
+            lookAtTargetRef.current.lerp(new THREE.Vector3(...lookAtTarget), 0.02)
+            camera.lookAt(lookAtTargetRef.current)
         })
         
         return null
@@ -100,16 +152,18 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 
                 {/* Le desk avec tous les projets */}
                 <Desk />
-                
+
+                <POPClemStatic />
+
                 {/* Tous les bâtiments/projets positionnés sur la maquette */}
                 <ProjectBuildings />
                 
                 {/* Environnement HDRI pour l'éclairage global */}
                 <Environment 
                     files="/hdri/office.hdr" 
-                    environmentIntensity={0.3}
+                    environmentIntensity={0}
                     background={true}
-                    backgroundIntensity={0.3}
+                    backgroundIntensity={0.8}
                 />
 
                 <Portal />
@@ -152,31 +206,31 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             </header>
 
             {/* Main Content */}
-            <main className="relative z-10 w-full px-12 pointer-events-none">
+            <main className="relative z-10 w-full px-12">
                 {/* Layout en grille selon la maquette */}
                 <div className="grid grid-cols-12 gap-6 h-[calc(100dvh-150px)] w-full">
                     {/* Description - Colonne gauche */}
                     <div className="col-span-12 lg:col-span-3">
-                        <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 h-full border border-slate-700 pointer-events-auto">
+                        <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 h-full border border-slate-700">
                             <h3 className="text-xl font-semibold mb-4">Description</h3>
                             <div className="space-y-4 text-slate-300">
-                                <p>{selectedProject.description}</p>
-                                {selectedProject.details?.challenge && (
+                                <p>{selectedItem.description}</p>
+                                {isProject(selectedItem) && selectedItem.details?.challenge && (
                                     <div>
                                         <h4 className="font-medium text-white mb-2">Défi</h4>
-                                        <p className="text-sm">{selectedProject.details.challenge}</p>
+                                        <p className="text-sm">{selectedItem.details.challenge}</p>
                                     </div>
                                 )}
-                                {selectedProject.details?.solution && (
+                                {isProject(selectedItem) && selectedItem.details?.solution && (
                                     <div>
                                         <h4 className="font-medium text-white mb-2">Solution</h4>
-                                        <p className="text-sm">{selectedProject.details.solution}</p>
+                                        <p className="text-sm">{selectedItem.details.solution}</p>
                                     </div>
                                 )}
                                 <div className="flex gap-4 pt-4">
-                                    {selectedProject.liveUrl && (
+                                    {isProject(selectedItem) && selectedItem.liveUrl && (
                                         <a
-                                            href={selectedProject.liveUrl}
+                                            href={selectedItem.liveUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition-colors"
@@ -184,15 +238,23 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                             Voir le projet
                                         </a>
                                     )}
-                                    {selectedProject.githubUrl && (
+                                    {isProject(selectedItem) && selectedItem.githubUrl && (
                                         <a
-                                            href={selectedProject.githubUrl}
+                                            href={selectedItem.githubUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors"
                                         >
                                             Code source
                                         </a>
+                                    )}
+                                    {selectedItem.id === 'portal' && (
+                                        <button
+                                            onClick={onEnter3DMode}
+                                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm transition-colors"
+                                        >
+                                            Entrer dans le portail
+                                        </button>
                                     )}
                                 </div>
                             </div>
@@ -203,23 +265,48 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     <div className="col-span-12 lg:col-span-6 space-y-6">
                         {/* Titre */}
                         <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700 pointer-events-auto">
-                            <h2 className="text-3xl font-bold mb-2">{selectedProject.title}</h2>
-                            <p className="text-slate-400 mb-4">{selectedProject.category}</p>
+                            <h2 className="text-3xl font-bold mb-2">{selectedItem.title}</h2>
+                            <p className="text-slate-400 mb-4">{selectedItem.category}</p>
 
-                            {/* Navigation entre projets */}
-                            <div className="flex gap-2 overflow-x-auto pb-2">
-                                {projects.map((project) => (
-                                    <button
-                                        key={project.id}
-                                        onClick={() => setSelectedProject(project)}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex-shrink-0 ${selectedProject.id === project.id
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                                            }`}
-                                    >
-                                        {project.title}
-                                    </button>
-                                ))}
+                            {/* Navigation entre tous les éléments */}
+                            <div className="space-y-3">
+                                {/* Projets */}
+                                <div>
+                                    <h4 className="text-sm font-medium text-slate-400 mb-2">Projets</h4>
+                                    <div className="flex gap-2 overflow-x-auto pb-2">
+                                        {projects.map((project) => (
+                                            <button
+                                                key={project.id}
+                                                onClick={() => setSelectedItem(project)}
+                                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex-shrink-0 ${selectedItem.id === project.id
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                                    }`}
+                                            >
+                                                {project.title}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                
+                                {/* Éléments spéciaux */}
+                                <div>
+                                    <h4 className="text-sm font-medium text-slate-400 mb-2">Exploration 3D</h4>
+                                    <div className="flex gap-2 overflow-x-auto pb-2">
+                                        {specialItems.map((item) => (
+                                            <button
+                                                key={item.id}
+                                                onClick={() => setSelectedItem(item)}
+                                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex-shrink-0 ${selectedItem.id === item.id
+                                                    ? 'bg-purple-600 text-white'
+                                                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                                    }`}
+                                            >
+                                                {item.title}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -228,36 +315,72 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
                     {/* Colonne droite */}
                     <div className="col-span-12 lg:col-span-3 space-y-6">
-                        {/* Technologies */}
-                        <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700">
-                            <div className="grid grid-cols-2 gap-3">
-                                {selectedProject.technologies.map((tech, index) => (
-                                    <div
-                                        key={index}
-                                        className="bg-slate-700/50 rounded-lg p-3 text-center border border-slate-600"
-                                    >
-                                        <div className="w-8 h-8 mx-auto mb-2 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
-                                            <span className="text-xs font-bold">{tech.charAt(0)}</span>
+                        {/* Technologies - Uniquement pour les projets */}
+                        {isProject(selectedItem) && (
+                            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700">
+                                <h4 className="text-lg font-semibold mb-4">Technologies</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {selectedItem.technologies.map((tech: string, index: number) => (
+                                        <div
+                                            key={index}
+                                            className="bg-slate-700/50 rounded-lg p-3 text-center border border-slate-600"
+                                        >
+                                            <div className="w-8 h-8 mx-auto mb-2 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
+                                                <span className="text-xs font-bold">{tech.charAt(0)}</span>
+                                            </div>
+                                            <p className="text-sm font-medium">{tech}</p>
                                         </div>
-                                        <p className="text-sm font-medium">{tech}</p>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
-                        {/* Fonctionnalités Techniques */}
-                        <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700">
-                            <div className="space-y-3">
-                                {selectedProject.details?.features?.map((feature, index) => (
-                                    <div key={index} className="flex items-start gap-3">
-                                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
-                                        <p className="text-sm text-slate-300">{feature}</p>
-                                    </div>
-                                )) || (
-                                        <p className="text-slate-400 text-sm">Fonctionnalités en cours de documentation...</p>
-                                    )}
+                        {/* Fonctionnalités Techniques - Uniquement pour les projets */}
+                        {isProject(selectedItem) && (
+                            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700">
+                                <h4 className="text-lg font-semibold mb-4">Fonctionnalités</h4>
+                                <div className="space-y-3">
+                                    {selectedItem.details?.features?.map((feature: string, index: number) => (
+                                        <div key={index} className="flex items-start gap-3">
+                                            <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+                                            <p className="text-sm text-slate-300">{feature}</p>
+                                        </div>
+                                    )) || (
+                                            <p className="text-slate-400 text-sm">Fonctionnalités en cours de documentation...</p>
+                                        )}
+                                </div>
                             </div>
-                        </div>
+                        )}
+
+                        {/* Informations spéciales pour les éléments non-projets */}
+                        {!isProject(selectedItem) && (
+                            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700">
+                                <h4 className="text-lg font-semibold mb-4">À propos</h4>
+                                <div className="space-y-3 text-slate-300">
+                                    {selectedItem.id === 'popclem' && (
+                                        <>
+                                            <p className="text-sm">POPClem est votre avatar dans le monde 3D. Naviguez librement et explorez tous les projets en mode immersif.</p>
+                                            <div className="mt-4">
+                                                <h5 className="font-medium text-white mb-2">Contrôles</h5>
+                                                <ul className="text-sm space-y-1">
+                                                    <li>• WASD : Déplacement</li>
+                                                    <li>• Souris : Regarder autour</li>
+                                                    <li>• Clic : Interagir</li>
+                                                </ul>
+                                            </div>
+                                        </>
+                                    )}
+                                    {selectedItem.id === 'portal' && (
+                                        <>
+                                            <p className="text-sm">Le portail vous transporte directement dans l'expérience 3D interactive où vous pouvez explorer librement tous les projets.</p>
+                                            <div className="mt-4 p-3 bg-purple-600/20 rounded-lg border border-purple-500/30">
+                                                <p className="text-sm text-purple-200">🌟 Mode interactif recommandé pour une expérience complète</p>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Logo en 3D */}
                         <div 
