@@ -99,11 +99,11 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 "Une PME dans le secteur du BTP cherchait à développer un ERP SaaS sur-mesure pour gérer l'ensemble de ses opérations.",
                 "J'ai donc saisi cette opportunité et j'ai travaillé pendant 6 mois en tant que développeur fullstack, durant lesquels j'ai du comprendre et solutionner un outil complet qui permet de gérer un chantier en commençant par la mise en contact, passant par la création d'un devis, la gestion de chantier et jusqu'à la remise des clés.",
                 "Ce fut une expérience très enrichissante et un véritable défi car j'ai du m'adapter et comprendre les besoins spécifiques d'une équipe et des clients dans un milieu qui m'était totalement inconnu.",
-                "Technologies utilisées : Next.js, TypeScript, Prisma, Tailwind CSS, PostgreSQL.",
+                "Mais cette expérience m'a énormément appris, tant sur le plan technique que professionnel, et je me suis rendu encore plus compte que j'avais encore beaucoup à apprendre.",
             ],
             'portal': [
-                "Le portail vous transporte dans l'expérience 3D immersive.",
-                "Entrez pour explorer les projets dans leur environnement." 
+                "Maintenant, je vous laisse libre de vos mouvements.",
+                "Entrez pour explorer les projets en détail et en apprendre davantage sur mes compétences."
             ],
         }
 
@@ -287,7 +287,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                 <div className="text-sm text-slate-400">{selectedItem.title}</div>
                                 <div className="mt-2 text-lg leading-relaxed">{getDialoguesFor(selectedItem)[dialogIndex]}</div>
 
-                                {selectedItem.id === 'portal' && (
+                                {selectedItem.id === 'portal' && dialogIndex !== 0 && (
                                     <div className="mt-4">
                                         <button onClick={onEnter3DMode} className="px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-md text-sm">Entrer dans le portail</button>
                                     </div>
