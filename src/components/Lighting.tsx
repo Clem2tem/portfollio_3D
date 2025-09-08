@@ -4,7 +4,10 @@ const Lighting: React.FC = () => {
   return (
     <>
       {/* Lumière ambiante douce */}
-      <ambientLight intensity={0.4} color="#ffffff" />
+      <directionalLight
+        intensity={0.5}
+        position={[5, 10, 5]}
+      />
     </>
   )
 }

@@ -104,8 +104,13 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 {/* Tous les bâtiments/projets positionnés sur la maquette */}
                 <ProjectBuildings />
                 
-                {/* Environnement pour l'éclairage global */}
-                <Environment preset="warehouse" environmentIntensity={0.3}/>
+                {/* Environnement HDRI pour l'éclairage global */}
+                <Environment 
+                    files="/hdri/office.hdr" 
+                    environmentIntensity={0.3}
+                    background={true}
+                    backgroundIntensity={0.3}
+                />
 
                 <Portal />
             </>
@@ -115,46 +120,21 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     return (
         <div className="min-h-screen text-white">
 
-            {/* ==================== POINTER EVENTS TEMPORAIRE POUR ORBIT CONTROLS ==================== */}
-            <div className="absolute z-[5] inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10">
-                {/* NOTE: z-index pour permettre interaction OrbitControls mais en dessous du contenu UI */}
+            {/* Canvas 3D en arrière-plan */}
+            <div className="absolute z-[-1] inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10">
                 <Canvas
                     camera={{ position: [0, 10, 15], fov: 60 }}
                     className="w-full h-full"
-                    style={{ pointerEvents: 'auto' }}
-                    onPointerMove={(e) => console.log('Canvas pointer move:', e.clientX, e.clientY)}
-                    onPointerDown={() => console.log('Canvas pointer down')}
                 >
                     <Suspense fallback={null}>
-                        {/* ==================== ORBIT CONTROLS - TEMPORAIRE ==================== */}
-                        {/* TODO: SUPPRIMER CES ORBIT CONTROLS PLUS TARD */}
-                        <OrbitControls
-                            enablePan={true}
-                            enableZoom={true}
-                            enableRotate={true}
-                            minDistance={5}
-                            maxDistance={50}
-                            minPolarAngle={0}
-                            maxPolarAngle={Math.PI / 2}
-                            dampingFactor={0.05}
-                            enableDamping={true}
-                            rotateSpeed={1.0}
-                            zoomSpeed={1.2}
-                            panSpeed={1.0}
-                            screenSpacePanning={false}
-                        />
-                        {/* ==================== FIN ORBIT CONTROLS - TEMPORAIRE ==================== */}
-                        
-                        {/* Contrôleur de caméra pour les transitions */}
-                        {/* NOTE: DESACTIVE TEMPORAIREMENT A CAUSE DES ORBIT CONTROLS */}
-                        {/* <CameraController /> */}
+                        {/* Contrôleur de caméra pour les transitions vers les projets */}
+                        <CameraController />
                         
                         {/* Scène maquette complète */}
                         {renderMaquetteScene()}
                     </Suspense>
                 </Canvas>
             </div>
-            {/* ==================== FIN POINTER EVENTS TEMPORAIRE ==================== */}
             {/* Header */}
             <header className="relative z-50 p-6">
                 <div className="flex items-center justify-between">

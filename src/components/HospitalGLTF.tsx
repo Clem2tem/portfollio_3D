@@ -32,7 +32,7 @@ const HospitalGLTF = forwardRef<THREE.Group, { position: [number, number, number
         if (logoRef.current) {
             // Flottement vertical
             const t = state.clock.getElapsedTime();
-            logoRef.current.position.y = 0.9 + Math.sin(t * 2) * 0.05;
+            logoRef.current.position.y = 1.3 + Math.sin(t * 2) * 0.05;
             // Rotation
             logoRef.current.rotation.y = t * 0.8;
         }
@@ -41,9 +41,9 @@ const HospitalGLTF = forwardRef<THREE.Group, { position: [number, number, number
         <group ref={ref}>
             <primitive
                 object={gltf.scene}
-                scale={[0.3, 0.3, 0.3]}
-                position={position}
-                rotation={[0, 2 * Math.PI / 3, 0]}
+                scale={[0.5, 0.5, 0.5]}
+                position={position} 
+                rotation={[0, Math.PI / 6, 0]}
             />
             {!logoHide &&
             <>
@@ -53,7 +53,7 @@ const HospitalGLTF = forwardRef<THREE.Group, { position: [number, number, number
                 onPointerOver={() => setHovered(true)}
                 onPointerOut={() => setHovered(false)}
                 ref={logoRef}
-                position={[position[0]-1.31, 0, position[2]-0.5]}
+                position={[position[0]+1, 0, position[2]-2.3]}
                 onClick={() => window.open('https://www.medchemstructuregenius.eu/', '_blank')}
             >
                 <boxGeometry args={[0.25, 0.25, 0.04]} />
