@@ -468,6 +468,23 @@ const POPClemGLTF: React.FC<Props> = ({
     fadeTo('Salut', true)
   }
 
+  // Listen for global requests to play salut (e.g. from HomePage when camera arrived)
+  useEffect(() => {
+    const handler = () => {
+      try {
+        playSalutOnce()
+      } catch (e) {}
+    }
+    // support both custom event and global function calls
+    window.addEventListener('playSalut', handler as EventListener)
+    // also expose a helper for direct calls
+    try { (window as any).__playSalut = playSalutOnce } catch (e) {}
+    return () => {
+      window.removeEventListener('playSalut', handler as EventListener)
+      try { delete (window as any).__playSalut } catch (e) {}
+    }
+  }, [actions, mixer])
+
   // init: play Idle when actions are ready
   useEffect(() => {
     if (!actions) return
