@@ -28,7 +28,7 @@ type Props = {
  * - Includes physics system with gravity, jumping and collision detection
  */
 const POPClemGLTF: React.FC<Props> = ({
-  position = [0, 0, 0],
+  position = [0, 1.5, 0],
   scale = 0.05,
   maxSpeed = 0.6,
   playerControlled = false,
@@ -468,23 +468,6 @@ const POPClemGLTF: React.FC<Props> = ({
     fadeTo('Salut', true)
   }
 
-  // Listen for global requests to play salut (e.g. from HomePage when camera arrived)
-  useEffect(() => {
-    const handler = () => {
-      try {
-        playSalutOnce()
-      } catch (e) {}
-    }
-    // support both custom event and global function calls
-    window.addEventListener('playSalut', handler as EventListener)
-    // also expose a helper for direct calls
-    try { (window as any).__playSalut = playSalutOnce } catch (e) {}
-    return () => {
-      window.removeEventListener('playSalut', handler as EventListener)
-      try { delete (window as any).__playSalut } catch (e) {}
-    }
-  }, [actions, mixer])
-
   // init: play Idle when actions are ready
   useEffect(() => {
     if (!actions) return
@@ -864,9 +847,9 @@ const POPClemGLTF: React.FC<Props> = ({
     <>
       {/* Do not pass `position` as a prop here to avoid external re-renders resetting the
           programmatically-updated position; initial pos already set on mount above. */}
-      <group ref={group} scale={[scale, scale, scale]} onClick={onClick} dispose={null}>
-        <primitive object={scene} />
-      </group>
+
+        <primitive ref={group} onClick={onClick} object={scene} scale={0.02} />
+
 
       {/* Visualiseur de hitboxes - placé en dehors du groupe du joueur */}
       <HitboxVisualizer
