@@ -4,6 +4,10 @@
 @tailwind utilities;
 
 @layer base {
+  * {
+    cursor: none !important;
+  }
+  
   body {
     font-family: 'Inter', system-ui, sans-serif;
   }

@@ -7,7 +7,7 @@ import SVGLogo3D from './SVGLogo3D';
 
 
 // Composant persistant pour l'excavator animé
-const ExcavatorGLTF = forwardRef<THREE.Group, { position: [number, number, number] }>(({ position }, ref) => {
+const ExcavatorGLTF = forwardRef<THREE.Group, { position: [number, number, number], logoHide?: boolean }>(({ position, logoHide }, ref) => {
     const gltf = useGLTF('models/Excavator/Excavator.gltf');
     const anims = useAnimations(gltf.animations, gltf.scene);
     const mixerRef = React.useRef<any>(null);
@@ -132,6 +132,7 @@ const ExcavatorGLTF = forwardRef<THREE.Group, { position: [number, number, numbe
                 rotation={[0, -Math.PI / 4, 0]}
             />
             {/* Logo SVG 3D extrudé avec scale adapté */}
+            {!logoHide &&
             <SVGLogo3D
                 url={"/logos/EGS.svg"}
                 position={[-2,0 , 0]}
@@ -139,6 +140,7 @@ const ExcavatorGLTF = forwardRef<THREE.Group, { position: [number, number, numbe
                 onClick={() => window.open('https://egs.fr', '_blank')}
                 private={true}
             />
+            }
         </group>
     );
 });

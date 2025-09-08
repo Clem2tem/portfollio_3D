@@ -28,7 +28,7 @@ type Props = {
  * - Includes physics system with gravity, jumping and collision detection
  */
 const POPClemGLTF: React.FC<Props> = ({
-  position = [0, 1.5, 0],
+  position = [0, 0, 0],
   scale = 0.05,
   maxSpeed = 0.6,
   playerControlled = false,

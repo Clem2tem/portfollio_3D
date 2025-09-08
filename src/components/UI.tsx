@@ -5,9 +5,10 @@ import { useProjectView } from '../contexts/ProjectViewContext'
 interface UIProps {
   isNightMode: boolean
   setIsNightMode: (value: boolean) => void
+  onBackToHome?: () => void
 }
 
-const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode }) => {
+const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode, onBackToHome }) => {
   // Use global project view state so camera-driven selection can show details here
   const { viewedProject, setViewedProject, setPanelVisible } = useProjectView()
   const [showContactModal, setShowContactModal] = useState(false)
@@ -27,6 +28,17 @@ const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode }) => {
           </div>
 
           <div className="flex gap-4 items-center">
+            {/* Bouton retour à l'accueil */}
+            {onBackToHome && (
+              <button
+                onClick={onBackToHome}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 hover:scale-105 bg-white/20 backdrop-blur-sm text-white hover:bg-white/30"
+              >
+                <span className="text-lg">🏠</span>
+                <span className="font-semibold">Accueil</span>
+              </button>
+            )}
+
             {/* Bouton jour/nuit */}
             <button
               onClick={() => setIsNightMode(!isNightMode)}

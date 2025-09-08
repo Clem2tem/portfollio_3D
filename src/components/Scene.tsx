@@ -316,7 +316,7 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, onAnimationComplete }) => {
       </mesh>
 
       <POPClemGLTF
-        position={[0, 1, 1]}
+        position={[0, 1.2, 0]}
         scale={0.02}
         playerControlled={PLAYER_CONTROLLED}
         moveSpeed={2.2}

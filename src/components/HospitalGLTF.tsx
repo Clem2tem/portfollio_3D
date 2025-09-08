@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { useFrame, useLoader } from '@react-three/fiber';
 import { TextureLoader } from 'three';
 
-const HospitalGLTF = forwardRef<THREE.Group, { position: [number, number, number] }>(({ position }, ref) => {
+const HospitalGLTF = forwardRef<THREE.Group, { position: [number, number, number], logoHide?:boolean }>(({ position, logoHide }, ref) => {
     const gltf = useGLTF('models/CHU/CHU.gltf');
     const [hovered, setHovered] = useState(false);
 
@@ -32,7 +32,7 @@ const HospitalGLTF = forwardRef<THREE.Group, { position: [number, number, number
         if (logoRef.current) {
             // Flottement vertical
             const t = state.clock.getElapsedTime();
-            logoRef.current.position.y = 0.8 + Math.sin(t * 2) * 0.05;
+            logoRef.current.position.y = 0.9 + Math.sin(t * 2) * 0.05;
             // Rotation
             logoRef.current.rotation.y = t * 0.8;
         }
@@ -45,13 +45,15 @@ const HospitalGLTF = forwardRef<THREE.Group, { position: [number, number, number
                 position={position}
                 rotation={[0, 2 * Math.PI / 3, 0]}
             />
+            {!logoHide &&
+            <>
             {/* Logo medchem flottant */}
             <mesh
 
                 onPointerOver={() => setHovered(true)}
                 onPointerOut={() => setHovered(false)}
                 ref={logoRef}
-                position={[position[0]-1, 0, position[2]-1.1]}
+                position={[position[0]-1.31, 0, position[2]-0.5]}
                 onClick={() => window.open('https://www.medchemstructuregenius.eu/', '_blank')}
             >
                 <boxGeometry args={[0.25, 0.25, 0.04]} />
@@ -101,6 +103,8 @@ const HospitalGLTF = forwardRef<THREE.Group, { position: [number, number, number
                 </Html>
             )}
             </mesh>
+            </>
+    }
         </group>
     );
 });

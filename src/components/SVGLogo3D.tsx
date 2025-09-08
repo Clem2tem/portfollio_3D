@@ -11,8 +11,10 @@ const SVGLogo3D: React.FC<{
   position: [number, number, number];
   scale?: number;
   private?: boolean;
+  rotate?: boolean;
+  hoverEffect?: boolean;
   onClick?: () => void;
-}> = ({ url, position, scale = 0.012, private: isPrivate, onClick }) => {
+}> = ({ url, position, scale = 0.012, private: isPrivate, onClick, rotate= true, hoverEffect = true }) => {
   const [hovered, setHovered] = useState(false);
   const { paths = [] } = useLoader(SVGLoader, url) || {};
   const groupRef = useRef<THREE.Group>(null);
@@ -32,9 +34,13 @@ const SVGLogo3D: React.FC<{
 
   useFrame((state) => {
     if (groupRef.current) {
+      if(rotate) {
       const t = state.clock.getElapsedTime();
       groupRef.current.position.set(position[0], position[1] + 0.8 + Math.sin(t * 2) * 0.05, position[2]);
       groupRef.current.rotation.y = t * 0.8;
+      } else {
+        groupRef.current.rotation.y= Math.PI / 2;
+      }
     }
   });
 
@@ -106,7 +112,7 @@ const SVGLogo3D: React.FC<{
           );
         })}
       </group>
-      {hovered && (
+      {hovered && hoverEffect &&(
         <Html center style={{ pointerEvents: 'none', userSelect: 'none' }}>
           <div style={{
             background: 'rgba(0,0,0,0.85)',

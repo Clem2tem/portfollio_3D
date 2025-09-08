@@ -215,8 +215,8 @@ const Portal: React.FC = () => {
     // S'assurer que le portail est rendu après la structure pour la transparence
     return (
         <group>
-            <primitive object={structureScene} scale={[0.2, 0.2, 0.2]} position={[0, -0.415, 1]} />
-            <primitive object={scene} scale={[0.2, 0.2, 0.2]} position={[0, -0.415, 1]} />
+            <primitive object={structureScene} scale={[0.2, 0.2, 0.2]} position={[0, -0.415, 0]} rotation={[0, 0.8 * Math.PI / 5, 0]} />
+            <primitive object={scene} scale={[0.2, 0.2, 0.2]} position={[0, -0.415, 0]} rotation={[0, 0.8 * Math.PI / 5, 0]} />
         </group>
     )
 }

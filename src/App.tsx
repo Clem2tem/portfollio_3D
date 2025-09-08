@@ -1,25 +1,26 @@
+import { useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { Suspense, useState } from 'react'
+import { Suspense } from 'react'
 import Scene from './components/Scene'
 import UI from './components/UI'
 import CustomCursor from './components/CustomCursor'
-import IntroScreen from './components/IntroScreen'
+import HomePage from './components/HomePage'
 import { LoadingProvider, ProgressBridge } from './contexts/LoadingContext'
 import { PlayerPositionProvider } from './contexts/PlayerPositionContext'
 import { ProjectViewProvider } from './contexts/ProjectViewContext'
 
 function App() {
+  const [currentView, setCurrentView] = useState<'home' | '3d'>('home')
   const [isNightMode, setIsNightMode] = useState(false)
-  const [showIntro, setShowIntro] = useState(true)
   const [isEntering, setIsEntering] = useState(false)
-  const [hasEntered, setHasEntered] = useState(false)
 
-  const handleEnter3DWorld = () => {
-    if (!hasEntered) {
-      setIsEntering(true)
-      setShowIntro(false)
-      setHasEntered(true)
-    }
+  const handleEnter3DMode = () => {
+    setCurrentView('3d')
+    setIsEntering(true)
+  }
+
+  const handleBackToHome = () => {
+    setCurrentView('home')
   }
 
   const handleAnimationComplete = () => {
@@ -28,57 +29,57 @@ function App() {
 
   return (
     <LoadingProvider>
-      <PlayerPositionProvider>
-        <ProjectViewProvider>
-        <div className="w-full h-screen relative overflow-hidden" style={{ cursor: showIntro ? 'auto' : 'none' }}>
-      {/* Écran d'introduction */}
-      {showIntro && (
-        <IntroScreen onEnterPortfolio={handleEnter3DWorld} />
-      )}
+      <ProjectViewProvider>
+        <PlayerPositionProvider>
+          <div className="w-full h-screen relative overflow-hidden">
 
-      {/* Canvas 3D - mounted always so we can preload assets while intro is shown */}
-      <Canvas
-        camera={{ 
-          position: hasEntered ? [0, 6, 10] : [0, 2, 0], 
-          fov: 60,
-          near: 0.1,
-          far: 1000
-        }}
-        shadows
-        className="absolute inset-0"
-        style={{
-          // keep canvas running but invisible / non-interactive while intro is visible
-          visibility: showIntro ? 'hidden' : 'visible',
-          pointerEvents: showIntro ? 'none' : undefined
-        }}
-        gl={{
-          antialias: true,
-          alpha: false,
-          powerPreference: "high-performance"
-        }}
-        dpr={[1, 2]}
-      >
-        {/* Mount a small bridge inside the Canvas to forward drei progress into app context */}
-        <ProgressBridge />
-        <Suspense fallback={null}>
-          <Scene 
-            isNightMode={isNightMode} 
-            isEntering={isEntering}
-            onAnimationComplete={handleAnimationComplete}
-          />
-        </Suspense>
-      </Canvas>
+            {/* HomePage */}
+            {currentView === 'home' && (
+              <HomePage onEnter3DMode={handleEnter3DMode} />
+            )}
 
-      {/* Interface utilisateur overlay - masquée pendant l'intro */}
-      {!showIntro && (
-        <UI isNightMode={isNightMode} setIsNightMode={setIsNightMode} />
-      )}
+            {/* 3D World */}
+            {currentView === '3d' && (
+              <Canvas
+                gl={{ antialias: true }}
+                camera={{
+                  fov: 60,
+                  position: [0, 6, 10],
+                  near: 0.1,
+                  far: 1000
+                }}
+                style={{
+                  visibility: 'visible',
+                  pointerEvents: undefined
+                }}
+                shadows
+                className="absolute inset-0"
+                dpr={[1, 2]}
+              >
+                <ProgressBridge />
+                <Suspense fallback={null}>
+                  <Scene
+                    isNightMode={isNightMode}
+                    isEntering={isEntering}
+                    onAnimationComplete={handleAnimationComplete}
+                  />
+                </Suspense>
+              </Canvas>
+            )}
 
-      {/* Curseur personnalisé - masqué pendant l'intro */}
-      {!showIntro && <CustomCursor />}
-      </div>
-        </ProjectViewProvider>
-      </PlayerPositionProvider>
+            {/* UI pour le mode 3D */}
+            {currentView === '3d' && (
+              <UI
+                isNightMode={isNightMode}
+                setIsNightMode={setIsNightMode}
+                onBackToHome={handleBackToHome}
+              />
+            )}
+
+            <CustomCursor />
+          </div>
+        </PlayerPositionProvider>
+      </ProjectViewProvider>
     </LoadingProvider>
   )
 }
