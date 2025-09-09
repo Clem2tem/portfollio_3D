@@ -9,7 +9,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ onClose }) => {
 
   return (
     <div className='fixed bg-black/60 backdrop-blur-md top-0 left-0 right-0 bottom-0 z-50 flex items-center justify-center'> 
-    <div className="fixed top-[25svh] left-[25svw] md:w-[50svw] md:h-[50svh] z-50 flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 backdrop-blur-sm rounded-3xl border border-white/60 p-6">
+    <div className="fixed translate-y-[50dvh-300px] translate-x-[50dvw-600px] md:w-[1200px] md:h-[600px] z-50 flex items-center justify-center bg-gradient-to-br/90 from-purple-900/90 via-blue-900/90 to-indigo-900/90 backdrop-blur-sm rounded-3xl border border-white/60 p-6">
       {/* Fond animé avec particules */}
       <div className="absolute inset-0 overflow-hidden">
         {Array.from({ length: 20 }).map((_, i) => (

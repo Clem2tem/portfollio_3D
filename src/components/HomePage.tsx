@@ -12,6 +12,7 @@ import ProjectBuildings from './ProjectBuildings'
 import Lighting from './Lighting'
 import Portal from './Portal'
 import POPClemStatic from './POPClemStatic'
+import ContactModal from './ContactModal'
 
 interface HomePageProps {
     onEnter3DMode: () => void
@@ -80,6 +81,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
     // dialogue index within the currently selected item
     const [dialogIndex, setDialogIndex] = useState<number>(0)
+    const [showContact, setShowContact] = useState<boolean>(false)
 
     // helper: return dialogues for a given item
     const getDialoguesFor = (item: NavigableItem): string[] => {
@@ -312,6 +314,23 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
         </>
     )
 
+    // navigation stepper: clickable items at top
+
+    // goTo a specific index (stepper). If jumping backwards, start at end of dialogues for that item.
+    const goTo = (index: number) => {
+        setSelectedIndex(prev => {
+            try { prevSelectedRef.current = items[prev].id } catch (e) { prevSelectedRef.current = null }
+            let next = Math.max(0, Math.min(items.length - 1, index))
+            if (next === prev) return prev
+            const nextItem = items[next]
+            const nextDialogs = getDialoguesFor(nextItem)
+            // if jumping backward, start at end; otherwise start at 0
+            const startAtEnd = next < prev
+            setDialogIndex(startAtEnd ? Math.max(0, nextDialogs.length - 1) : 0)
+            return next
+        })
+    }
+
     return (
         <div className="min-h-screen text-white">
             <div className="absolute z-[-1] inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10">
@@ -323,14 +342,45 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 </Canvas>
             </div>
 
-            <header className="relative z-50 p-6">
+            <header className="absolute w-full top-3 z-50 px-6">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold text-white">Clément DT</h1>
                         <p className="text-slate-400">Développeur Fullstack</p>
                     </div>
+
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setShowContact(true)}
+                            className="px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-md text-sm text-white shadow-md"
+                        >
+                            Contact
+                        </button>
+                    </div>
                 </div>
             </header>
+
+            {/* Top navigation stepper (clickable) */}
+            <div className="fixed top-6 left-0 right-0 z-50 pointer-events-auto">
+                <div className="mx-auto w-full max-w-3xl px-6">
+                    <div className="flex items-center justify-center gap-2">
+                        {items.map((it, i) => {
+                            const isActive = i === selectedIndex
+                            const visited = i < selectedIndex
+                            return (
+                                <button
+                                    key={it.id}
+                                    onClick={(e) => { e.stopPropagation(); goTo(i) }}
+                                    className={`h-2 rounded-full transition-all ${isActive ? 'bg-white w-16' : visited ? 'bg-white/60 w-8' : 'bg-slate-700 w-4'}`}
+                                    aria-current={isActive}
+                                    aria-label={`Aller à ${it.title || it.id}`}
+                                    title={it.title || it.id}
+                                />
+                            )
+                        })}
+                    </div>
+                </div>
+            </div>
 
             {/* Minimal UI: bottom speech bubble */}
             <main className="relative z-10 w-full px-6">
@@ -356,7 +406,21 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                     </div>
                                 )}
                             </div>
-                            <div className="text-xs text-slate-400 self-start">{dialogIndex + 1} / {getDialoguesFor(selectedItem).length}</div>
+                        </div>
+                        {/* Progress bar: shows progress through current dialogues */}
+                        <div className="mt-4">
+                            <div className="h-1 bg-slate-700 rounded overflow-hidden">
+                                {
+                                    (() => {
+                                        const dialogs = getDialoguesFor(selectedItem)
+                                        const total = dialogs ? dialogs.length : 0
+                                        const pct = total > 0 ? Math.round(((dialogIndex + 1) / total) * 100) : 0
+                                        return (
+                                            <div className="h-1 bg-white rounded transition-all" style={{ width: `${pct}%` }} aria-label={`Progression ${pct}%`} />
+                                        )
+                                    })()
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -376,6 +440,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     </div>
                 </div>
             )}
+            {showContact && <ContactModal onClose={() => setShowContact(false)} />}
         </div>
     )
 }
