@@ -49,17 +49,26 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             description: 'Découvrez mes projets et mon univers créatif',
             type: 'special' as const,
             category: 'Introduction'
+        },
+        {
+            id:'default2',
+            title: "Salut ! Moi c'est Clément.",
+            description: 'Découvrez mes projets et mon univers créatif',
+            type: 'special' as const,
+            category: 'Introduction'
         }
     ]
 
     // Build items in the requested order: default, popclem, projects..., portal
     const defaultItem = specialItems.find(s => s.id === 'default')
+    const default2Item = specialItems.find(s => s.id === 'default2')
     const popclemItem = specialItems.find(s => s.id === 'popclem')
     const portalItem = specialItems.find(s => s.id === 'portal')
 
     const items: NavigableItem[] = [
         ...(defaultItem ? [defaultItem] : []),
         ...(popclemItem ? [popclemItem] : []),
+        ...(default2Item ? [default2Item] : []),
         ...projects,
         ...(portalItem ? [portalItem] : [])
     ]
@@ -82,16 +91,19 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             ],
             'popclem': [
                 "Ça c'est moi...",
-                "Je me présente rapidement. Je m'appelle Clément et j'ai 22 ans. Je suis passionné par le développement mais pas que.",
-                "J'aime le sport, les jeux vidéo, la musique mais surtout...",
-                "Apprendre de nouvelles choses",
+                "Je me présente rapidement. Je m'appelle Clément et j'ai 22 ans. J'adore développer mais je ne me résume pas à ça...",
+                "J'aime aussi le sport, les jeux vidéo, la musique mais surtout...",
+                "Ce que je préfère dans tout ça, c'est apprendre de nouvelles choses",
                 "Vous m'incarnerez durant cette visite virtuelle pour en apprendre plus sur mes projets.",
-                "Par la suite vous pourrez vous déplacer librement et explorer mon univers comme bon vous semble."
+                "Je vous laisse bientôt vous déplacer librement et explorer mon univers comme bon vous semble."
+            ],
+            'default2': [
+                "J'ai choisi, pour mon portfolio, de modéliser en 3D les projets qui ont marqué mon parcours.",
             ],
             'hospital-project': [
-                "J'ai choisi, pour mon portfolio, de modéliser en 3D les projets qui ont marqué mon parcours.",
                 "Le premier est celui-ci, si vous le reconnaissez, c'est la FAC de pharmacie de Lille.",
                 "Au cours de ma 3ème année d'école d'ingénieur, j'ai travaillé pendant 2 mois sur une application qui permet aux étudiants et aux chercheurs d'avoir un accès facile et ludique à un maximum de molécules pharmaceutiques afin d'optimiser l'apprentissage et la recherche dans le milieu de la santé.",
+                "Il sert également aux professeurs de l'université car il propose des quiz sous forme de QCM notés et dont les résultats sont accessibles dans le back-office.",
                 "Nous étions une équipe de 4 développeurs, et j'ai développé l'application back-office de l'application pendant que mes coéquipiers se chargeaient de faire la V3 de l'application.",
             ],
             'SAAS-ERP-EGS': [
@@ -187,6 +199,46 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
     const lookAtTargetRef = useRef(new THREE.Vector3(-6, 1, 7))
 
+    // Small helper component: load PNG by default, preload SVG in background and
+    // switch to it if PNG fails. This forces both to be requested in parallel.
+    const TechLogo: React.FC<{ tech: string; className?: string }> = ({ tech, className }) => {
+        const png = `/logos/${tech.replace(/\s+/g, '_')}.png`
+        const svg = `/logos/${tech.replace(/\s+/g, '_')}.svg`
+        const [src, setSrc] = React.useState(png)
+
+        React.useEffect(() => {
+            // start preloading svg in background so switching is instant if needed
+            const probe = new Image()
+            probe.src = svg
+            probe.onload = () => {
+                // nothing immediate — we keep png as primary until error
+                console.debug('[logos] svg preloaded for', tech, svg)
+            }
+            probe.onerror = () => {
+                // svg missing or errored; we'll handle png onError later
+                console.debug('[logos] svg preload failed for', tech, svg)
+            }
+            return () => {
+                probe.onload = null
+                probe.onerror = null
+            }
+        }, [svg, tech])
+
+        const onError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+            const img = e.currentTarget
+            // switch to svg if png failed
+            if (img.src && img.src.endsWith('.png')) {
+                console.debug('[logos] png failed, switching to svg for', tech, svg)
+                setSrc(svg)
+            } else {
+                // final fallback: tiny placeholder
+                img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='
+            }
+        }
+
+        return <img src={src} alt={tech} className={className || 'w-8 h-8 object-contain'} onError={onError} />
+    }
+
     // Camera controller
     const CameraController = () => {
         const { camera } = useThree()
@@ -203,7 +255,8 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 'SAAS-ERP-EGS': [0, 3, 0],
                 'popclem': [0, 0.5, 1.5],
                 'portal': [-1, 0.5, -2],
-                'default': [15, 10, 15]
+                'default': [15, 10, 15],
+                'default2': [7, 5, 7]
             }
 
             const itemLookAtPositions: { [key: string]: [number, number, number] } = {
@@ -211,7 +264,8 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 'SAAS-ERP-EGS': [8, 0, -3],
                 'popclem': [-1, 0.3, 1],
                 'portal': [0, 0.5, 0],
-                'default': [0, 0, 0]
+                'default': [0, 0, 0],
+                'default2': [0, 0, 0]
             }
 
             const targetPosition = itemCameraPositions[selectedItem.id] || itemCameraPositions['default']
@@ -306,6 +360,21 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     </div>
                 </div>
             </main>
+
+            {/* Technologies card for projects - positioned on the right */}
+            {('technologies' in selectedItem) && (
+                <div className="absolute right-6 top-1/2 transform -translate-y-1/2 z-50 min-w-[200px] max-w-xs">
+                    <div className="mt-3 p-3 bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-white space-y-3 shadow-lg w-s">
+                        <h3 className="font-semibold text-white mb-3">Technologies</h3>
+                        {(selectedItem as Project).technologies.map((tech, index) => (
+                            <div key={index} className="flex items-center gap-3 bg-gray-700/40 p-2 rounded w-s">
+                                <TechLogo tech={tech} />
+                                <span className="text-sm text-gray-200">{tech}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
