@@ -3,31 +3,31 @@ import { Project } from '../types/Project'
 export const projects: Project[] = [
   {
     id: 'hospital-project',
-    title: 'Système de Gestion Hospitalière',
-    description: 'Application complète pour la gestion des patients, rendez-vous et dossiers médicaux.',
-    technologies: ['React', 'Node.js', 'PostgreSQL', 'Express', 'JWT', 'Socket.io'],
+    title: 'Medchem Structure Genius',
+    description: 'Application complète de e-Learning dans le domaine de la pharmacologie.',
+    technologies: ['React', 'Node.js', 'Next.js', 'Supabase', 'Vercel', 'TypeScript'],
     category: 'fullstack',
     position: [-3.5, -0.15, 7.3],
     buildingType: 'hospital',
     details: {
-      challenge: 'Créer un système sécurisé et efficient pour gérer les données sensibles des patients tout en respectant les normes HIPAA.',
-      solution: 'Architecture microservices avec authentification JWT, chiffrement des données et interface utilisateur intuitive pour le personnel médical.',
+      challenge: "Créer un système sécurisé et efficient pour gérer les données de l'application par la clientele, tout en offrant une expérience utilisateur fluide et interactive pour les utilisateurs.",
+      solution: 'Création d\'un backend avec Node.js et Express pour gérer les requêtes et les données de l\'application et un back-office avec Next.js pour l\'interface utilisateur. Correction de l\'UI/UX et ajout de nouvelles fonctionnalités.',
       features: [
-        'Gestion des dossiers patients avec historique médical',
-        'Système de rendez-vous en temps réel',
-        'Notifications push pour le personnel',
+        'Gestion de tout les éléments de l\'application via un back-office',
+        'Système de quiz interactifs avec sélection de niveau et de domaine pharmaceutique',
+        'Système de notation et suivi des progrès des utilisateurs',
         'Tableau de bord analytics pour les administrateurs',
         'Interface mobile responsive'
       ],
       learnings: [
-        'Sécurisation des données médicales sensibles',
-        'Implémentation de WebSockets pour les notifications temps réel',
-        'Architecture scalable avec microservices',
-        'Tests automatisés pour applications critiques'
+        'Sécurisation des données sensibles',
+        'Développeement d\'API RESTful avec Node.js',
+        'Déploiement continu avec Vercel, Expo et GitHub',
+        'Tests automatisés avec Jest',
       ]
     },
-    liveUrl: 'https://hospital-demo.example.com',
-    githubUrl: 'https://github.com/user/hospital-system',
+    liveUrl: 'https://www.medchemstructuregenius.eu/',
+    githubUrl: 'private',
     radius: 4
   },
   // {
@@ -90,26 +90,28 @@ export const projects: Project[] = [
     id: 'SAAS-ERP-EGS',
     title: 'SAAS ERP EGS',
     description: 'SaaS pour la gestion de chantiers et la création de devis automatiques',
-    technologies: ['React', 'TypeScript', 'Firebase', 'Git', 'Google Cloud'],
+    technologies: ['React', 'TypeScript', 'Next.js', 'Node.js', 'Firebase', 'Git', 'Google Cloud'],
     category: 'fullstack',
     position: [6, 0, -1],
     buildingType: 'factory',
     details: {
-      challenge: 'Visualiser en temps réel des milliers de points de données provenant de capteurs industriels.',
-      solution: 'Dashboard Vue.js avec graphiques D3.js, protocole MQTT pour la communication temps réel et InfluxDB pour le stockage des séries temporelles.',
+      challenge: "Remplacer un ERP Excel peu fiable par une solution moderne, collaborative et évolutive adaptée aux besoins d'une PME du BTP.",
+      solution: "Développement d'une plateforme SaaS avec Next.js et Firebase, intégrée à Google Workspace, permettant la gestion complète des devis, factures et chantiers.",
       features: [
-        'Visualisation temps réel de 1000+ capteurs',
-        'Alertes automatiques sur seuils critiques',
-        'Graphiques interactifs avec zoom et pan',
-        'Export de données en CSV/PDF',
-        'Interface responsive pour tablettes industrielles'
+        "Module devis automatisé avec import de nomenclatures Revit",
+        "Authentification sécurisée (Firebase + OAuth Google) avec rôles",
+        "Intégrations Google Sheets, Drive et Calendar",
+        "Gestion des factures et exports comptables",
+        "Interface responsive et adaptée aux différents profils utilisateurs",
+        "Tests automatisés et CI/CD avec monitoring des performances",
       ],
       learnings: [
-        'Protocoles IoT (MQTT, CoAP)',
-        'Bases de données de séries temporelles',
-        'Optimisation pour gros volumes de données',
-        'Visualisation de données complexes avec D3.js'
-      ]
+        "Architecture SaaS et conception modulaire",
+        "Gestion de la sécurité et des rôles utilisateurs",
+        "Intégration d'APIs tierces (Google Workspace)",
+        "Pratiques de qualité logicielle (tests, CI/CD, monitoring)",
+        "Optimisation des performances frontend (virtualisation, lazy loading)"
+      ],
     },
     liveUrl: 'https://iot-dashboard-demo.example.com',
     githubUrl: 'https://github.com/user/iot-dashboard',

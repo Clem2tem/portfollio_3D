@@ -85,7 +85,8 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     const getDialoguesFor = (item: NavigableItem): string[] => {
         const dialoguesMap: Record<string, string[]> = {
             'default': [
-                "Salut ! bienvenue sur mon portfolio.",
+                "Salut ! Bienvenue sur mon portfolio !",
+                "Avant toute chose, ce portfolio est encore en cours de développement, donc certaines fonctionnalités pourraient ne pas être totalement opérationnelles et certains projets manquants pour le moment.",
                 "Je m'appelle Clément, je suis un jeune développeur fullstack qui vient de finir ses études d'ingénieur à HEI Lille.",
                 "Ici je présente mes projets, mon parcours et quelques expériences marquantes."
             ],
@@ -363,7 +364,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
             {/* Technologies card for projects - positioned on the right */}
             {('technologies' in selectedItem) && (
-                <div className="absolute right-6 top-1/2 transform -translate-y-1/2 z-50 min-w-[200px] max-w-xs">
+                <div className="absolute left-6 top-1/2 transform -translate-y-3/4 z-40 min-w-[200px] max-w-xs">
                     <div className="mt-3 p-3 bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-white space-y-3 shadow-lg w-s">
                         <h3 className="font-semibold text-white mb-3">Technologies</h3>
                         {(selectedItem as Project).technologies.map((tech, index) => (

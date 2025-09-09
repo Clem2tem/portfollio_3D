@@ -79,7 +79,6 @@ const ProjectBuildings: React.FC<ProjectBuildingsProps> = () => {
                         position={[0, 0, 0]}
                         onClick={handleClickLocal}
                         onPointerOver={() => setHoveredProjectId(project.id)}
-                        onPointerOut={() => setHoveredProjectId(null)}
                     >
                         {project.buildingType === 'hospital' ? (
                             // children are placed relative to the group's local origin

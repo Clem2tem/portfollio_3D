@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import ContactModal from './ContactModal'
 import { useProjectView } from '../contexts/ProjectViewContext'
 
@@ -12,6 +12,42 @@ const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode, onBackToHome }) =>
   // Use global project view state so camera-driven selection can show details here
   const { viewedProject, setViewedProject, setPanelVisible } = useProjectView()
   const [showContactModal, setShowContactModal] = useState(false)
+  const [activeTab, setActiveTab] = useState<'challenge' | 'solution' | 'features' | 'learnings'>('challenge')
+
+  // Reset tab when project changes
+  useEffect(() => {
+    setActiveTab('challenge')
+  }, [viewedProject])
+
+  // TechLogo helper: load PNG by default, preload SVG and switch to it if PNG fails
+  const TechLogo: React.FC<{ tech: string; className?: string }> = ({ tech, className }) => {
+    const png = `/logos/${tech.replace(/\s+/g, '_')}.png`
+    const svg = `/logos/${tech.replace(/\s+/g, '_')}.svg`
+    const [src, setSrc] = useState(png)
+
+    useEffect(() => {
+      const probe = new Image()
+      probe.src = svg
+      probe.onload = () => console.debug('[logos] svg preloaded for', tech, svg)
+      probe.onerror = () => console.debug('[logos] svg preload failed for', tech, svg)
+      return () => {
+        probe.onload = null
+        probe.onerror = null
+      }
+    }, [svg, tech])
+
+    const onError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+      const img = e.currentTarget
+      if (img.src && img.src.endsWith('.png')) {
+        console.debug('[logos] png failed, switching to svg for', tech, svg)
+        setSrc(svg)
+      } else {
+        img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='
+      }
+    }
+
+    return <img src={src} alt={tech} className={className || 'w-8 h-8 object-contain'} onError={onError} />
+  }
 
   return (
     <>
@@ -125,7 +161,7 @@ const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode, onBackToHome }) =>
               <h3 className="font-semibold text-white mb-3">Technologies</h3>
               {viewedProject.technologies.map((tech, index) => (
                 <div key={index} className="flex items-center gap-3 bg-gray-700/40 p-2 rounded w-s">
-                  <img src={`/logos/${tech.replace(/\s+/g, '_')}.png`} alt={tech} className="w-8 h-8 object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                  <TechLogo tech={tech} />
                   <span className="text-sm text-gray-200">{tech}</span>
                 </div>
               ))}
@@ -155,40 +191,68 @@ const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode, onBackToHome }) =>
               </div>
             </div>
           </div>
-          <div className="absolute right-6 top-1/2 transform -translate-y-1/2 z-40 min-w-[200px] max-w-xs">
+          <div className="absolute right-6 top-1/2 transform -translate-y-1/2 z-40 min-w-[240px] max-w-[384px] ">
             <div
               id="controls-panel"
-              className="mt-3 p-3 bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-white space-y-3 shadow-lg w-s"
+              className="mt-3 p-3 bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-white shadow-lg w-s max-h-[80vh] overflow-y-auto"
             >
-              <div className="space-y-4">
+              {/* Tabs header */}
+              <div className="flex gap-2 mb-3">
+                <button
+                  className={`px-2 py-1 rounded-md text-sm ${activeTab === 'challenge' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+                  onClick={() => setActiveTab('challenge')}
+                >🎯 Défi</button>
+                <button
+                  className={`px-2 py-1 rounded-md text-sm ${activeTab === 'solution' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+                  onClick={() => setActiveTab('solution')}
+                >💡 Solution</button>
+                <button
+                  className={`px-2 py-1 rounded-md text-sm ${activeTab === 'features' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+                  onClick={() => setActiveTab('features')}
+                >✨ Fonctionnalités</button>
+                <button
+                  className={`px-2 py-1 rounded-md text-sm ${activeTab === 'learnings' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+                  onClick={() => setActiveTab('learnings')}
+                >📚 Apprentissages</button>
+              </div>
+
+              <div className="text-gray-300">
+                {activeTab === 'challenge' && (
                   <div>
-                    <h3 className="font-semibold text-white mb-2">🎯 Défi</h3>
+                    <h4 className="font-semibold text-white mb-2">🎯 Défi</h4>
                     <p className="text-gray-300">{viewedProject.details.challenge}</p>
                   </div>
+                )}
 
+                {activeTab === 'solution' && (
                   <div>
-                    <h3 className="font-semibold text-white mb-2">💡 Solution</h3>
+                    <h4 className="font-semibold text-white mb-2">💡 Solution</h4>
                     <p className="text-gray-300">{viewedProject.details.solution}</p>
                   </div>
+                )}
 
+                {activeTab === 'features' && (
                   <div>
-                    <h3 className="font-semibold text-white mb-2">✨ Fonctionnalités</h3>
+                    <h4 className="font-semibold text-white mb-2">✨ Fonctionnalités</h4>
                     <ul className="list-disc list-inside text-gray-300 space-y-1">
                       {viewedProject.details.features.map((feature, index) => (
                         <li key={index}>{feature}</li>
                       ))}
                     </ul>
                   </div>
+                )}
 
+                {activeTab === 'learnings' && (
                   <div>
-                    <h3 className="font-semibold text-white mb-2">📚 Apprentissages</h3>
+                    <h4 className="font-semibold text-white mb-2">📚 Apprentissages</h4>
                     <ul className="list-disc list-inside text-gray-300 space-y-1">
                       {viewedProject.details.learnings.map((learning, index) => (
                         <li key={index}>{learning}</li>
                       ))}
                     </ul>
                   </div>
-                </div>
+                )}
+              </div>
             </div>
           </div>
           
