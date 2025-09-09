@@ -13,6 +13,7 @@ import Lighting from './Lighting'
 import Portal from './Portal'
 import POPClemStatic from './POPClemStatic'
 import ContactModal from './ContactModal'
+import { ProgressBridge, useLoading } from '../contexts/LoadingContext'
 
 interface HomePageProps {
     onEnter3DMode: () => void
@@ -82,6 +83,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     // dialogue index within the currently selected item
     const [dialogIndex, setDialogIndex] = useState<number>(0)
     const [showContact, setShowContact] = useState<boolean>(false)
+    const { progress, loaded } = useLoading()
 
     // helper: return dialogues for a given item
     const getDialoguesFor = (item: NavigableItem): string[] => {
@@ -335,12 +337,35 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
         <div className="min-h-screen text-white">
             <div className="absolute z-[-1] inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10">
                 <Canvas camera={{ position: [0, 10, 15], fov: 60 }} className="w-full h-full">
+                    <ProgressBridge />
                     <Suspense fallback={null}>
                         <CameraController />
                         {renderMaquetteScene()}
                     </Suspense>
                 </Canvas>
             </div>
+
+            {/* Simple top progress bar while 3D assets load */}
+            {!loaded && (
+                <div className="fixed top-0 left-0 w-full h-full z-[99999] bg-black/90 pointer-events-none">
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="pointer-events-auto flex flex-col items-center gap-4 w-full px-4">
+                            {/* Loader icon */}
+                            <svg className="w-12 h-12 text-white/90 animate-spin" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                                <circle cx="25" cy="25" r="20" stroke="rgba(255,255,255,0.12)" strokeWidth="6" />
+                                <path d="M45 25a20 20 0 00-20-20" stroke="white" strokeWidth="6" strokeLinecap="round" />
+                            </svg>
+
+                            {/* Progress bar centered and responsive */}
+                            <div className="w-full max-w-[720px]">
+                                <div className="h-1 bg-slate-700 rounded overflow-hidden">
+                                    <div className="h-1 bg-white transition-all" style={{ width: `${Math.round(progress)}%` }} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <header className="absolute w-full top-3 z-50 px-6">
                 <div className="flex items-center justify-between">
