@@ -14,6 +14,7 @@ import Portal from './Portal'
 import POPClemStatic from './POPClemStatic'
 import ContactModal from './ContactModal'
 import { ProgressBridge, useLoading } from '../contexts/LoadingContext'
+import Room from './Room'
 
 interface HomePageProps {
     onEnter3DMode: () => void
@@ -322,10 +323,11 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
         <>
             <Lighting />
             <Island />
+            <Room />
             <Desk />
             <POPClemStatic />
             <ProjectBuildings />
-            <Environment files="/hdri/office.hdr" environmentIntensity={0.1} background backgroundIntensity={0.8} blur={0.05} />
+            <Environment files="/hdri/office.hdr" environmentIntensity={0.1} background={false} backgroundIntensity={0.8} blur={0.05} />
             <Portal />
         </>
     )

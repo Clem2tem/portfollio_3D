@@ -8,6 +8,7 @@ import Island from './Island'
 import ProjectBuildings from './ProjectBuildings'
 import Portal from './Portal'
 import POPClemGLTF from './POPClemGLTF'
+import { usePlayerPosition } from '../contexts/PlayerPositionContext'
 
 interface SceneProps {
   isNightMode: boolean
@@ -59,6 +60,10 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, onAnimationComplete }) => {
     }
   }, [camera])
 
+  const playerPos = usePlayerPosition().position
+  // Keep last valid player position to avoid jumps to origin when playerPos is briefly undefined/zero
+  const lastValidPlayerPosRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0))
+
 
   // Empêcher le comportement de drag du canvas
   useEffect(() => {
@@ -86,7 +91,9 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, onAnimationComplete }) => {
   // small helper to smoothly apply an externally-requested lookAt (set by ProjectBuildings)
   const requestedLookAtRef = useRef<THREE.Vector3 | null>(null)
   const lookAtExpireRef = useRef<number | null>(null)
-  useFrame(() => {
+  // Smoothing speed for light movement (higher = snappier)
+  const LIGHT_SMOOTH_SPEED = 8
+  useFrame((_, delta) => {
     // If an external lookAt was requested via window.__requestedCameraLookAt, pick it up and expire after a short time
     const req = (window as any).__requestedCameraLookAt as { x: number; y: number; z: number } | undefined
     if (req) {
@@ -134,27 +141,29 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, onAnimationComplete }) => {
       }
     }
 
-    if (lightRef.current && targetRef.current) {
-      // Distance fixe du centre (0,0,0)
-      const camPos = camera.position.clone()
-      const radius = 4.5 // distance fixe
-      const fixedHeight = 3// hauteur fixe pour la lumière
+  if (lightRef.current && targetRef.current) {
+      // Distance fixe du centre (0,0,0)z
+      const fixedHeight = 3 // hauteur fixe pour la lumière
+      // Use the player's position when available; otherwise fallback to last known valid position
+      let px = lastValidPlayerPosRef.current.x
+      let pz = lastValidPlayerPosRef.current.z
+      if (playerPos && typeof playerPos.x === 'number' && typeof playerPos.z === 'number') {
+        px = playerPos.x
+        pz = playerPos.z
+        // update last valid (keep Y from player if provided)
+        lastValidPlayerPosRef.current.set(px, typeof playerPos.y === 'number' ? playerPos.y : lastValidPlayerPosRef.current.y, pz)
+      }
+  const lightPos = new THREE.Vector3(px, fixedHeight, pz)
+  // Use delta-aware lerp for smooth movement
+  const alpha = 1 - Math.exp(-LIGHT_SMOOTH_SPEED * delta)
+  lightRef.current.position.lerp(lightPos, alpha)
 
-      // Calculer l'angle polaire de la caméra autour du centre
-      const angle = Math.atan2(camPos.z, camPos.x)
-      // Placer la lumière sur le cercle à hauteur fixe
-      const lightPos = new THREE.Vector3(
-        Math.cos(angle) * radius,
-        fixedHeight,
-        Math.sin(angle) * radius
-      )
-      lightRef.current.position.copy(lightPos)
-
-      // La cible est verticalement sous la lumière
-      const targetPos = lightPos.clone()
-      targetPos.y = 2 // cible à hauteur fixe sous la lumière
-      targetRef.current.position.copy(targetPos)
-      lightRef.current.target = targetRef.current
+  // La cible est verticalement sous la lumière (suivra en lissé)
+  const targetPos = lightPos.clone()
+  targetPos.y = 2 // cible à hauteur fixe sous la lumière
+  targetRef.current.position.lerp(targetPos, alpha)
+  // ensure the spotLight targets the object3D (object reference can remain constant)
+  lightRef.current.target = targetRef.current
     }
     // Update day directional lights (3-point) so key follows camera angle (sun-like)
     if (dirKeyRef.current && dirTargetRef.current && camera) {
@@ -187,33 +196,6 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, onAnimationComplete }) => {
 
   return (
     <>
-      {/* Contrôles de caméra */}
-      {/* <OrbitControls
-        ref={controlsRef}
-  enabled={!animationState?.isAnimating && !PLAYER_CONTROLLED}
-        enablePan={false}
-        enableZoom={true}
-        enableRotate={true}
-        enableDamping={true}
-        dampingFactor={0.05}
-        rotateSpeed={0.5}
-        zoomSpeed={0.5}
-        minDistance={2}
-        maxDistance={6}
-        minPolarAngle={Math.PI / 2.8}
-        maxPolarAngle={Math.PI / 2.1}
-        autoRotate={false}
-        autoRotateSpeed={0}
-        mouseButtons={{
-          LEFT: THREE.MOUSE.ROTATE,
-          MIDDLE: THREE.MOUSE.DOLLY,
-          RIGHT: THREE.MOUSE.PAN
-        }}
-        touches={{
-          ONE: THREE.TOUCH.ROTATE,
-          TWO: THREE.TOUCH.DOLLY_PAN
-        }}
-      /> */}
 
       {/* Éclairage de base adaptatif */}
       <ambientLight intensity={isNightMode ? 0.1 : 0.4} color={isNightMode ? "#FFFFFF" : "#87CEEB"} />
