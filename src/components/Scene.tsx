@@ -1,14 +1,14 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Sky } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import StarField from './StarField'
 import Island from './Island'
 import ProjectBuildings from './ProjectBuildings'
 import Portal from './Portal'
 import POPClemGLTF from './POPClemGLTF'
 import { usePlayerPosition } from '../contexts/PlayerPositionContext'
+import Desk from './Desk'
+import Room from './Room'
 
 interface SceneProps {
   isNightMode: boolean
@@ -269,10 +269,12 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, onAnimationComplete }) => {
 
         {/* Les bâtiments représentant les projets */}
       </group>
-      <ProjectBuildings isNightMode={isNightMode} />s
+      <ProjectBuildings isNightMode={isNightMode} />
 
-      /* Nuage d'étoiles 3D dans le ciel - seulement en mode nuit */
-      {isNightMode && <StarField count={1200} radius={180} color="#fff" size={8} /> ||
+      <Desk />
+      <Room />
+
+      {/* {isNightMode && <StarField count={1200} radius={180} color="#fff" size={8} /> ||
         <Sky
           sunPosition={[100, 100, 100]}
           distance={450000}
@@ -281,12 +283,12 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, onAnimationComplete }) => {
           mieCoefficient={0.005} // Optionnel : réduit l'éblouissement
           mieDirectionalG={0.7} // Optionnel : rend la lumière plus douce
         />
-      }
+      } */}
 
       <Portal />
 
       {/* Océan infini adaptatif */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]}>
+      {/* <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]}>
         <planeGeometry args={[500, 500]} />
         <meshStandardMaterial
           color={isNightMode ? "#050510" : "#1E90FF"}
@@ -295,7 +297,7 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, onAnimationComplete }) => {
           roughness={0.8}
           metalness={0.0}
         />
-      </mesh>
+      </mesh> */}
 
       <POPClemGLTF
         position={[0, 1.2, 0]}
@@ -308,7 +310,7 @@ const Scene: React.FC<SceneProps> = ({ isNightMode, onAnimationComplete }) => {
       />
 
       {/* Fog pour l'atmosphère adaptatif */}
-      <fog attach="fog" args={[isNightMode ? '#000005' : '#87CEEB', 8, 25]} />
+      {/* <fog attach="fog" args={[isNightMode ? '#000005' : '#87CEEB', 8, 25]} /> */}
 
       {/* Lumière ponctuelle violette seulement en mode nuit */}
       <pointLight

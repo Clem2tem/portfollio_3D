@@ -168,6 +168,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     // keyboard navigation
     React.useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
+            setShowScrollHint(false)
             if (e.key === 'ArrowLeft') navigateTo(-1, true)
             else if (e.key === 'ArrowRight') navigateTo(1)
         }
@@ -188,9 +189,11 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 const dir = e.deltaY > 0 ? 1 : -1
                 const dialogs = getDialoguesFor(selectedItem)
                 if (dir > 0) {
+                    setShowScrollHint(false)
                     if (dialogIndex < dialogs.length - 1) setDialogIndex(d => d + 1)
                     else navigateTo(1)
                 } else {
+                    setShowScrollHint(false)
                     if (dialogIndex > 0) setDialogIndex(d => d - 1)
                     else navigateTo(-1, true)
                 }
@@ -204,6 +207,11 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     // Avoid resetting it unconditionally here which would override navigateTo(startAtEnd)
 
     const lookAtTargetRef = useRef(new THREE.Vector3(-6, 1, 7))
+
+    // Scroll / click hint for the bottom speech bubble
+    const textRef = useRef<HTMLDivElement | null>(null)
+    // Only show the hint on the very first bubble (initial state)
+    const [showScrollHint, setShowScrollHint] = useState<boolean>(selectedIndex === 0 && dialogIndex === 0)
 
     // Small helper component: load PNG by default, preload SVG in background and
     // switch to it if PNG fails. This forces both to be requested in parallel.
@@ -430,16 +438,21 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 <div
                     className="fixed left-1/2 bottom-6 transform -translate-x-1/2 w-full max-w-3xl px-4"
                     onClick={() => {
+                        // hide hint on any click and then advance the dialogue
+                        setShowScrollHint(false)
                         const dialogs = getDialoguesFor(selectedItem)
                         if (dialogIndex < dialogs.length - 1) setDialogIndex(d => d + 1)
                         else navigateTo(1)
                     }}
                 >
-                    <div className="bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-2xl p-6 text-slate-100 shadow-lg">
+                    <div
+                        className="bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-2xl p-6 text-slate-100 shadow-lg relative"
+                        onScroll={() => setShowScrollHint(false)}
+                    >
                         <div className="flex items-start gap-4">
                             <div className="flex-1">
                                 <div className="text-sm text-slate-400">Clément</div>
-                                <div className="mt-2 text-lg leading-relaxed">{getDialoguesFor(selectedItem)[dialogIndex]}</div>
+                                <div ref={textRef} className="mt-2 text-lg leading-relaxed">{getDialoguesFor(selectedItem)[dialogIndex]}</div>
 
                                 {selectedItem.id === 'portal' && dialogIndex !== 0 && (
                                     <div className="mt-4">
@@ -448,6 +461,13 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                 )}
                             </div>
                         </div>
+                        {/* Subtle inline hint placed above the progress bar (no animation) */}
+                        {showScrollHint && (
+                            <div className="mt-3 text-xs text-white/60 text-right select-none" aria-hidden>
+                                Faites défiler ou cliquez pour la suite
+                            </div>
+                        )}
+
                         {/* Progress bar: shows progress through current dialogues */}
                         <div className="mt-4">
                             <div className="h-1 bg-slate-700 rounded overflow-hidden">
@@ -463,6 +483,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                 }
                             </div>
                         </div>
+                        {/* hint moved above progress bar */}
                     </div>
                 </div>
             </main>
