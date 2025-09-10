@@ -47,14 +47,14 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             category: 'Navigation 3D'
         },
         {
-            id:'default',
+            id: 'default',
             title: "Salut ! Moi c'est Clément.",
             description: 'Découvrez mes projets et mon univers créatif',
             type: 'special' as const,
             category: 'Introduction'
         },
         {
-            id:'default2',
+            id: 'default2',
             title: "Salut ! Moi c'est Clément.",
             description: 'Découvrez mes projets et mon univers créatif',
             type: 'special' as const,
@@ -197,7 +197,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     if (dialogIndex > 0) setDialogIndex(d => d - 1)
                     else navigateTo(-1, true)
                 }
-            } catch (err) {}
+            } catch (err) { }
         }
         window.addEventListener('wheel', onWheel, { passive: false } as AddEventListenerOptions)
         return () => window.removeEventListener('wheel', onWheel as any)
@@ -258,10 +258,10 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
         const { camera } = useThree()
         const cameraArrivedRef = useRef(false)
 
-            // reset arrival flag when target changes so arrival will fire again
-            useEffect(() => {
-                cameraArrivedRef.current = false
-            }, [selectedItem.id])
+        // reset arrival flag when target changes so arrival will fire again
+        useEffect(() => {
+            cameraArrivedRef.current = false
+        }, [selectedItem.id])
 
         useFrame(() => {
             const itemCameraPositions: { [key: string]: [number, number, number] } = {
@@ -297,7 +297,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                         targetPosition[2] / divisor,
                     ]
                 }
-            } catch (e) {}
+            } catch (e) { }
 
             camera.position.lerp(new THREE.Vector3(...adjustedTargetPosition), 0.05)
             lookAtTargetRef.current.lerp(new THREE.Vector3(...lookAtTarget), 0.05)
@@ -314,12 +314,12 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     if (!cameraArrivedRef.current) {
                         cameraArrivedRef.current = true
                         try {
-                                    const ev = new CustomEvent('cameraArrived', { detail: { id: selectedItem.id, from: prevSelectedRef.current } })
-                                    window.dispatchEvent(ev)
-                                } catch (e) {}
+                            const ev = new CustomEvent('cameraArrived', { detail: { id: selectedItem.id, from: prevSelectedRef.current } })
+                            window.dispatchEvent(ev)
+                        } catch (e) { }
                     }
                 }
-            } catch (e) {}
+            } catch (e) { }
         })
 
         return null
@@ -401,9 +401,11 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => setShowContact(true)}
-                            className="px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-md text-sm text-white shadow-md"
+                            className="px-3 py-3 bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-sm text-white shadow-md"
                         >
-                            Contact
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+                            </svg>
                         </button>
                     </div>
                 </div>
