@@ -260,7 +260,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 'SAAS-ERP-EGS': [0, 3, 0],
                 'popclem': [0, 0.5, 1.5],
                 'portal': [-1, 0.5, -2],
-                'default': [15, 10, 15],
+                'default': [45, 30, 45],
                 'default2': [7, 5, 7]
             }
 
@@ -276,7 +276,21 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             const targetPosition = itemCameraPositions[selectedItem.id] || itemCameraPositions['default']
             const lookAtTarget = itemLookAtPositions[selectedItem.id] || itemLookAtPositions['default']
 
-            camera.position.lerp(new THREE.Vector3(...targetPosition), 0.05)
+            // If we're on the 'default' dialogue item, scale the camera position by dialog step:
+            // step 1 -> pos/1 (original), step 2 -> pos/2, step 3 -> pos/3, etc.
+            let adjustedTargetPosition: [number, number, number] = targetPosition
+            try {
+                if (selectedItem && selectedItem.id === 'default') {
+                    const divisor = Math.max(1, dialogIndex + 1)
+                    adjustedTargetPosition = [
+                        targetPosition[0] / divisor,
+                        targetPosition[1] / divisor,
+                        targetPosition[2] / divisor,
+                    ]
+                }
+            } catch (e) {}
+
+            camera.position.lerp(new THREE.Vector3(...adjustedTargetPosition), 0.05)
             lookAtTargetRef.current.lerp(new THREE.Vector3(...lookAtTarget), 0.05)
             camera.lookAt(lookAtTargetRef.current)
 
