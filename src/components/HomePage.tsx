@@ -395,7 +395,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold text-white">Clément DE TEMMERMAN</h1>
-                        <p className="text-slate-400">Développeur Fullstack</p>
+                        <p className="text-slate-400">Ingénieur Logiciel / Développeur Fullstack</p>
                     </div>
 
                     <div className="flex items-center gap-3">
