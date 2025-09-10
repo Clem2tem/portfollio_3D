@@ -260,7 +260,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 'SAAS-ERP-EGS': [0, 3, 0],
                 'popclem': [0, 0.5, 1.5],
                 'portal': [-1, 0.5, -2],
-                'default': [45, 30, 45],
+                'default': [45, 30, 70],
                 'default2': [7, 5, 7]
             }
 
