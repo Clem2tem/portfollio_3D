@@ -98,6 +98,61 @@ const POPClemStatic: React.FC = () => {
         } catch (e) {}
     }, [actions])
 
+    // Increase perceived brightness of the model textures/materials in a non-invasive way.
+    // This adjusts texture encoding (sRGB) and adds a subtle emissive based on the base color so
+    // the character appears brighter without changing global scene lighting.
+    useEffect(() => {
+        if (!gltf || !gltf.scene) return
+        const BRIGHTNESS_MULT = 1.25 // tune this value (1.0 = no change)
+
+        const enhanceMaterial = (mat: any) => {
+            if (!mat) return
+            if (Array.isArray(mat)) {
+                mat.forEach(enhanceMaterial)
+                return
+            }
+
+            try {
+                // Ensure texture maps use sRGB for correct color brightness
+                if (mat.map) {
+                    try {
+                        ;(mat.map as any).encoding = (THREE as any).sRGBEncoding || (THREE as any).LinearSRGBColorSpace || 3001
+                        mat.map.needsUpdate = true
+                    } catch (e) {}
+                }
+                if (mat.emissive === undefined) mat.emissive = new THREE.Color(0x000000)
+
+                // If material has a base color, use it to create a subtle emissive highlight
+                if (mat.color && mat.color.isColor) {
+                    const boosted = mat.color.clone().multiplyScalar(BRIGHTNESS_MULT)
+                    // clamp values to valid range
+                    boosted.r = Math.min(1, boosted.r)
+                    boosted.g = Math.min(1, boosted.g)
+                    boosted.b = Math.min(1, boosted.b)
+                    mat.emissive.copy(boosted)
+                    // keep emissiveIntensity modest to avoid a glow effect
+                    mat.emissiveIntensity = 0.02
+                } else {
+                    // fallback small emissive boost
+                    mat.emissive.setScalar(0.02)
+                    mat.emissiveIntensity = 0.02
+                }
+                mat.needsUpdate = true
+            } catch (e) {
+                // ignore errors modifying exotic materials
+            }
+        }
+
+        gltf.scene.traverse((child: any) => {
+            if (child.isMesh) {
+                enhanceMaterial(child.material)
+                // keep nice shadows
+                child.castShadow = true
+                child.receiveShadow = true
+            }
+        })
+    }, [gltf])
+
     // Listen for camera arrival events and trigger salut when camera targets popclem
     useEffect(() => {
         const handler = (ev: Event) => {

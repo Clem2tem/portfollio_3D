@@ -1,4 +1,5 @@
 import React, { useState, Suspense, useRef, useEffect } from 'react'
+import SequenceAnimation from './animation'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Environment } from '@react-three/drei'
 import { projects } from '../data/projects'
@@ -335,7 +336,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             <Desk />
             <POPClemStatic />
             <ProjectBuildings />
-            <Environment files="/hdri/office.hdr" environmentIntensity={0.1} background={false} backgroundIntensity={0.8} blur={0.05} />
+            <Environment files="/hdri/office.hdr" environmentIntensity={0.15} background={false} backgroundIntensity={0.8} blur={0.05} />
             <Portal />
         </>
     )
@@ -371,17 +372,20 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
             {/* Simple top progress bar while 3D assets load */}
             {!loaded && (
-                <div className="fixed top-0 left-0 w-full h-full z-[99999] bg-black/90 pointer-events-none">
+                <>
+                <div className={`absolute w-[100px] h-[100px] bottom-10 right-6 z-[999991]`}>
+                    <SequenceAnimation fps={24} frameCount={36} prefix={'Composition 1_'} />
+                </div>
+                <div className="fixed top-0 left-0 w-full h-full z-[99999] bg-gradient-to-br from-gray-900 to-purple-900 pointer-events-none">
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="pointer-events-auto flex flex-col items-center gap-4">
+                            <div className="text-white text-3xl font-medium">Chargement du portfolio...</div>
+                            </div>
+                    </div>
+                    <div className="absolute inset-0 flex items-end justify-center pointer-events-none">
                         <div className="pointer-events-auto flex flex-col items-center gap-4 w-full px-4">
-                            {/* Loader icon */}
-                            <svg className="w-12 h-12 text-white/90 animate-spin" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                                <circle cx="25" cy="25" r="20" stroke="rgba(255,255,255,0.12)" strokeWidth="6" />
-                                <path d="M45 25a20 20 0 00-20-20" stroke="white" strokeWidth="6" strokeLinecap="round" />
-                            </svg>
-
                             {/* Progress bar centered and responsive */}
-                            <div className="w-full max-w-[720px]">
+                            <div className="w-full max-w-[100/1.1dvw] pb-6">
                                 <div className="h-1 bg-slate-700 rounded overflow-hidden">
                                     <div className="h-1 bg-white transition-all" style={{ width: `${Math.round(progress)}%` }} />
                                 </div>
@@ -389,6 +393,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                         </div>
                     </div>
                 </div>
+                </>
             )}
 
             <header className="absolute w-full top-3 z-50 px-6">
