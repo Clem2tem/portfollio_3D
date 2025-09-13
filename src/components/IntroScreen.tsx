@@ -15,23 +15,32 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ onEnterPortfolio }) => {
               }, [loaded])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-purple-900/30 via-blue-900/30 to-indigo-900/30 backdrop-blur-sm">
-      {/* Fond animé avec particules */}
+    <div className="fixed inset-0 z-[9999999] flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 backdrop-blur-sm">
+      {/* Fond animé avec particules (positions calculées une seule fois pour éviter reset au re-render) */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-400/20 via-transparent to-transparent animate-pulse"></div>
-        {/* Particules flottantes */}
-        {Array.from({ length: 20 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-2 h-2 bg-white/30 rounded-full animate-float"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${3 + Math.random() * 2}s`
-            }}
-          />
-        ))}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-400/20 via-transparent to-transparent animate-pulse" />
+        {/* Particules flottantes - générées une fois au montage */}
+        {React.useMemo(() => {
+          const particles = Array.from({ length: 20 }).map(() => ({
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            delay: `${Math.random() * 3}s`,
+            duration: `${3 + Math.random() * 2}s`
+          }))
+          return particles.map((p, i) => (
+            <div
+              key={i}
+              className="absolute w-2 h-2 bg-white/30 rounded-full animate-float"
+              style={{
+                left: p.left,
+                top: p.top,
+                animationDelay: p.delay,
+                animationDuration: p.duration
+              }}
+            />
+          ))
+        // empty deps => generate once
+        }, [])}
       </div>
 
       {/* Contenu principal */}
@@ -45,7 +54,7 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ onEnterPortfolio }) => {
         
         {/* Sous-titre */}
         <h2 className="text-2xl md:text-3xl text-white/90 font-light mb-8 animate-fade-in-up animation-delay-300">
-          Développeur Full-Stack
+          Ingénieur Logiciel / Développeur Full-Stack
         </h2>
 
         {/* Description */}
@@ -88,9 +97,11 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ onEnterPortfolio }) => {
         >
           <span className="relative z-10 flex items-center gap-3">
             {delayedLoaded ? 'Entrez dans mon monde !' : `Chargement ${Math.round(progress)}%`}
-            <svg className={`w-6 h-6 transition-transform duration-300 ${loaded ? 'group-hover:translate-x-1' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {delayedLoaded &&
+            <svg className={`w-6 h-6 transition-transform duration-300 ${delayedLoaded ? 'group-hover:translate-x-1' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
+            }
           </span>
 
           {/* Progress fill visual */}
@@ -98,11 +109,6 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ onEnterPortfolio }) => {
             style={{ width: `${Math.min(Math.max(progress, 0), 100)}%`, transition: 'width 200ms linear' }}
           />
         </button>
-
-        {/* Instructions subtiles */}
-        <div className="mt-8 text-white/50 text-sm animate-fade-in-up animation-delay-1500">
-          <p>Navigation : ZQSD pour se déplacer • Souris pour explorer • Molette pour zoomer • Clic pour interagir</p>
-        </div>
       </div>
     </div>
   )

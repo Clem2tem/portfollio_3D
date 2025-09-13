@@ -77,7 +77,7 @@ const CustomCursor: React.FC = () => {
   if (!isVisible) return null
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-[9999]" style={{ cursor: 'none' }}>
+    <div className="pointer-events-none fixed inset-0 z-[999999999]" style={{ cursor: 'none' }}>
       {/* Curseur principal */}
       <div
         className={`absolute transform -translate-x-1/2 -translate-y-1/2`}

@@ -65,20 +65,28 @@ const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode, onBackToHome }) =>
 
           <div className="flex gap-4 items-center">
             {/* Bouton retour à l'accueil */}
+            <button
+              onClick={() => setShowContactModal(true)}
+              className="px-[9px] py-[9px] bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-sm transition-all duration-300 text-white shadow-md hover:scale-105 hover:bg-white/10"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+              </svg>
+            </button>
+
             {onBackToHome && (
               <button
                 onClick={onBackToHome}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 hover:scale-105 bg-white/20 backdrop-blur-sm text-white hover:bg-white/30"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 hover:scale-105 bg-black/50 backdrop-blur-md text-white hover:bg-white/10"
               >
                 <span className="text-lg">🏠</span>
-                <span className="font-semibold">Accueil</span>
               </button>
             )}
 
             {/* Bouton jour/nuit */}
             <button
               onClick={() => setIsNightMode(!isNightMode)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 hover:scale-105"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 hover:scale-105"
               style={{
                 background: isNightMode
                   ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
@@ -89,19 +97,6 @@ const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode, onBackToHome }) =>
               <span className="text-lg">
                 {isNightMode ? '☀️' : '🌙'}
               </span>
-              <span className="text-white font-semibold">
-                {isNightMode ? 'Mode Jour' : 'Mode Nuit'}
-              </span>
-            </button>
-
-            <button className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-colors">
-              À propos
-            </button>
-            <button
-              onClick={() => setShowContactModal(true)}
-              className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-colors"
-            >
-              Contact
             </button>
           </div>
         </div>
@@ -255,7 +250,7 @@ const UI: React.FC<UIProps> = ({ isNightMode, setIsNightMode, onBackToHome }) =>
               </div>
             </div>
           </div>
-          
+
         </>
       )}
 

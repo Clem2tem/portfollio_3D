@@ -1,5 +1,7 @@
-import React, { useState, Suspense, useRef, useEffect } from 'react'
-import SequenceAnimation from './animation'
+import React, { useState, Suspense, useRef, useEffect, useMemo } from 'react'
+// SequenceAnimation was used previously for a small loading animation; loading UI replaced by IntroScreen
+import IntroScreen from './IntroScreen'
+import TechLogo from './TechLogo'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Environment } from '@react-three/drei'
 import { projects } from '../data/projects'
@@ -85,7 +87,9 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     // dialogue index within the currently selected item
     const [dialogIndex, setDialogIndex] = useState<number>(0)
     const [showContact, setShowContact] = useState<boolean>(false)
-    const { progress, loaded } = useLoading()
+    useLoading()
+    // Whether the user has accepted the intro and wants to enter the portfolio
+    const [enteredIntro, setEnteredIntro] = useState<boolean>(false)
 
     // helper: return dialogues for a given item
     const getDialoguesFor = (item: NavigableItem): string[] => {
@@ -169,13 +173,15 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     // keyboard navigation
     React.useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
+            // ignore navigation while intro screen is visible
+            if (!enteredIntro) return
             setShowScrollHint(false)
             if (e.key === 'ArrowLeft') navigateTo(-1, true)
             else if (e.key === 'ArrowRight') navigateTo(1)
         }
         window.addEventListener('keydown', onKey)
         return () => window.removeEventListener('keydown', onKey)
-    }, [items.length])
+    }, [items.length, enteredIntro])
 
     // wheel navigation: advance dialogues then items
     React.useEffect(() => {
@@ -183,6 +189,8 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
         const THROTTLE_MS = 300
         const onWheel = (e: WheelEvent) => {
             try {
+                // ignore navigation while intro screen is visible
+                if (!enteredIntro) return
                 e.preventDefault()
                 const now = performance.now()
                 if (now - last < THROTTLE_MS) return
@@ -202,7 +210,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
         }
         window.addEventListener('wheel', onWheel, { passive: false } as AddEventListenerOptions)
         return () => window.removeEventListener('wheel', onWheel as any)
-    }, [items.length, selectedIndex, dialogIndex])
+    }, [items.length, selectedIndex, dialogIndex, enteredIntro])
 
     // dialogIndex will be managed by navigation helpers (navigateTo)
     // Avoid resetting it unconditionally here which would override navigateTo(startAtEnd)
@@ -214,45 +222,18 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     // Only show the hint on the very first bubble (initial state)
     const [showScrollHint, setShowScrollHint] = useState<boolean>(selectedIndex === 0 && dialogIndex === 0)
 
-    // Small helper component: load PNG by default, preload SVG in background and
-    // switch to it if PNG fails. This forces both to be requested in parallel.
-    const TechLogo: React.FC<{ tech: string; className?: string }> = ({ tech, className }) => {
-        const png = `/logos/${tech.replace(/\s+/g, '_')}.png`
-        const svg = `/logos/${tech.replace(/\s+/g, '_')}.svg`
-        const [src, setSrc] = React.useState(png)
+    // Memoize the rendered technology nodes so they are not re-created on unrelated renders
+    const techNodes = useMemo(() => {
+        if (!('technologies' in selectedItem)) return null
+        return (selectedItem as Project).technologies.map((tech) => (
+            <div key={tech} className="flex items-center gap-3 bg-gray-700/40 p-2 rounded w-s">
+                <TechLogo tech={tech} />
+                <span className="text-sm text-gray-200">{tech}</span>
+            </div>
+        ))
+    }, [selectedItem])
 
-        React.useEffect(() => {
-            // start preloading svg in background so switching is instant if needed
-            const probe = new Image()
-            probe.src = svg
-            probe.onload = () => {
-                // nothing immediate — we keep png as primary until error
-                console.debug('[logos] svg preloaded for', tech, svg)
-            }
-            probe.onerror = () => {
-                // svg missing or errored; we'll handle png onError later
-                console.debug('[logos] svg preload failed for', tech, svg)
-            }
-            return () => {
-                probe.onload = null
-                probe.onerror = null
-            }
-        }, [svg, tech])
-
-        const onError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-            const img = e.currentTarget
-            // switch to svg if png failed
-            if (img.src && img.src.endsWith('.png')) {
-                console.debug('[logos] png failed, switching to svg for', tech, svg)
-                setSrc(svg)
-            } else {
-                // final fallback: tiny placeholder
-                img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='
-            }
-        }
-
-        return <img src={src} alt={tech} className={className || 'w-8 h-8 object-contain'} onError={onError} />
-    }
+    // Tech logos are rendered by a memoized component in ./TechLogo.tsx
 
     // Camera controller
     const CameraController = () => {
@@ -370,30 +351,10 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 </Canvas>
             </div>
 
-            {/* Simple top progress bar while 3D assets load */}
-            {!loaded && (
-                <>
-                <div className={`absolute w-[100px] h-[100px] bottom-10 right-6 z-[999991]`}>
-                    <SequenceAnimation fps={24} frameCount={36} prefix={'Composition 1_'} />
-                </div>
-                <div className="fixed top-0 left-0 w-full h-full z-[99999] bg-gradient-to-br from-gray-900 to-purple-900 pointer-events-none">
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="pointer-events-auto flex flex-col items-center gap-4">
-                            <div className="text-white text-3xl font-medium">Chargement du portfolio...</div>
-                            </div>
-                    </div>
-                    <div className="absolute inset-0 flex items-end justify-center pointer-events-none">
-                        <div className="pointer-events-auto flex flex-col items-center gap-4 w-full px-4">
-                            {/* Progress bar centered and responsive */}
-                            <div className="w-full max-w-[100/1.1dvw] pb-6">
-                                <div className="h-1 bg-slate-700 rounded overflow-hidden">
-                                    <div className="h-1 bg-white transition-all" style={{ width: `${Math.round(progress)}%` }} />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                </>
+            {/* Keep the IntroScreen visible until the user clicks the entry button.
+                Assets continue loading in background (Canvas remains mounted). */}
+            {!enteredIntro && (
+                <IntroScreen onEnterPortfolio={() => { setEnteredIntro(true) }} />
             )}
 
             <header className="absolute w-full top-3 z-50 px-6">
@@ -445,12 +406,14 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 <div
                     className="fixed left-1/2 bottom-6 transform -translate-x-1/2 w-full max-w-3xl px-4"
                     onClick={() => {
-                        // hide hint on any click and then advance the dialogue
-                        setShowScrollHint(false)
-                        const dialogs = getDialoguesFor(selectedItem)
-                        if (dialogIndex < dialogs.length - 1) setDialogIndex(d => d + 1)
-                        else navigateTo(1)
-                    }}
+                            // Do nothing if intro is still visible
+                            if (!enteredIntro) return
+                            // hide hint on any click and then advance the dialogue
+                            setShowScrollHint(false)
+                            const dialogs = getDialoguesFor(selectedItem)
+                            if (dialogIndex < dialogs.length - 1) setDialogIndex(d => d + 1)
+                            else navigateTo(1)
+                        }}
                 >
                     <div
                         className="bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-2xl p-6 text-slate-100 shadow-lg relative"
@@ -500,12 +463,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 <div className="absolute left-6 top-1/2 transform -translate-y-3/4 z-40 min-w-[200px] max-w-xs">
                     <div className="mt-3 p-3 bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-white space-y-3 shadow-lg w-s">
                         <h3 className="font-semibold text-white mb-3">Technologies</h3>
-                        {(selectedItem as Project).technologies.map((tech, index) => (
-                            <div key={index} className="flex items-center gap-3 bg-gray-700/40 p-2 rounded w-s">
-                                <TechLogo tech={tech} />
-                                <span className="text-sm text-gray-200">{tech}</span>
-                            </div>
-                        ))}
+                        {techNodes}
                     </div>
                 </div>
             )}
