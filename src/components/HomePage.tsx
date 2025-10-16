@@ -50,13 +50,6 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             category: 'Navigation 3D'
         },
         {
-            id: 'default',
-            title: "Salut ! Moi c'est Clément.",
-            description: 'Découvrez mes projets et mon univers créatif',
-            type: 'special' as const,
-            category: 'Introduction'
-        },
-        {
             id: 'default2',
             title: "Salut ! Moi c'est Clément.",
             description: 'Découvrez mes projets et mon univers créatif',
@@ -66,13 +59,11 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     ]
 
     // Build items in the requested order: default, popclem, projects..., portal
-    const defaultItem = specialItems.find(s => s.id === 'default')
     const default2Item = specialItems.find(s => s.id === 'default2')
     const popclemItem = specialItems.find(s => s.id === 'popclem')
     const portalItem = specialItems.find(s => s.id === 'portal')
 
     const items: NavigableItem[] = [
-        ...(defaultItem ? [defaultItem] : []),
         ...(popclemItem ? [popclemItem] : []),
         ...(default2Item ? [default2Item] : []),
         ...projects,
@@ -90,16 +81,17 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     useLoading()
     // Whether the user has accepted the intro and wants to enter the portfolio
     const [enteredIntro, setEnteredIntro] = useState<boolean>(false)
+    // Delay the mounting of the 3D scene for performance reasons
+    const [shouldRenderScene, setShouldRenderScene] = useState<boolean>(false)
+
+    useEffect(() => {
+        const timer = setTimeout(() => setShouldRenderScene(true), 5000)
+        return () => clearTimeout(timer)
+    }, [])
 
     // helper: return dialogues for a given item
     const getDialoguesFor = (item: NavigableItem): string[] => {
         const dialoguesMap: Record<string, string[]> = {
-            'default': [
-                "Salut ! Bienvenue sur mon portfolio !",
-                "Avant toute chose, ce portfolio est encore en cours de développement, donc certaines fonctionnalités pourraient ne pas être totalement opérationnelles et certains projets manquants pour le moment.",
-                "Je m'appelle Clément, je suis un jeune développeur fullstack qui vient de finir ses études d'ingénieur à HEI Lille.",
-                "Ici je présente mes projets, mon parcours et quelques expériences marquantes."
-            ],
             'popclem': [
                 "Ça c'est moi...",
                 "Je me présente rapidement. Je m'appelle Clément et j'ai 22 ans. J'adore développer mais je ne me résume pas à ça...",
@@ -260,7 +252,6 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 'SAAS-ERP-EGS': [8, 0, -3],
                 'popclem': [-1, 0.3, 1],
                 'portal': [0, 0.5, 0],
-                'default': [0, 0, 0],
                 'default2': [0, 0, 0]
             }
 
@@ -270,16 +261,6 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             // If we're on the 'default' dialogue item, scale the camera position by dialog step:
             // step 1 -> pos/1 (original), step 2 -> pos/2, step 3 -> pos/3, etc.
             let adjustedTargetPosition: [number, number, number] = targetPosition
-            try {
-                if (selectedItem && selectedItem.id === 'default') {
-                    const divisor = Math.max(1, dialogIndex + 1)
-                    adjustedTargetPosition = [
-                        targetPosition[0] / divisor,
-                        targetPosition[1] / divisor,
-                        targetPosition[2] / divisor,
-                    ]
-                }
-            } catch (e) { }
 
             camera.position.lerp(new THREE.Vector3(...adjustedTargetPosition), 0.05)
             lookAtTargetRef.current.lerp(new THREE.Vector3(...lookAtTarget), 0.05)
@@ -342,13 +323,15 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     return (
         <div className="min-h-screen text-white">
             <div className="absolute z-[-1] inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10">
-                <Canvas camera={{ position: [0, 10, 15], fov: 60 }} className="w-full h-full">
-                    <ProgressBridge />
-                    <Suspense fallback={null}>
-                        <CameraController />
-                        {renderMaquetteScene()}
-                    </Suspense>
-                </Canvas>
+                {shouldRenderScene && (
+                    <Canvas camera={{ position: [0, 10, 15], fov: 60 }} className="w-full h-full">
+                        <ProgressBridge />
+                        <Suspense fallback={null}>
+                            <CameraController />
+                            {renderMaquetteScene()}
+                        </Suspense>
+                    </Canvas>
+                )}
             </div>
 
             {/* Keep the IntroScreen visible until the user clicks the entry button.

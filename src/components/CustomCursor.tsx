@@ -90,9 +90,9 @@ const CustomCursor: React.FC = () => {
         }}
       >
         {/* Cercle extérieur */}
-        <div className="w-full h-full rounded-full border-2 border-blue-400/60 bg-blue-400/10 backdrop-blur-sm relative">
+        <div className="w-full h-full rounded-full border-2 border-purple-500/60 bg-purple-500/10 backdrop-blur-sm relative">
           {/* Point central */}
-          <div className="w-2 h-2 bg-blue-400 rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 shadow-lg shadow-blue-400/50" />
+          <div className="w-2 h-2 bg-purple-500 rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 shadow-lg shadow-blue-400/50" />
           {/* Ring animé */}
           <div className={`absolute inset-0 rounded-full border border-blue-300/40 ${isMoving ? 'animate-ping' : ''}`} />
         </div>
@@ -102,7 +102,7 @@ const CustomCursor: React.FC = () => {
       {particles.map(particle => (
         <div
           key={particle.id}
-          className="absolute rounded-full bg-gradient-to-r from-blue-400 to-cyan-300"
+          className="absolute rounded-full bg-gradient-to-r from-purple-500 to-indigo-300"
           style={{
             left: particle.x,
             top: particle.y,
