@@ -3,21 +3,14 @@ import React, { useState, Suspense, useRef, useEffect, useMemo } from 'react'
 import IntroScreen from './IntroScreen'
 import TechLogo from './TechLogo'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Environment } from '@react-three/drei'
 import { projects } from '../data/projects'
 import type { Project } from '../types/Project'
 import * as THREE from 'three'
 
 // Import des composants 3D
-import Island from './Island'
-import Desk from './Desk'
-import ProjectBuildings from './ProjectBuildings'
-import Lighting from './Lighting'
-import Portal from './Portal'
-import POPClemStatic from './POPClemStatic'
 import ContactModal from './ContactModal'
 import { ProgressBridge, useLoading } from '../contexts/LoadingContext'
-import Room from './Room'
+import OptimizedScene from './OptimizedScene'
 
 interface HomePageProps {
     onEnter3DMode: () => void
@@ -290,18 +283,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
     // removed logo miniature and related handlers to keep file focused
 
-    const renderMaquetteScene = () => (
-        <>
-            <Lighting />
-            <Island />
-            <Room />
-            <Desk />
-            <POPClemStatic />
-            <ProjectBuildings />
-            <Environment files="/hdri/office.hdr" environmentIntensity={0.15} background={false} backgroundIntensity={0.8} blur={0.05} />
-            <Portal />
-        </>
-    )
+    const renderMaquetteScene = () => <OptimizedScene />
 
     // navigation stepper: clickable items at top
 
@@ -324,7 +306,20 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
         <div className="min-h-screen text-white">
             <div className="absolute z-[-1] inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10">
                 {shouldRenderScene && (
-                    <Canvas camera={{ position: [0, 10, 15], fov: 60 }} className="w-full h-full">
+                    <Canvas 
+                        camera={{ position: [0, 10, 15], fov: 60 }} 
+                        className="w-full h-full"
+                        gl={{ 
+                            powerPreference: 'high-performance',
+                            antialias: true,
+                            alpha: false,
+                            stencil: false,
+                            depth: true
+                        }}
+                        dpr={[1, 2]}
+                        shadows
+                        performance={{ min: 0.5 }}
+                    >
                         <ProgressBridge />
                         <Suspense fallback={null}>
                             <CameraController />

@@ -31,7 +31,10 @@ export const ProgressBridge: React.FC = () => {
   const { setProgress } = useLoading()
   React.useEffect(() => {
     // useProgress.progress is already a 0-100 value
-    setProgress(progress)
+    // Use requestAnimationFrame to avoid React warning about setState during render
+    requestAnimationFrame(() => {
+      setProgress(progress)
+    })
   }, [progress, setProgress])
   return null
 }
