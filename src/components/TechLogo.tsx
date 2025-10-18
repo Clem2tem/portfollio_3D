@@ -40,7 +40,7 @@ const TechLogoComponent: React.FC<Props> = ({ tech, className }) => {
         }
     }
 
-    return <img src={src} alt={tech} className={className || 'w-8 h-8 object-contain'} onError={onError} />
+    return <img src={src} alt={tech} className={className || 'w-6 h-6 sm:w-8 sm:h-8 object-contain'} onError={onError} />
 }
 
 export default React.memo(TechLogoComponent)

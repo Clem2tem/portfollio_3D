@@ -197,6 +197,53 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
         return () => window.removeEventListener('wheel', onWheel as any)
     }, [items.length, selectedIndex, dialogIndex, enteredIntro])
 
+    // touch navigation: swipe gestures for mobile
+    React.useEffect(() => {
+        let touchStartY = 0
+        let touchStartTime = 0
+        const MIN_SWIPE_DISTANCE = 50
+        const MAX_SWIPE_TIME = 500
+
+        const onTouchStart = (e: TouchEvent) => {
+            if (!enteredIntro) return
+            touchStartY = e.touches[0].clientY
+            touchStartTime = Date.now()
+        }
+
+        const onTouchEnd = (e: TouchEvent) => {
+            try {
+                if (!enteredIntro) return
+                const touchEndY = e.changedTouches[0].clientY
+                const touchEndTime = Date.now()
+                const distance = touchStartY - touchEndY
+                const timeDelta = touchEndTime - touchStartTime
+
+                // Validate swipe gesture
+                if (Math.abs(distance) < MIN_SWIPE_DISTANCE || timeDelta > MAX_SWIPE_TIME) return
+
+                const dialogs = getDialoguesFor(selectedItem)
+                const dir = distance > 0 ? 1 : -1
+
+                if (dir > 0) {
+                    setShowScrollHint(false)
+                    if (dialogIndex < dialogs.length - 1) setDialogIndex(d => d + 1)
+                    else navigateTo(1)
+                } else {
+                    setShowScrollHint(false)
+                    if (dialogIndex > 0) setDialogIndex(d => d - 1)
+                    else navigateTo(-1, true)
+                }
+            } catch (err) { }
+        }
+
+        window.addEventListener('touchstart', onTouchStart, { passive: true })
+        window.addEventListener('touchend', onTouchEnd, { passive: true })
+        return () => {
+            window.removeEventListener('touchstart', onTouchStart)
+            window.removeEventListener('touchend', onTouchEnd)
+        }
+    }, [items.length, selectedIndex, dialogIndex, enteredIntro])
+
     // dialogIndex will be managed by navigation helpers (navigateTo)
     // Avoid resetting it unconditionally here which would override navigateTo(startAtEnd)
 
@@ -211,9 +258,9 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     const techNodes = useMemo(() => {
         if (!('technologies' in selectedItem)) return null
         return (selectedItem as Project).technologies.map((tech) => (
-            <div key={tech} className="flex items-center gap-3 bg-gray-700/40 p-2 rounded w-s">
+            <div key={tech} className="flex items-center gap-1.5 sm:gap-3 bg-gray-700/40 p-1.5 sm:p-2 rounded text-xs sm:text-sm whitespace-nowrap">
                 <TechLogo tech={tech} />
-                <span className="text-sm text-gray-200">{tech}</span>
+                <span className="hidden sm:inline text-gray-200">{tech}</span>
             </div>
         ))
     }, [selectedItem])
@@ -335,19 +382,20 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 <IntroScreen onEnterPortfolio={() => { setEnteredIntro(true) }} />
             )}
 
-            <header className="absolute w-full top-3 z-50 px-6">
+            <header className="absolute w-full top-3 z-50 px-3 sm:px-6">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-white">Clément DE TEMMERMAN</h1>
-                        <p className="text-slate-400">Ingénieur Logiciel / Développeur Fullstack</p>
+                        <h1 className="text-base sm:text-xl lg:text-2xl font-bold text-white">Clément DE TEMMERMAN</h1>
+                        <p className="text-xs sm:text-sm text-slate-400 hidden sm:block">Ingénieur Logiciel / Développeur Fullstack</p>
+                        <p className="text-xs text-slate-400 sm:hidden">Développeur Fullstack</p>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
                         <button
                             onClick={() => setShowContact(true)}
-                            className="px-3 py-3 bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-sm text-white shadow-md"
+                            className="px-2 py-2 sm:px-3 sm:py-3 bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-sm text-white shadow-md active:scale-95 transition-transform"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 sm:w-6 sm:h-6">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
                             </svg>
                         </button>
@@ -356,9 +404,9 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             </header>
 
             {/* Top navigation stepper (clickable) */}
-            <div className="fixed top-6 left-0 right-0 z-50 pointer-events-auto">
-                <div className="mx-auto w-full max-w-3xl px-6">
-                    <div className="flex items-center justify-center gap-2">
+            <div className="fixed top-16 sm:top-20 left-0 right-0 z-50 pointer-events-auto">
+                <div className="mx-auto w-full max-w-3xl px-3 sm:px-6">
+                    <div className="flex items-center justify-center gap-1 sm:gap-2">
                         {items.map((it, i) => {
                             const isActive = i === selectedIndex
                             const visited = i < selectedIndex
@@ -366,7 +414,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                 <button
                                     key={it.id}
                                     onClick={(e) => { e.stopPropagation(); goTo(i) }}
-                                    className={`h-2 rounded-full transition-all ${isActive ? 'bg-white w-16' : visited ? 'bg-white/60 w-8' : 'bg-slate-700 w-4'}`}
+                                    className={`h-1.5 sm:h-2 rounded-full transition-all active:scale-95 ${isActive ? 'bg-white w-12 sm:w-16' : visited ? 'bg-white/60 w-6 sm:w-8' : 'bg-slate-700 w-3 sm:w-4'}`}
                                     aria-current={isActive}
                                     aria-label={`Aller à ${it.title || it.id}`}
                                     title={it.title || it.id}
@@ -378,11 +426,11 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             </div>
 
             {/* Minimal UI: bottom speech bubble */}
-            <main className="relative z-10 w-full px-6">
+            <main className="relative z-10 w-full px-3 sm:px-6">
                 <div className="min-h-[calc(100dvh-150px)]" />
 
                 <div
-                    className="fixed left-1/2 bottom-6 transform -translate-x-1/2 w-full max-w-3xl px-4"
+                    className="fixed left-1/2 bottom-3 sm:bottom-6 transform -translate-x-1/2 w-full max-w-3xl px-2 sm:px-4"
                     onClick={() => {
                             // Do nothing if intro is still visible
                             if (!enteredIntro) return
@@ -394,17 +442,17 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                         }}
                 >
                     <div
-                        className="bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-2xl p-6 text-slate-100 shadow-lg relative"
+                        className="bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-xl sm:rounded-2xl p-3 sm:p-6 text-slate-100 shadow-lg relative"
                         onScroll={() => setShowScrollHint(false)}
                     >
-                        <div className="flex items-start gap-4">
+                        <div className="flex items-start gap-2 sm:gap-4">
                             <div className="flex-1">
-                                <div className="text-sm text-slate-400">Clément</div>
-                                <div ref={textRef} className="mt-2 text-lg leading-relaxed">{getDialoguesFor(selectedItem)[dialogIndex]}</div>
+                                <div className="text-xs sm:text-sm text-slate-400">Clément</div>
+                                <div ref={textRef} className="mt-1 sm:mt-2 text-sm sm:text-base lg:text-lg leading-relaxed">{getDialoguesFor(selectedItem)[dialogIndex]}</div>
 
                                 {selectedItem.id === 'portal' && dialogIndex !== 0 && (
-                                    <div className="mt-4">
-                                        <button onClick={onEnter3DMode} className="px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-md text-sm">Entrer dans le portail</button>
+                                    <div className="mt-3 sm:mt-4">
+                                        <button onClick={onEnter3DMode} className="px-3 py-2 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 rounded-md text-xs sm:text-sm active:scale-95 transition-transform">Entrer dans le portail</button>
                                     </div>
                                 )}
                             </div>
@@ -436,12 +484,14 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 </div>
             </main>
 
-            {/* Technologies card for projects - positioned on the right */}
+            {/* Technologies card for projects - positioned below progress bar on mobile, left side on desktop */}
             {('technologies' in selectedItem) && (
-                <div className="absolute left-6 top-1/2 transform -translate-y-3/4 z-40 min-w-[200px] max-w-xs">
-                    <div className="mt-3 p-3 bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-white space-y-3 shadow-lg w-s">
-                        <h3 className="font-semibold text-white mb-3">Technologies</h3>
-                        {techNodes}
+                <div className="fixed left-3 right-3 top-24 sm:left-6 sm:right-auto sm:top-1/2 sm:transform sm:-translate-y-3/4 z-40 w-auto sm:min-w-[200px] sm:max-w-xs">
+                    <div className="p-2 sm:p-3 bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-white shadow-lg">
+                        <h3 className="font-semibold text-white text-xs sm:text-sm mb-2 sm:mb-3 hidden sm:block">Technologies</h3>
+                        <div className="flex flex-wrap gap-2 justify-center sm:justify-start sm:space-y-3 sm:block">
+                            {techNodes}
+                        </div>
                     </div>
                 </div>
             )}
