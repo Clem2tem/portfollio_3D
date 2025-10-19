@@ -89,7 +89,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ onClose }) => {
             >
                 <div className="text-xl md:text-2xl mb-1 md:mb-2">💼</div>
                 <h3 className="text-white font-semibold mb-1 text-sm md:text-base">LinkedIn</h3>
-                <p className="text-white/70 text-xs md:text-sm">@monprofil</p>
+                <p className="text-white/70 text-xs md:text-sm">Clément DE TEMMERMAN</p>
             </a>
             <a
               href="https://github.com/clem2tem"
