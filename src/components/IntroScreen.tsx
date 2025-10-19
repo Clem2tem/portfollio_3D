@@ -67,17 +67,6 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ onEnterPortfolio }) => {
       }
     }
 
-    @keyframes fadeOutSmallMobile {
-      0% {
-        opacity: 1;
-        transform: translate(-50%, -50%);
-      }
-      100% {
-        opacity: 0;
-        transform: translate(-50%, -100px);
-      }
-    }
-
     @keyframes fadeIn {
       0% {
         opacity: 0;
@@ -86,12 +75,6 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ onEnterPortfolio }) => {
       100% {
         opacity: 1;
         transform: translate(-50%, -50%);
-      }
-    }
-
-    @media (max-width: 640px) {
-      .animate-fadeout-small {
-        animation: fadeOutSmallMobile 1.4s ease-in-out 3.3s forwards !important;
       }
     }
   `}</style>
