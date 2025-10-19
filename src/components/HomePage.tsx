@@ -106,7 +106,7 @@ const HomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 "Vient ensuite mon plus gros projet.",
                 "Pour mon stage de fin d'études, je cherchais quelque chose qui sortait de l'ordinaire et qui me permettrait de mettre en pratique toutes les compétences que j'avais acquises durant mes années d'études.",
                 "Une PME dans le secteur du BTP cherchait à développer un ERP SaaS sur-mesure pour gérer l'ensemble de ses opérations.",
-                "J'ai donc saisi cette opportunité et j'ai travaillé pendant 6 mois en tant que développeur fullstack, durant lesquels j'ai du comprendre et solutionner un outil complet qui permet de gérer un chantier en commençant par la mise en contact, passant par la création d'un devis, la gestion de chantier et jusqu'à la remise des clés.",
+                "J'ai donc saisi cette opportunité et j'ai travaillé pendant 8 mois en tant que développeur fullstack, durant lesquels j'ai du comprendre et solutionner un outil complet qui permet de gérer un chantier en commençant par la mise en contact, passant par la création d'un devis, la gestion de chantier et jusqu'à la remise des clés.",
                 "Ce fut une expérience très enrichissante et un véritable défi car j'ai du m'adapter et comprendre les besoins spécifiques d'une équipe et des clients dans un milieu qui m'était totalement inconnu.",
                 "Mais cette expérience m'a énormément appris, tant sur le plan technique que professionnel, et je me suis rendu encore plus compte que j'avais encore beaucoup à apprendre.",
             ],
