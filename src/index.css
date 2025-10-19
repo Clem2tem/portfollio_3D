@@ -4,8 +4,19 @@
 @tailwind utilities;
 
 @layer base {
-  * {
-    cursor: none !important;
+  /* Hide default cursor on devices with fine pointer (mouse) */
+  /* This excludes touch-primary devices (smartphones, tablets) */
+  @media (hover: hover) and (pointer: fine) {
+    * {
+      cursor: none !important;
+    }
+  }
+  
+  /* On mobile/tablet (coarse pointer), keep default cursor visible */
+  @media (pointer: coarse) {
+    * {
+      cursor: auto !important;
+    }
   }
   
   body {

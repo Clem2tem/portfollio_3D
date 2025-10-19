@@ -14,6 +14,28 @@ const CustomCursor: React.FC = () => {
   const [particles, setParticles] = useState<Particle[]>([])
   const [isMoving, setIsMoving] = useState(false)
   const [isVisible, setIsVisible] = useState(true)
+  const [isTouchDevice, setIsTouchDevice] = useState<boolean | null>(null)
+
+  // Detect touch device (smartphones and tablets only, not touch-enabled PCs)
+  useEffect(() => {
+    const checkTouchDevice = () => {
+      // Check if it's a mobile/tablet device based on user agent
+      const userAgent = navigator.userAgent.toLowerCase()
+      const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet/i.test(userAgent)
+      
+      // Check screen size (typical mobile/tablet sizes)
+      const isMobileScreen = window.innerWidth <= 1024
+      
+      // Check if primary input is touch (not just touch capability)
+      const isPrimaryTouch = window.matchMedia('(pointer: coarse)').matches
+      
+      // It's a mobile/tablet if:
+      // 1. Mobile user agent detected, OR
+      // 2. Small screen AND primary input is touch
+      return isMobileUA || (isMobileScreen && isPrimaryTouch)
+    }
+    setIsTouchDevice(checkTouchDevice())
+  }, [])
 
   useEffect(() => {
     let moveTimeout: NodeJS.Timeout
@@ -74,6 +96,10 @@ const CustomCursor: React.FC = () => {
     }
   }, [])
 
+  // Don't render custom cursor on touch devices
+  if (isTouchDevice === true) return null
+  
+  // Render cursor (including when isTouchDevice is still null or false)
   if (!isVisible) return null
 
   return (
