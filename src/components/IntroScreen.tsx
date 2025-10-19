@@ -35,6 +35,7 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ onEnterPortfolio }) => {
         paddingLeft: 'env(safe-area-inset-left)',
         paddingRight: 'env(safe-area-inset-right)',
         minHeight: '100vh', // Dynamic viewport height for mobile
+        height: '100vh',
       }}
     >
 
