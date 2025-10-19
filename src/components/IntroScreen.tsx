@@ -23,9 +23,18 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ onEnterPortfolio }) => {
 
   return (
     <div 
-      className="fixed inset-0 z-[9999999] flex items-center justify-center bg-gradient-to-br from-gray-950 via-black to-gray-900 backdrop-blur-sm transition-transform duration-1000 ease-in-out"
+      className="fixed z-[9999999] flex items-center justify-center bg-gradient-to-br from-gray-950 via-black to-gray-900 backdrop-blur-sm transition-transform duration-1000 ease-in-out"
       style={{
-        transform: isComplete ? 'translateY(-100%)' : 'translateY(0)'
+        transform: isComplete ? 'translateY(-100%)' : 'translateY(0)',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
+        minHeight: '100dvh', // Dynamic viewport height for mobile
       }}
     >
 
