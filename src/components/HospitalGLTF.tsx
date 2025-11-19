@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { useFrame, useLoader } from '@react-three/fiber';
 import { TextureLoader } from 'three';
 
-const HospitalGLTF = forwardRef<THREE.Group, { position: [number, number, number], logoHide?:boolean }>(({ position, logoHide }, ref) => {
+const HospitalGLTF = forwardRef<THREE.Group, { position: [number, number, number], logoHide?:boolean, scale?: number }>(({ position, logoHide, scale }, ref) => {
     const gltf = useGLTF('models/CHU/CHU.gltf');
     const [hovered, setHovered] = useState(false);
 
@@ -41,7 +41,7 @@ const HospitalGLTF = forwardRef<THREE.Group, { position: [number, number, number
         <group ref={ref}>
             <primitive
                 object={gltf.scene}
-                scale={[0.5, 0.5, 0.5]}
+                scale={ scale ? [scale, scale, scale] : [0.5, 0.5, 0.5]}
                 position={position} 
                 rotation={[0, Math.PI / 6, 0]}
             />

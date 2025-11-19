@@ -73,6 +73,15 @@
     }
   }
 
+  @keyframes loading {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
   .animate-float-particles {
     animation: float-particles 6s ease-in-out infinite;
   }
@@ -83,5 +92,15 @@
 
   .animate-fade-in-up {
     animation: fade-in-up 0.8s ease-out forwards;
+  }
+
+  .split-word {
+    display: inline-flex;
+    overflow: hidden;
+  }
+
+  .split-char {
+    display: inline-block;
+    will-change: transform, opacity;
   }
 }

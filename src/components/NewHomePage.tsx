@@ -1,432 +1,607 @@
-import React, { useState, useEffect, useRef, Suspense } from 'react'
-import { Canvas } from '@react-three/fiber'
-import { Environment, OrbitControls } from '@react-three/drei'
-import AnimatedBackground from './AnimatedBackground'
-import ContactModal from './ContactModal'
-import HospitalGLTF from './HospitalGLTF'
-import House from './House'
-import ExcavatorGLTF from './ExcavatorGLTF'
-import POPClemStatic from './POPClemStatic'
-import Portal from './Portal'
-import { projects } from '../data/projects'
+'use client';
+
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    Suspense,
+} from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Environment } from '@react-three/drei';
+import * as THREE from 'three';
+import gsap from 'gsap';
+import ScrollTrigger from 'gsap/ScrollTrigger';
+
+import AnimatedBackground from './AnimatedBackground';
+import ContactModal from './ContactModal';
+import Preloader from './Preloader';
+import SectionNavigation from './SectionNavigation';
+
+import POPClemStatic from './POPClemStatic';
+import HospitalGLTF from './HospitalGLTF';
+import House from './House';
+import ExcavatorGLTF from './ExcavatorGLTF';
+import Portal from './Portal';
+// ⚠️ À adapter au nom de ton composant / modèle Porsche réel
+// import PorscheGLTF from './PorscheGLTF';
+
+import useSmoothScroll from '../hooks/useSmoothScroll';
+import useSplitText from '../hooks/useSplitText';
+
+gsap.registerPlugin(ScrollTrigger);
 
 interface HomePageProps {
-  onEnter3DMode: () => void
+    onEnter3DMode: () => void;
 }
 
-interface SectionProps {
-  children: React.ReactNode | ((isVisible: boolean) => React.ReactNode)
-  className?: string
-  delay?: number
+type Vec3 = [number, number, number];
+
+type ModelStopId = 'popclem' | 'hospital' | 'house' | 'porsche' | 'portal';
+
+interface ModelStop {
+    id: ModelStopId;
+    position: Vec3;
+    lookAt: Vec3;
 }
 
-const ScrollSection: React.FC<SectionProps> = ({ children, className = '', delay = 0 }) => {
-  const [isVisible, setIsVisible] = useState(false)
-  const sectionRef = useRef<HTMLDivElement>(null)
+// 📍 Poses caméra pour chaque modèle (tu pourras ajuster ces valeurs)
+const MODEL_STOPS: ModelStop[] = [
+    {
+        id: 'popclem',
+        position: [1, 1.4, 1],
+        lookAt: [0, 1.3, 0],
+    },
+    {
+        id: 'hospital',
+        position: [-3.2, -3, -6],
+        lookAt: [0, -3, 0],
+    },
+    {
+        id: 'house',
+        position: [3.2, -6, 8.2],
+        lookAt: [0, -6, 0],
+    },
+    {
+        id: 'porsche',
+        position: [1.6, -9, 4.5],
+        lookAt: [0, -9, 0],
+    },
+    {
+        id: 'portal',
+        position: [0, -12, 10],
+        lookAt: [0, -12, 0],
+    },
+];
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setTimeout(() => setIsVisible(true), delay)
-          }
-        })
-      },
-      { threshold: 0.2 }
-    )
+const MODEL_IDS: ModelStopId[] = [
+    'popclem',
+    'hospital',
+    'house',
+    'porsche',
+    'portal'
+];
 
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current)
-    }
 
-    return () => {
-      if (sectionRef.current) {
-        observer.unobserve(sectionRef.current)
-      }
-    }
-  }, [delay])
+/* -------------------------------- CAMERA RIG -------------------------------- */
 
-  return (
-    <div
-      ref={sectionRef}
-      className={`min-h-screen flex items-center justify-center transition-all duration-1000 ${
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20'
-      } ${className}`}
-    >
-      {typeof children === 'function' ? children(isVisible) : children}
-    </div>
-  )
+interface CameraRigProps {
+    scrollPathRef: React.MutableRefObject<number>;
+    mouseRef: React.MutableRefObject<{ x: number; y: number }>;
 }
+
+const CameraRig: React.FC<CameraRigProps> = ({ scrollPathRef, mouseRef }) => {
+    const { camera } = useThree();
+    const target = useRef(new THREE.Vector3(0, 1, 0));
+
+    useEffect(() => {
+        const firstStop = MODEL_STOPS[0];
+        camera.position.set(...firstStop.position);
+        target.current.set(...firstStop.lookAt);
+        camera.lookAt(target.current);
+    }, [camera]);
+
+    useFrame(() => {
+        const t = THREE.MathUtils.clamp(scrollPathRef.current, 0, MODEL_STOPS.length - 1);
+        const i0 = Math.floor(t);
+        const i1 = Math.min(MODEL_STOPS.length - 1, i0 + 1);
+        const f = t - i0;
+
+        const s0 = MODEL_STOPS[i0];
+        const s1 = MODEL_STOPS[i1];
+
+        // positions interpolées
+        const posX = THREE.MathUtils.lerp(s0.position[0], s1.position[0], f);
+        const posY = THREE.MathUtils.lerp(s0.position[1], s1.position[1], f);
+        const posZ = THREE.MathUtils.lerp(s0.position[2], s1.position[2], f);
+
+        // lookAt interpolé
+        const lookX = THREE.MathUtils.lerp(s0.lookAt[0], s1.lookAt[0], f);
+        const lookY = THREE.MathUtils.lerp(s0.lookAt[1], s1.lookAt[1], f);
+        const lookZ = THREE.MathUtils.lerp(s0.lookAt[2], s1.lookAt[2], f);
+
+        // effet souris subtile
+        const mouse = mouseRef.current;
+        const mx = mouse.x * 0.5;
+        const my = mouse.y * 0.3;
+
+        const targetPos = {
+            x: posX + mx,
+            y: posY - my,
+            z: posZ,
+        };
+
+        camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetPos.x, 0.08);
+        camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetPos.y, 0.08);
+        camera.position.z = THREE.MathUtils.lerp(camera.position.z, targetPos.z, 0.08);
+
+        target.current.set(lookX, lookY, lookZ);
+        camera.lookAt(target.current);
+    });
+
+
+    return null;
+};
+
+/* --------------------------- MODEL SWITCHER (SCÈNE) -------------------------- */
+
+interface IslandSceneProps {
+    scrollPathRef: React.MutableRefObject<number>;
+    mouseRef: React.MutableRefObject<{ x: number; y: number }>;
+}
+
+const IslandScene = () => {
+    const popRef = useRef<THREE.Group>(null);
+    const hospitalRef = useRef<THREE.Group>(null);
+    const houseRef = useRef<THREE.Group>(null);
+    const porscheRef = useRef<THREE.Group>(null);
+    const portalRef = useRef<THREE.Group>(null);
+
+    const groups = useMemo(
+        () => [popRef, hospitalRef, houseRef, porscheRef, portalRef],
+        []
+    );
+
+    useFrame(() => {
+        groups.forEach((ref) => {
+            if (!ref.current) return;
+            ref.current.visible = true;
+            const current = ref.current.scale.x;
+            const next = THREE.MathUtils.lerp(current, 1, 0.1);
+            ref.current.scale.setScalar(next);
+        });
+    });
+
+    return (
+        <>
+            <ambientLight intensity={0.4} />
+            <directionalLight position={[5, 5, 5]} intensity={1.2} />
+            <Environment preset="sunset" />
+
+            <group ref={popRef} position={[1, 1, -1]}>
+                <POPClemStatic />
+            </group>
+
+            <group ref={hospitalRef} position={[0, -2, 0]} >
+                <HospitalGLTF position={[0, 0, 0]} scale={0.2} logoHide={true} />
+            </group>
+
+            <group ref={houseRef} position={[0, -6, 0]}>
+                <House position={[-2, 0, 0]} />
+                <ExcavatorGLTF position={[2, 0, 0]} />
+            </group>
+
+            <group ref={porscheRef} position={[0, -9, 0]}>
+                {/* <PorscheGLTF /> */}
+                <mesh>
+                    <boxGeometry args={[1, 1, 1]} />
+                    <meshStandardMaterial color="#e11d48" />
+                </mesh>
+            </group>
+
+            <group ref={portalRef} position={[0, -12, 0]}>
+                <Portal />
+            </group>
+        </>
+    );
+};
+
+/* ---------------------------- PAGE PRINCIPALE ---------------------------- */
 
 const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
-  const [showContact, setShowContact] = useState(false)
-  const [activeSection, setActiveSection] = useState(0)
-  
-  const sectionRefs = useRef<(HTMLDivElement | null)[]>([])
+    const [showContact, setShowContact] = useState(false);
+    const [isPreloaderVisible, setIsPreloaderVisible] = useState(true);
 
-  const sections = [
-    { id: 'hero', label: 'Accueil' },
-    { id: 'about', label: 'À propos' },
-    ...projects.map((p, i) => ({ id: `project-${i}`, label: p.title })),
-    { id: 'popclem', label: 'Avatar' },
-    { id: 'portal', label: 'Portail' },
-    { id: 'cta', label: 'Contact' }
-  ]
+    useSmoothScroll();
+    useSplitText('[data-split]', { stagger: 0.03, duration: 1 });
 
-  useEffect(() => {
-    const observers = sectionRefs.current.map((ref, index) => {
-      if (!ref) return null
-      
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              setActiveSection(index)
+    const scrollPathRef = useRef(0); // t global 0 → 4
+    const mouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+    const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+    const [activeSection, setActiveSection] = useState<string>('hero');
+
+    const registerSection = useCallback((id: string, node: HTMLElement | null) => {
+        sectionRefs.current[id] = node;
+    }, []);
+
+    // Sections pour le stepper (nav à droite)
+    const sections = useMemo(
+        () => [
+            { id: 'hero', label: 'Accueil' },
+            { id: 'popclem', label: 'Avatar' },
+            { id: 'hospital', label: 'Hôpital' },
+            { id: 'house', label: 'Maison' },
+            { id: 'porsche', label: 'Porsche' },
+            { id: 'portal', label: 'Portail' },
+            { id: 'cta', label: 'Contact' },
+        ],
+        []
+    );
+
+    const handleNavigation = useCallback(
+        (id: string) => {
+            const target = sectionRefs.current[id];
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
-          })
         },
-        { threshold: 0.5 }
-      )
-      
-      observer.observe(ref)
-      return observer
-    })
+        []
+    );
 
-    return () => {
-      observers.forEach((observer, index) => {
-        if (observer && sectionRefs.current[index]) {
-          observer.unobserve(sectionRefs.current[index]!)
-        }
-      })
-    }
-  }, [])
+    // Preloader simple (temps fixe, tu peux le connecter aux loaders GLTF si tu veux)
+    useEffect(() => {
+        const timer = window.setTimeout(() => setIsPreloaderVisible(false), 1800);
+        return () => window.clearTimeout(timer);
+    }, []);
 
-  const scrollToSection = (index: number) => {
-    sectionRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
+    // Mouvement souris → parallax caméra
+    useEffect(() => {
+        const handleMouseMove = (event: MouseEvent) => {
+            const x = (event.clientX / window.innerWidth - 0.5) * 2;
+            const y = (event.clientY / window.innerHeight - 0.5) * 2;
+            mouseRef.current = { x, y };
+        };
+        window.addEventListener('mousemove', handleMouseMove);
+        return () => window.removeEventListener('mousemove', handleMouseMove);
+    }, []);
 
-  const technologies = [
-    { name: 'React', icon: '/logos/React.png' },
-    { name: 'TypeScript', icon: '/logos/TypeScript.svg' },
-    { name: 'Next.js', icon: '/logos/Next.js.png' },
-    { name: 'Node.js', icon: '/logos/Node.js.png' },
-    { name: 'Firebase', icon: '/logos/Firebase.png' },
-    { name: 'Supabase', icon: '/logos/Supabase.png' }
-  ]
+    // ScrollTrigger pour :
+    // - set activeSection (UI)
+    // - mapper le scroll sur la timeline 3D globale (scrollPathRef)
+    useEffect(() => {
+        const triggers: ScrollTrigger[] = [];
 
-  return (
-    <div className="relative overflow-y-auto h-screen">
-      <AnimatedBackground />
-      
-      {/* Stepper Navigation */}
-      <div className="fixed right-8 top-1/2 -translate-y-1/2 z-50 hidden lg:flex flex-col gap-4">
-        {sections.map((section, index) => (
-          <button
-            key={section.id}
-            onClick={() => scrollToSection(index)}
-            className="group flex items-center gap-3"
-            title={section.label}
-          >
-            <span className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              {section.label}
-            </span>
-            <div className={`w-3 h-3 rounded-full border-2 transition-all ${
-              activeSection === index
-                ? 'bg-purple-500 border-purple-500 scale-125'
-                : 'border-gray-600 hover:border-purple-400'
-            }`} />
-          </button>
-        ))}
-      </div>
-      
-      {/* Navigation fixe */}
-      <nav className="fixed top-0 left-0 right-0 z-50 px-8 py-6 flex justify-between items-center backdrop-blur-md bg-black/20">
-        <h1 className="text-2xl font-bold text-white">Clément De Temmerman</h1>
-        <button
-          onClick={() => setShowContact(true)}
-          className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-semibold transition-all hover:scale-105"
-        >
-          Contact
-        </button>
-      </nav>
+        // 1) Gestion de l'activeSection pour toutes les sections texte
+        sections.forEach((section, index) => {
+            const el = sectionRefs.current[section.id];
+            if (!el) return;
 
-      {/* Hero Section */}
-      <ScrollSection>
-        <div ref={el => { sectionRefs.current[0] = el }} className="relative z-10 text-center px-6 max-w-6xl mx-auto">
-          <div className="relative inline-block">
-            <h1 
-              className="text-7xl md:text-9xl font-bold text-white mb-6"
-              style={{
-                textShadow: '0 0 80px rgba(139, 92, 246, 0.5)'
-              }}
-            >
-              Développeur
-            </h1>
-            <h2 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent mb-8">
-              Fullstack
-            </h2>
-          </div>
-          <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-            Je crée des expériences web modernes et performantes avec une attention particulière 
-            portée au design et à l'expérience utilisateur.
-          </p>
-        </div>
-      </ScrollSection>
+            const trigger = ScrollTrigger.create({
+                trigger: el,
+                start: 'top center',
+                end: 'bottom center',
+                onEnter: () => setActiveSection(section.id),
+                onEnterBack: () => setActiveSection(section.id),
+            });
 
-      {/* About Section */}
-      <ScrollSection delay={100}>
-        <div ref={el => { sectionRefs.current[1] = el }} className="relative z-10 px-6 max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-5xl md:text-6xl font-bold text-white mb-6">
-                À propos
-              </h2>
-              <p className="text-lg text-gray-300 leading-relaxed mb-6">
-                Avec 22 ans et une passion pour le développement, je me spécialise dans la création 
-                d'applications web complètes utilisant les technologies les plus récentes.
-              </p>
-              <p className="text-lg text-gray-300 leading-relaxed">
-                Mon approche combine créativité technique et rigueur professionnelle pour livrer 
-                des solutions qui dépassent les attentes.
-              </p>
+            triggers.push(trigger);
+        });
+
+        // 2) Mapping spécifique pour les 5 sections modèles → valeur t continue
+        MODEL_IDS.forEach((id, index) => {
+            const el = sectionRefs.current[id];
+            if (!el) return;
+
+            const trigger = ScrollTrigger.create({
+                trigger: el,
+                start: 'top center',
+                end: 'bottom center',
+                scrub: 1,
+                onUpdate: (self) => {
+                    // t = index + progress, ex: section 2 avec progress 0.5 → t = 2.5
+                    const tRaw = index + self.progress;
+                    scrollPathRef.current = THREE.MathUtils.clamp(
+                        tRaw,
+                        0,
+                        MODEL_STOPS.length - 1
+                    );
+                },
+            });
+
+            triggers.push(trigger);
+        });
+
+        const refreshId = window.setTimeout(() => ScrollTrigger.refresh(), 100);
+
+        return () => {
+            window.clearTimeout(refreshId);
+            triggers.forEach((t) => t.kill());
+        };
+    }, [sections]);
+
+    return (
+        <div className="relative min-h-screen text-white overflow-x-hidden">
+            {/* Canvas global plein écran (sous l'UI mais visible) */}
+            <div className="fixed inset-0 z-0">
+                <Canvas
+                    camera={{ position: [0, 2, 10], fov: 45 }}
+                    gl={{ antialias: true, alpha: true }}
+                >
+                    <Suspense fallback={null}>
+                        <CameraRig scrollPathRef={scrollPathRef} mouseRef={mouseRef} />
+                        <IslandScene />
+                    </Suspense>
+                </Canvas>
             </div>
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-pink-600/20 rounded-3xl blur-xl"></div>
-              <div className="relative bg-gray-900/50 backdrop-blur-sm border border-purple-500/30 rounded-3xl p-8">
-                <h3 className="text-2xl font-bold text-white mb-6">Technologies</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  {technologies.map((tech) => (
-                    <div
-                      key={tech.name}
-                      className="flex flex-col items-center gap-2 p-4 bg-gray-800/50 rounded-xl hover:bg-gray-700/50 transition-all hover:scale-110 cursor-pointer"
-                    >
-                      <img src={tech.icon} alt={tech.name} className="w-12 h-12 object-contain" />
-                      <span className="text-xs text-gray-300 text-center">{tech.name}</span>
+
+            {/* Background FX */}
+            <AnimatedBackground />
+            <div className="absolute inset-0 pointer-events-none bg-transparent" />
+
+
+            {/* Header */}
+            <header className="fixed top-0 left-0 right-0 z-40 px-6 md:px-12 py-6 flex items-center justify-between backdrop-blur-2xl bg-black/30 border-b border-white/5">
+                <div className="flex items-center gap-3">
+                    <span className="h-3 w-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" />
+                    <div>
+                        <p className="text-[0.7rem] uppercase tracking-[0.4em] text-white/60">
+                            Clément
+                        </p>
+                        <p className="font-semibold text-lg">Studio 3D</p>
                     </div>
-                  ))}
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </ScrollSection>
-
-      {/* Projects Section */}
-      {projects.map((project, index) => (
-        <ScrollSection key={project.id} delay={index * 50}>
-          {(isVisible) => (
-          <div ref={el => { sectionRefs.current[2 + index] = el }} className="relative z-10 px-6 max-w-6xl mx-auto w-full">
-            <div className={`grid md:grid-cols-2 gap-12 items-center ${index % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
-              <div className={index % 2 === 1 ? 'md:order-2' : ''}>
-                <span className="text-purple-400 text-sm font-semibold uppercase tracking-wider">
-                  {project.category}
-                </span>
-                <h3 className="text-4xl md:text-5xl font-bold text-white mt-2 mb-4">
-                  {project.title}
-                </h3>
-                <p className="text-lg text-gray-300 leading-relaxed mb-6">
-                  {project.description}
-                </p>
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {project.technologies.map((tech) => (
-                    <span
-                      key={tech}
-                      className="px-4 py-2 bg-purple-600/20 border border-purple-500/30 rounded-full text-sm text-purple-300"
+                <div className="hidden md:flex items-center gap-8 text-xs uppercase tracking-[0.4em] text-white/60">
+                    <button
+                        type="button"
+                        onClick={() => handleNavigation('popclem')}
+                        className="hover:text-white transition-colors"
                     >
-                      {tech}
-                    </span>
-                  ))}
+                        Avatar
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handleNavigation('hospital')}
+                        className="hover:text-white transition-colors"
+                    >
+                        Hôpital
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handleNavigation('porsche')}
+                        className="hover:text-white transition-colors"
+                    >
+                        Porsche
+                    </button>
                 </div>
-                <div className="flex gap-4">
-                  {project.liveUrl && project.liveUrl !== 'private' && (
-                    <a
-                      href={project.liveUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-semibold transition-all hover:scale-105"
+                <div className="flex gap-3">
+                    <button
+                        type="button"
+                        onClick={() => setShowContact(true)}
+                        className="px-5 py-2 rounded-full border border-white/20 text-sm uppercase tracking-[0.3em] hover:border-white/60"
                     >
-                      Voir le projet
-                    </a>
-                  )}
-                  {project.githubUrl && project.githubUrl !== 'private' && (
-                    <a
-                      href={project.githubUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-6 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-lg text-white font-semibold transition-all hover:scale-105"
+                        Contact
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onEnter3DMode}
+                        className="px-5 py-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-sm font-semibold tracking-[0.2em]"
                     >
-                      GitHub
-                    </a>
-                  )}
+                        Mode 3D
+                    </button>
                 </div>
-              </div>
-              <div className={`relative ${index % 2 === 1 ? 'md:order-1' : ''}`}>
-                <div className="absolute inset-0 overflow-visible w-[100dvw] h-[100dvh]"></div>
-                <div className="relative overflow-visible group">
-                  <div className="absolute inset-0 transition-all"></div>
-                  {isVisible && (
-                    <Canvas
-                      camera={{ position: [0, 5, 5], fov: 50 }}
-                      style={{ width: '100%', height: '100%' }}
-                      gl={{ alpha: true, antialias: true, preserveDrawingBuffer: false }}
-                    >
-                      <Suspense fallback={null}>
-                        {index === 0 && <HospitalGLTF position={[0, -1, 0]} />}
-                        {index === 1 && (
-                          <group scale={0.8}>
-                            <House position={[-2, -1, 0]} />
-                            <ExcavatorGLTF position={[2, -1, 0]} />
-                          </group>
-                        )}
-                        <Environment preset="sunset" />
-                      </Suspense>
-                      <OrbitControls
-                        enableZoom={false}
-                        enablePan={false}
-                      />
-                    </Canvas>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-          )}
-        </ScrollSection>
-      ))}
+            </header>
 
-      {/* POPClem Section */}
-      <ScrollSection delay={100}>
-        {(isVisible) => (
-        <div ref={el => { sectionRefs.current[2 + projects.length] = el }} className="relative z-10 px-6 max-w-6xl mx-auto w-full">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <span className="text-purple-400 text-sm font-semibold uppercase tracking-wider">
-                Avatar 3D
-              </span>
-              <h3 className="text-4xl md:text-5xl font-bold text-white mt-2 mb-4">
-                POPClem
-              </h3>
-              <p className="text-lg text-gray-300 leading-relaxed mb-6">
-                Mon avatar 3D personnalisé qui m'accompagne dans cette aventure virtuelle.
-              </p>
-            </div>
-            <div className="relative md:order-1">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-600/30 to-pink-600/30 rounded-3xl blur-2xl"></div>
-              <div className="relative aspect-video bg-gray-900/50 backdrop-blur-sm border border-purple-500/30 rounded-3xl overflow-hidden group">
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-transparent group-hover:from-purple-600/20 transition-all"></div>
-                {isVisible && (
-                  <Canvas
-                    camera={{ position: [0, 1, 3], fov: 50 }}
-                    style={{ width: '100%', height: '100%' }}
-                    gl={{ alpha: true, antialias: true, preserveDrawingBuffer: false }}
-                  >
-                    <color attach="background" args={['transparent']} />
-                    <ambientLight intensity={0.5} />
-                    <directionalLight position={[5, 5, 5]} intensity={1} />
-                    <Suspense fallback={null}>
-                      <group position={[0, -1, 0]}>
-                        <POPClemStatic />
-                      </group>
-                      <Environment preset="sunset" />
-                    </Suspense>
-                    <OrbitControls
-                      enableZoom={false}
-                      enablePan={false}
-                      autoRotate
-                      autoRotateSpeed={2}
-                    />
-                  </Canvas>
-                )}
-              </div>
-            </div>
-          </div>
+            {/* Stepper latéral */}
+            <SectionNavigation
+                sections={sections}
+                activeId={activeSection}
+                onSelect={handleNavigation}
+            />
+
+            {/* Contenu texte overlay */}
+            <main className="relative z-10 pt-32 pb-32 space-y-32">
+                {/* HERO */}
+                <section
+                    id="hero"
+                    ref={(node) => registerSection('hero', node as HTMLElement)}
+                    className="min-h-screen flex items-center px-6 md:px-12"
+                >
+                    <div className="max-w-4xl space-y-8">
+                        <p
+                            className="text-xs uppercase tracking-[0.5em] text-white/60"
+                            data-animate="fade-up"
+                        >
+                            Creative Developer • R3F
+                        </p>
+                        <h1
+                            data-split
+                            className="text-5xl md:text-7xl lg:text-8xl font-semibold leading-[1.05]"
+                        >
+                            Un parcours 3D continu, de l’avatar à la Porsche.
+                        </h1>
+                        <p
+                            className="text-lg md:text-xl text-white/80 max-w-2xl"
+                            data-animate="fade-up"
+                        >
+                            Comme sur igloo.inc, le scroll orchestre la caméra : chaque
+                            section devient un point de vue cinématique sur un nouveau modèle.
+                        </p>
+                    </div>
+                </section>
+
+                {/* POPCLEM */}
+                <section
+                    id="popclem"
+                    ref={(node) => registerSection('popclem', node as HTMLElement)}
+                    className="min-h-screen flex items-center px-6 md:px-12"
+                >
+                    <div className="max-w-3xl space-y-6">
+                        <p className="text-xs uppercase tracking-[0.5em] text-purple-300">
+                            Étape 01 • Avatar
+                        </p>
+                        <h2
+                            data-split
+                            className="text-4xl md:text-6xl font-semibold"
+                        >
+                            POPClem ouvre la marche.
+                        </h2>
+                        <p className="text-white/75" data-animate="fade-up">
+                            Premier stop du voyage : l’avatar. La caméra se place près du
+                            personnage, légèrement en plongée, avec un parallax réactif à la
+                            souris.
+                        </p>
+                    </div>
+                </section>
+
+                {/* HOPITAL */}
+                <section
+                    id="hospital"
+                    ref={(node) => registerSection('hospital', node as HTMLElement)}
+                    className="min-h-screen flex items-center px-6 md:px-12"
+                >
+                    <div className="max-w-3xl space-y-6">
+                        <p className="text-xs uppercase tracking-[0.5em] text-purple-300">
+                            Étape 02 • Bâtiment
+                        </p>
+                        <h2
+                            data-split
+                            className="text-4xl md:text-6xl font-semibold"
+                        >
+                            Zoom out vers l’hôpital.
+                        </h2>
+                        <p className="text-white/75" data-animate="fade-up">
+                            On passe à l’échelle : la caméra recule, monte, et montre
+                            l’hôpital dans son ensemble. Le scroll contrôle la transition, pas
+                            un bouton.
+                        </p>
+                    </div>
+                </section>
+
+                {/* MAISON + PELLETEUSE */}
+                <section
+                    id="house"
+                    ref={(node) => registerSection('house', node as HTMLElement)}
+                    className="min-h-screen flex items-center px-6 md:px-12"
+                >
+                    <div className="max-w-3xl space-y-6">
+                        <p className="text-xs uppercase tracking-[0.5em] text-purple-300">
+                            Étape 03 • Chantier
+                        </p>
+                        <h2
+                            data-split
+                            className="text-4xl md:text-6xl font-semibold"
+                        >
+                            Maison & pelleteuse, en diptyque.
+                        </h2>
+                        <p className="text-white/75" data-animate="fade-up">
+                            La scène mixe architecture et mécanique. La caméra glisse
+                            latéralement pour donner une impression de travelling entre la
+                            maison et l’engin.
+                        </p>
+                    </div>
+                </section>
+
+                {/* PORSCHE */}
+                <section
+                    id="porsche"
+                    ref={(node) => registerSection('porsche', node as HTMLElement)}
+                    className="min-h-screen flex items-center px-6 md:px-12"
+                >
+                    <div className="max-w-3xl space-y-6">
+                        <p className="text-xs uppercase tracking-[0.5em] text-purple-300">
+                            Étape 04 • Performance
+                        </p>
+                        <h2
+                            data-split
+                            className="text-4xl md:text-6xl font-semibold"
+                        >
+                            Focus sur la Porsche 911 GT3 RS.
+                        </h2>
+                        <p className="text-white/75" data-animate="fade-up">
+                            Vue plus serrée, angle ¾ avant, caméra plus basse : on rapproche
+                            le regard de la carrosserie et des volumes pour un rendu
+                            publicitaire.
+                        </p>
+                    </div>
+                </section>
+
+                {/* PORTAIL */}
+                <section
+                    id="portal"
+                    ref={(node) => registerSection('portal', node as HTMLElement)}
+                    className="min-h-screen flex items-center px-6 md:px-12"
+                >
+                    <div className="max-w-3xl space-y-6">
+                        <p className="text-xs uppercase tracking-[0.5em] text-purple-300">
+                            Étape 05 • Portail
+                        </p>
+                        <h2
+                            data-split
+                            className="text-4xl md:text-6xl font-semibold"
+                        >
+                            Le portail vers l’univers complet.
+                        </h2>
+                        <p className="text-white/75" data-animate="fade-up">
+                            La caméra reprend de la hauteur et recentre le portail dans le
+                            cadre, comme une porte vers une expérience plus vaste (mode 3D,
+                            scène libre, etc.).
+                        </p>
+                    </div>
+                </section>
+
+                {/* CTA */}
+                <section
+                    id="cta"
+                    ref={(node) => registerSection('cta', node as HTMLElement)}
+                    className="min-h-screen flex items-center px-6 md:px-12"
+                >
+                    <div className="rounded-[40px] border border-white/10 bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-3xl text-center py-20 px-8 space-y-8 max-w-3xl mx-auto">
+                        <p className="text-xs uppercase tracking-[0.5em] text-white/60">
+                            Next step
+                        </p>
+                        <h3
+                            data-split
+                            className="text-4xl md:text-6xl font-semibold"
+                        >
+                            On applique ce comportement à votre propre univers 3D ?
+                        </h3>
+                        <p className="text-white/70">
+                            Scroll → mouvement de caméra → narration 3D continue. On peut
+                            reproduire ce pattern pour n’importe quel produit ou environnement.
+                        </p>
+                        <div
+                            className="flex flex-wrap justify-center gap-4"
+                            data-animate="fade-up"
+                        >
+                            <button
+                                type="button"
+                                onClick={() => setShowContact(true)}
+                                className="px-10 py-4 rounded-full border border-white/20 uppercase tracking-[0.4em]"
+                            >
+                                Écrire
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onEnter3DMode}
+                                className="px-10 py-4 rounded-full bg-white text-black font-semibold uppercase tracking-[0.4em]"
+                            >
+                                Mode libre 3D
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <footer className="relative z-10 px-6 md:px-12 pb-10 text-white/50 text-sm uppercase tracking-[0.4em]">
+                © 2024 Clément De Temmerman — Portfolio 3D expérimental
+            </footer>
+
+            <Preloader isVisible={isPreloaderVisible} />
+            {showContact && <ContactModal onClose={() => setShowContact(false)} />}
         </div>
-        )}
-      </ScrollSection>
+    );
+};
 
-      {/* Portal Section */}
-      <ScrollSection delay={150}>
-        {(isVisible) => (
-        <div ref={el => { sectionRefs.current[3 + projects.length] = el }} className="relative z-10 px-6 max-w-6xl mx-auto w-full">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div className="md:order-2">
-              <span className="text-purple-400 text-sm font-semibold uppercase tracking-wider">
-                Navigation 3D
-              </span>
-              <h3 className="text-4xl md:text-5xl font-bold text-white mt-2 mb-4">
-                Le Portail
-              </h3>
-              <p className="text-lg text-gray-300 leading-relaxed mb-6">
-                La porte d'entrée vers mon univers 3D interactif.
-              </p>
-            </div>
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-600/30 to-pink-600/30 rounded-3xl blur-2xl"></div>
-              <div className="relative aspect-video bg-gray-900/50 backdrop-blur-sm border border-purple-500/30 rounded-3xl overflow-hidden group">
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-transparent group-hover:from-purple-600/20 transition-all"></div>
-                {isVisible && (
-                  <Canvas
-                    camera={{ position: [0, 2, 8], fov: 50 }}
-                    style={{ width: '100%', height: '100%' }}
-                    gl={{ alpha: true, antialias: true, preserveDrawingBuffer: false }}
-                  >
-                    <color attach="background" args={['transparent']} />
-                    <ambientLight intensity={0.5} />
-                    <directionalLight position={[5, 5, 5]} intensity={1} />
-                    <Suspense fallback={null}>
-                      <group position={[0, 0, 0]}>
-                        <Portal />
-                      </group>
-                      <Environment preset="sunset" />
-                    </Suspense>
-                    <OrbitControls
-                      enableZoom={false}
-                      enablePan={false}
-                      autoRotate
-                      autoRotateSpeed={1}
-                    />
-                  </Canvas>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-        )}
-      </ScrollSection>
-
-
-
-
-      {/* CTA Section */}
-      <ScrollSection delay={100}>
-        <div ref={el => { sectionRefs.current[4 + projects.length] = el }} className="relative z-10 text-center px-6 max-w-4xl mx-auto">
-          <h2 className="text-5xl md:text-7xl font-bold text-white mb-8">
-            Prêt à explorer ?
-          </h2>
-          <p className="text-xl text-gray-300 mb-12">
-            Découvrez mes projets en 3D dans une expérience immersive
-          </p>
-          <button
-            onClick={onEnter3DMode}
-            className="group relative px-12 py-6 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl text-white text-xl font-bold transition-all hover:scale-110 hover:shadow-2xl hover:shadow-purple-500/50"
-          >
-            <span className="relative z-10">Entrer dans le monde 3D</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-700 to-pink-700 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          </button>
-        </div>
-      </ScrollSection>
-
-      {/* Footer */}
-      <footer className="relative z-10 py-12 px-6 text-center border-t border-gray-800">
-        <p className="text-gray-400">
-          © 2024 Clément De Temmerman - Tous droits réservés
-        </p>
-      </footer>
-
-      {showContact && <ContactModal onClose={() => setShowContact(false)} />}
-    </div>
-  )
-}
-
-export default NewHomePage
+export default NewHomePage;

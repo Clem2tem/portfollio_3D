@@ -31,7 +31,11 @@ function App() {
     <LoadingProvider>
       <ProjectViewProvider>
         <PlayerPositionProvider>
-          <div className="w-full h-screen relative overflow-hidden">
+          <div
+            className={`w-full relative ${
+              currentView === 'home' ? 'min-h-screen overflow-visible' : 'h-screen overflow-hidden'
+            }`}
+          >
 
             {/* HomePage */}
             {currentView === 'home' && (
