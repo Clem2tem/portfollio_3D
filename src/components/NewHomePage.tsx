@@ -38,7 +38,7 @@ interface HomePageProps {
 
 type Vec3 = [number, number, number];
 
-type ModelStopId = 'popclem' | 'hospital' | 'house' | 'porsche' | 'portal';
+type ModelStopId = 'hero' | 'popclem' | 'hospital' | 'house' | 'porsche' | 'portal';
 
 interface ModelStop {
     id: ModelStopId;
@@ -49,18 +49,23 @@ interface ModelStop {
 // 📍 Poses caméra pour chaque modèle (tu pourras ajuster ces valeurs)
 const MODEL_STOPS: ModelStop[] = [
     {
+        id: 'hero',
+        position: [1, 4, 1],
+        lookAt: [0, 4, 0],
+    },
+    {
         id: 'popclem',
-        position: [1, 1.4, 1],
-        lookAt: [0, 1.3, 0],
+        position: [0.3, 1.6, 2],
+        lookAt: [0, 1.6, 0],
     },
     {
         id: 'hospital',
-        position: [-3.2, -3, -6],
-        lookAt: [0, -3, 0],
+        position: [5, 0.9, -7],
+        lookAt: [0, 0.9, 0],
     },
     {
         id: 'house',
-        position: [3.2, -6, 8.2],
+        position: [3.2*1.2, -6, 8.2*1.2],
         lookAt: [0, -6, 0],
     },
     {
@@ -76,12 +81,15 @@ const MODEL_STOPS: ModelStop[] = [
 ];
 
 const MODEL_IDS: ModelStopId[] = [
+    'hero',
     'popclem',
     'hospital',
     'house',
     'porsche',
     'portal'
 ];
+
+const SECTION_HOLD_PROGRESS = 0.45;
 
 
 /* -------------------------------- CAMERA RIG -------------------------------- */
@@ -146,11 +154,6 @@ const CameraRig: React.FC<CameraRigProps> = ({ scrollPathRef, mouseRef }) => {
 
 /* --------------------------- MODEL SWITCHER (SCÈNE) -------------------------- */
 
-interface IslandSceneProps {
-    scrollPathRef: React.MutableRefObject<number>;
-    mouseRef: React.MutableRefObject<{ x: number; y: number }>;
-}
-
 const IslandScene = () => {
     const popRef = useRef<THREE.Group>(null);
     const hospitalRef = useRef<THREE.Group>(null);
@@ -179,20 +182,20 @@ const IslandScene = () => {
             <directionalLight position={[5, 5, 5]} intensity={1.2} />
             <Environment preset="sunset" />
 
-            <group ref={popRef} position={[1, 1, -1]}>
+            <group ref={popRef} position={[1, 1.15, -1]}>
                 <POPClemStatic />
             </group>
 
-            <group ref={hospitalRef} position={[0, -2, 0]} >
+            <group ref={hospitalRef} position={[1.5, -2.1, 0]} >
                 <HospitalGLTF position={[0, 0, 0]} scale={0.2} logoHide={true} />
             </group>
 
-            <group ref={houseRef} position={[0, -6, 0]}>
+            <group ref={houseRef} position={[0, -8, 0]} rotation={[0, Math.PI / 2, 0]}>
                 <House position={[-2, 0, 0]} />
                 <ExcavatorGLTF position={[2, 0, 0]} />
             </group>
 
-            <group ref={porscheRef} position={[0, -9, 0]}>
+            <group ref={porscheRef} position={[0, -12, 0]}>
                 {/* <PorscheGLTF /> */}
                 <mesh>
                     <boxGeometry args={[1, 1, 1]} />
@@ -213,7 +216,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     const [showContact, setShowContact] = useState(false);
     const [isPreloaderVisible, setIsPreloaderVisible] = useState(true);
 
-    useSmoothScroll();
+    const { scrollTo } = useSmoothScroll();
     useSplitText('[data-split]', { stagger: 0.03, duration: 1 });
 
     const scrollPathRef = useRef(0); // t global 0 → 4
@@ -221,6 +224,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
     const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
     const [activeSection, setActiveSection] = useState<string>('hero');
+    const snapPointsRef = useRef<number[]>([]);
 
     const registerSection = useCallback((id: string, node: HTMLElement | null) => {
         sectionRefs.current[id] = node;
@@ -244,10 +248,10 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
         (id: string) => {
             const target = sectionRefs.current[id];
             if (target) {
-                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                scrollTo(target, { offset: -120 });
             }
         },
-        []
+        [scrollTo]
     );
 
     // Preloader simple (temps fixe, tu peux le connecter aux loaders GLTF si tu veux)
@@ -274,14 +278,14 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
         const triggers: ScrollTrigger[] = [];
 
         // 1) Gestion de l'activeSection pour toutes les sections texte
-        sections.forEach((section, index) => {
+        sections.forEach((section) => {
             const el = sectionRefs.current[section.id];
             if (!el) return;
 
             const trigger = ScrollTrigger.create({
                 trigger: el,
-                start: 'top center',
-                end: 'bottom center',
+                start: 'top 60%',
+                end: 'bottom 40%',
                 onEnter: () => setActiveSection(section.id),
                 onEnterBack: () => setActiveSection(section.id),
             });
@@ -296,11 +300,10 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
             const trigger = ScrollTrigger.create({
                 trigger: el,
-                start: 'top center',
-                end: 'bottom center',
+                start: 'top top',
+                end: 'bottom top',
                 scrub: 1,
                 onUpdate: (self) => {
-                    // t = index + progress, ex: section 2 avec progress 0.5 → t = 2.5
                     const tRaw = index + self.progress;
                     scrollPathRef.current = THREE.MathUtils.clamp(
                         tRaw,
@@ -310,6 +313,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 },
             });
 
+
             triggers.push(trigger);
         });
 
@@ -318,6 +322,88 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
         return () => {
             window.clearTimeout(refreshId);
             triggers.forEach((t) => t.kill());
+        };
+    }, [sections]);
+
+    useEffect(() => {
+        const computeSnapPoints = () => {
+            const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+            if (maxScroll <= 0) {
+                snapPointsRef.current = [];
+                return;
+            }
+
+            const points = sections
+                .map((section) => {
+                    const el = sectionRefs.current[section.id];
+                    if (!el) return top
+                    return THREE.MathUtils.clamp(el.offsetTop / maxScroll, 0, 1);
+                })
+                .filter((value): value is number => value !== null);
+
+            snapPointsRef.current = points;
+        };
+
+        const snapTrigger = ScrollTrigger.create({
+            trigger: document.body,
+            start: 'top top',
+            end: 'bottom top',
+            snap: {
+                snapTo: (progress) => {
+                    if (!snapPointsRef.current.length) return progress;
+                    let closest = snapPointsRef.current[0];
+                    let smallestDiff = Math.abs(progress - closest);
+
+                    snapPointsRef.current.forEach((point) => {
+                        const diff = Math.abs(progress - point);
+                        if (diff < smallestDiff) {
+                            smallestDiff = diff;
+                            closest = point;
+                        }
+                    });
+
+                    const snappedIndex = snapPointsRef.current.indexOf(closest);
+                    const sectionMeta = sections[snappedIndex];
+                    const sectionLabel = sectionMeta?.label ?? 'unknown';
+                    const modelStopId: ModelStopId | 'none' = MODEL_IDS.includes(
+                        sectionMeta?.id as ModelStopId
+                    )
+                        ? (sectionMeta?.id as ModelStopId)
+                        : 'none';
+                    const snappedPixels = Math.round(
+                        closest * (document.documentElement.scrollHeight - window.innerHeight)
+                    );
+                    const cameraStop = MODEL_STOPS[snappedIndex];
+                    console.log('[ScrollSnap]', {
+                        from: progress.toFixed(3),
+                        to: closest.toFixed(3),
+                        section: sectionLabel,
+                        modelStopId,
+                        pixelOffset: snappedPixels,
+                        cameraPosition: cameraStop ? cameraStop.position : null,
+                        cameraTarget: cameraStop ? cameraStop.lookAt : null,
+                    });
+
+                    return closest;
+                },
+                duration: 0.6,
+                ease: 'power3.out',
+            },
+        });
+
+        computeSnapPoints();
+
+        const handleResize = () => {
+            computeSnapPoints();
+        };
+
+        window.addEventListener('resize', handleResize);
+        ScrollTrigger.addEventListener('refresh', computeSnapPoints);
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            ScrollTrigger.removeEventListener('refresh', computeSnapPoints);
+            snapTrigger.kill();
         };
     }, [sections]);
 
@@ -557,40 +643,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     ref={(node) => registerSection('cta', node as HTMLElement)}
                     className="min-h-screen flex items-center px-6 md:px-12"
                 >
-                    <div className="rounded-[40px] border border-white/10 bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-3xl text-center py-20 px-8 space-y-8 max-w-3xl mx-auto">
-                        <p className="text-xs uppercase tracking-[0.5em] text-white/60">
-                            Next step
-                        </p>
-                        <h3
-                            data-split
-                            className="text-4xl md:text-6xl font-semibold"
-                        >
-                            On applique ce comportement à votre propre univers 3D ?
-                        </h3>
-                        <p className="text-white/70">
-                            Scroll → mouvement de caméra → narration 3D continue. On peut
-                            reproduire ce pattern pour n’importe quel produit ou environnement.
-                        </p>
-                        <div
-                            className="flex flex-wrap justify-center gap-4"
-                            data-animate="fade-up"
-                        >
-                            <button
-                                type="button"
-                                onClick={() => setShowContact(true)}
-                                className="px-10 py-4 rounded-full border border-white/20 uppercase tracking-[0.4em]"
-                            >
-                                Écrire
-                            </button>
-                            <button
-                                type="button"
-                                onClick={onEnter3DMode}
-                                className="px-10 py-4 rounded-full bg-white text-black font-semibold uppercase tracking-[0.4em]"
-                            >
-                                Mode libre 3D
-                            </button>
-                        </div>
-                    </div>
+                    
                 </section>
             </main>
 

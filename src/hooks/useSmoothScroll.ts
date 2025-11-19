@@ -59,6 +59,7 @@ const useSmoothScroll = (options?: Partial<LenisOptions>): SmoothScrollControlle
       }
     })
 
+    ScrollTrigger.defaults({ scroller: document.body })
     ScrollTrigger.refresh()
 
     return () => {
