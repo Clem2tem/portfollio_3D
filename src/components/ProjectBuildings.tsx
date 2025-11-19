@@ -85,8 +85,8 @@ const ProjectBuildings: React.FC<ProjectBuildingsProps> = () => {
                             <HospitalGLTF position={[0, 0, 0]} />
                         ) : project.buildingType === 'factory' ? (
                             <>
-                                <ExcavatorGLTF position={[0, 0, 0]} />
-                                <House position={[0, 0, 0]} />
+                                <ExcavatorGLTF position={[0, 0, 0]} scale={0.2} />
+                                <House position={[0, 0, 0]} scale={0.3} />
                             </>
                         ) : (
                             <Box args={[0.8, 1, 0.8]} position={[0, 0.5, 0]}>

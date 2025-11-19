@@ -1,0 +1,56 @@
+.side-info-panel {
+  position: absolute;
+  top: 50%;
+  left: 70px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  opacity: 0;
+
+  font-family: 'JetBrains Mono', monospace;
+  color: white;
+
+  text-shadow: 0 0 8px rgba(255,255,255,0.4);
+  mix-blend-mode: screen;
+
+  user-select: none;
+}
+
+.sidetitle {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  letter-spacing: 0.25em;
+  margin-bottom: 0.2rem;
+}
+
+.biglabel {
+  font-size: 1.8rem;
+  font-weight: bold;
+  letter-spacing: 0.12em;
+  margin-bottom: 1rem;
+}
+
+.side-extra {
+  font-size: 0.7rem;
+  opacity: 0.45;
+  letter-spacing: 0.15em;
+}
+
+/* Effet glitch scanline */
+.side-info-panel::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.08),
+    rgba(255,255,255,0.08) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  opacity: 0.04;
+  pointer-events: none;
+}

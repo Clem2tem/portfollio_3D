@@ -1,12 +1,12 @@
 'use client';
 
 import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-    Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  Suspense,
 } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
@@ -24,8 +24,6 @@ import HospitalGLTF from './HospitalGLTF';
 import House from './House';
 import ExcavatorGLTF from './ExcavatorGLTF';
 import Portal from './Portal';
-// ⚠️ À adapter au nom de ton composant / modèle Porsche réel
-// import PorscheGLTF from './PorscheGLTF';
 
 import useSmoothScroll from '../hooks/useSmoothScroll';
 import useSplitText from '../hooks/useSplitText';
@@ -33,628 +31,634 @@ import useSplitText from '../hooks/useSplitText';
 gsap.registerPlugin(ScrollTrigger);
 
 interface HomePageProps {
-    onEnter3DMode: () => void;
+  onEnter3DMode: () => void;
 }
 
 type Vec3 = [number, number, number];
 
-type ModelStopId = 'hero' | 'popclem' | 'hospital' | 'house' | 'porsche' | 'portal';
+type ModelStopId = 'hero' | 'popclem' | 'hospital' | 'house' | 'portal';
 
 interface ModelStop {
-    id: ModelStopId;
-    position: Vec3;
-    lookAt: Vec3;
+  id: ModelStopId;
+  position: Vec3;
+  lookAt: Vec3;
 }
 
-// 📍 Poses caméra pour chaque modèle (tu pourras ajuster ces valeurs)
+/* -------------------------------------------------------------------------- */
+/*                         CAMERA STOPS (STYLE IGLOO)                         */
+/* -------------------------------------------------------------------------- */
+
 const MODEL_STOPS: ModelStop[] = [
-    {
-        id: 'hero',
-        position: [1, 4, 1],
-        lookAt: [0, 4, 0],
-    },
-    {
-        id: 'popclem',
-        position: [0.3, 1.6, 2],
-        lookAt: [0, 1.6, 0],
-    },
-    {
-        id: 'hospital',
-        position: [5, 0.9, -7],
-        lookAt: [0, 0.9, 0],
-    },
-    {
-        id: 'house',
-        position: [3.2*1.2, -6, 8.2*1.2],
-        lookAt: [0, -6, 0],
-    },
-    {
-        id: 'porsche',
-        position: [1.6, -9, 4.5],
-        lookAt: [0, -9, 0],
-    },
-    {
-        id: 'portal',
-        position: [0, -12, 10],
-        lookAt: [0, -12, 0],
-    },
+  {
+    id: 'hero',
+    position: [1.2, 3.2, 5],
+    lookAt: [0, 1.2, 0],
+  },
+  {
+    id: 'popclem',
+    position: [0.6, 1.8, 1.5],
+    lookAt: [0, 1.4, 0],
+  },
+  {
+    id: 'hospital',
+    position: [0.6, 0.4, 1.5],
+    lookAt: [0, 0.4, 0],
+  },
+  {
+    id: 'house',
+    position: [0.6, -1.2, 1.5],
+    lookAt: [0, -1.2, 0],
+  },
+  {
+    id: 'portal',
+    position: [0.6, -2.4, 1.5],
+    lookAt: [0, -2.4, 0],
+  },
 ];
 
-const MODEL_IDS: ModelStopId[] = [
-    'hero',
-    'popclem',
-    'hospital',
-    'house',
-    'porsche',
-    'portal'
-];
+/* map section -> index dans MODEL_STOPS */
+const SECTION_TO_STOP_INDEX: Record<string, number | null> = {
+  hero: 0,
+  popclem: 1,
+  hospital: 2,
+  house: 3,
+  portal: 4,
+  cta: null,
+};
 
-const SECTION_HOLD_PROGRESS = 0.45;
-
-
-/* -------------------------------- CAMERA RIG -------------------------------- */
+/* -------------------------------------------------------------------------- */
+/*                                 CAMERA RIG                                 */
+/* -------------------------------------------------------------------------- */
 
 interface CameraRigProps {
-    scrollPathRef: React.MutableRefObject<number>;
-    mouseRef: React.MutableRefObject<{ x: number; y: number }>;
+  activeStopIndex: number;
+  mouseRef: React.MutableRefObject<{ x: number; y: number }>;
 }
 
-const CameraRig: React.FC<CameraRigProps> = ({ scrollPathRef, mouseRef }) => {
-    const { camera } = useThree();
-    const target = useRef(new THREE.Vector3(0, 1, 0));
+const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef }) => {
+  const { camera } = useThree();
+  const lookAtRef = useRef(new THREE.Vector3(0, 1.2, 0));
+  const hasInitialised = useRef(false);
 
-    useEffect(() => {
-        const firstStop = MODEL_STOPS[0];
-        camera.position.set(...firstStop.position);
-        target.current.set(...firstStop.lookAt);
-        camera.lookAt(target.current);
-    }, [camera]);
+  // 1. position initiale
+  useEffect(() => {
+    if (hasInitialised.current) return;
+    const first = MODEL_STOPS[0];
+    camera.position.set(...first.position);
+    lookAtRef.current.set(...first.lookAt);
+    camera.lookAt(lookAtRef.current);
+    hasInitialised.current = true;
+  }, [camera]);
 
-    useFrame(() => {
-        const t = THREE.MathUtils.clamp(scrollPathRef.current, 0, MODEL_STOPS.length - 1);
-        const i0 = Math.floor(t);
-        const i1 = Math.min(MODEL_STOPS.length - 1, i0 + 1);
-        const f = t - i0;
+  // 2. tween quand la section change
+  useEffect(() => {
+    const stop = MODEL_STOPS[activeStopIndex];
+    if (!stop) return;
 
-        const s0 = MODEL_STOPS[i0];
-        const s1 = MODEL_STOPS[i1];
-
-        // positions interpolées
-        const posX = THREE.MathUtils.lerp(s0.position[0], s1.position[0], f);
-        const posY = THREE.MathUtils.lerp(s0.position[1], s1.position[1], f);
-        const posZ = THREE.MathUtils.lerp(s0.position[2], s1.position[2], f);
-
-        // lookAt interpolé
-        const lookX = THREE.MathUtils.lerp(s0.lookAt[0], s1.lookAt[0], f);
-        const lookY = THREE.MathUtils.lerp(s0.lookAt[1], s1.lookAt[1], f);
-        const lookZ = THREE.MathUtils.lerp(s0.lookAt[2], s1.lookAt[2], f);
-
-        // effet souris subtile
-        const mouse = mouseRef.current;
-        const mx = mouse.x * 0.5;
-        const my = mouse.y * 0.3;
-
-        const targetPos = {
-            x: posX + mx,
-            y: posY - my,
-            z: posZ,
-        };
-
-        camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetPos.x, 0.08);
-        camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetPos.y, 0.08);
-        camera.position.z = THREE.MathUtils.lerp(camera.position.z, targetPos.z, 0.08);
-
-        target.current.set(lookX, lookY, lookZ);
-        camera.lookAt(target.current);
+    gsap.to(camera.position, {
+      x: stop.position[0],
+      y: stop.position[1],
+      z: stop.position[2],
+      duration: 0.8,
+      ease: 'power3.inOut',
     });
 
-
-    return null;
-};
-
-/* --------------------------- MODEL SWITCHER (SCÈNE) -------------------------- */
-
-const IslandScene = () => {
-    const popRef = useRef<THREE.Group>(null);
-    const hospitalRef = useRef<THREE.Group>(null);
-    const houseRef = useRef<THREE.Group>(null);
-    const porscheRef = useRef<THREE.Group>(null);
-    const portalRef = useRef<THREE.Group>(null);
-
-    const groups = useMemo(
-        () => [popRef, hospitalRef, houseRef, porscheRef, portalRef],
-        []
-    );
-
-    useFrame(() => {
-        groups.forEach((ref) => {
-            if (!ref.current) return;
-            ref.current.visible = true;
-            const current = ref.current.scale.x;
-            const next = THREE.MathUtils.lerp(current, 1, 0.1);
-            ref.current.scale.setScalar(next);
-        });
+    gsap.to(lookAtRef.current, {
+      x: stop.lookAt[0],
+      y: stop.lookAt[1],
+      z: stop.lookAt[2],
+      duration: 0.8,
+      ease: 'power3.inOut',
     });
+  }, [activeStopIndex, camera]);
 
-    return (
-        <>
-            <ambientLight intensity={0.4} />
-            <directionalLight position={[5, 5, 5]} intensity={1.2} />
-            <Environment preset="sunset" />
+  // 3. parallax + légère rotation subtile (Option A)
+useFrame(() => {
+    const mouse = mouseRef.current;
+    const parallaxStrength = 0.25;
 
-            <group ref={popRef} position={[1, 1.15, -1]}>
-                <POPClemStatic />
-            </group>
+    // Calcule l'offset parallax
+    const offsetX = mouse.x * parallaxStrength;
+    const offsetY = -mouse.y * parallaxStrength;
 
-            <group ref={hospitalRef} position={[1.5, -2.1, 0]} >
-                <HospitalGLTF position={[0, 0, 0]} scale={0.2} logoHide={true} />
-            </group>
+    // Position cible du stop actif
+    const stop = MODEL_STOPS[activeStopIndex];
+    if (!stop) return;
 
-            <group ref={houseRef} position={[0, -8, 0]} rotation={[0, Math.PI / 2, 0]}>
-                <House position={[-2, 0, 0]} />
-                <ExcavatorGLTF position={[2, 0, 0]} />
-            </group>
-
-            <group ref={porscheRef} position={[0, -12, 0]}>
-                {/* <PorscheGLTF /> */}
-                <mesh>
-                    <boxGeometry args={[1, 1, 1]} />
-                    <meshStandardMaterial color="#e11d48" />
-                </mesh>
-            </group>
-
-            <group ref={portalRef} position={[0, -12, 0]}>
-                <Portal />
-            </group>
-        </>
+    // Nouvelle position avec parallax
+    const targetPos = new THREE.Vector3(
+        stop.position[0] + offsetX,
+        stop.position[1] + offsetY,
+        stop.position[2]
     );
+
+    // Interpolation douce vers la nouvelle position
+    camera.position.lerp(targetPos, 0.08);
+
+    // LookAt inchangé
+    camera.lookAt(lookAtRef.current);
+
+    // légère roll subtile
+    const targetRoll = mouse.x * 0.04;
+    camera.rotation.z = THREE.MathUtils.lerp(
+        camera.rotation.z,
+        targetRoll,
+        0.08,
+    );
+});
+
+  return null;
 };
 
-/* ---------------------------- PAGE PRINCIPALE ---------------------------- */
+/* -------------------------------------------------------------------------- */
+/*                                ISLAND SCENE                                */
+/* -------------------------------------------------------------------------- */
+
+interface IslandSceneProps {
+  setHoveredId: (id: ModelStopId | null) => void;
+}
+
+const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
+  return (
+    <>
+      {/* éclairage global */}
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[5, 6, 6]} intensity={1.4} />
+      <directionalLight position={[-4, 4, -3]} intensity={0.5} />
+      <Environment preset="sunset" />
+
+      {/* POPClem ------------------------------------------------------------ */}
+      <group position={[0, 1.15, 0]} rotation={[0, -Math.PI / 4, 0]}>
+        <POPClemStatic />
+        {/* hotspot côté gauche */}
+        <mesh
+          position={[-2.3, 1.1, 0]}
+          onPointerOver={() => setHoveredId('popclem')}
+          onPointerOut={() => setHoveredId(null)}
+        >
+          <planeGeometry args={[3, 3]} />
+          <meshBasicMaterial transparent opacity={0} />
+        </mesh>
+      </group>
+
+      {/* Hôpital ------------------------------------------------------------ */}
+      <group
+        position={[-0.4, -0.1, 0]}
+        rotation={[0, -(1.2 * Math.PI) / 2, 0]}
+      >
+        <HospitalGLTF position={[0, 0, 0]} scale={0.1} logoHide />
+        <mesh
+          position={[-2.5, 1.3, 0]}
+          onPointerOver={() => setHoveredId('hospital')}
+          onPointerOut={() => setHoveredId(null)}
+        >
+          <planeGeometry args={[4, 3]} />
+          <meshBasicMaterial transparent opacity={0} />
+        </mesh>
+      </group>
+
+      {/* Maison + pelleteuse ----------------------------------------------- */}
+      <group position={[-0.8, -1.3, 0.9]} rotation={[0, -Math.PI / 2, 0]}>
+        <House position={[-2, 0, 0]} scale={0.1} />
+        <ExcavatorGLTF position={[0, 0, 0]} scale={0.1} logoHide />
+        <mesh
+          position={[-3, 1.3, 0]}
+          onPointerOver={() => setHoveredId('house')}
+          onPointerOut={() => setHoveredId(null)}
+        >
+          <planeGeometry args={[4, 3]} />
+          <meshBasicMaterial transparent opacity={0} />
+        </mesh>
+      </group>
+
+      {/* Portail ------------------------------------------------------------ */}
+      <group position={[0, -12, 0]}>
+        <Portal />
+        <mesh
+          position={[-2.5, 1.5, 0]}
+          onPointerOver={() => setHoveredId('portal')}
+          onPointerOut={() => setHoveredId(null)}
+        >
+          <planeGeometry args={[3.5, 3]} />
+          <meshBasicMaterial transparent opacity={0} />
+        </mesh>
+      </group>
+    </>
+  );
+};
+
+/* -------------------------------------------------------------------------- */
+/*                              HUD SIDE OVERLAY                              */
+/* -------------------------------------------------------------------------- */
+
+const hudConfig: Record<
+  ModelStopId,
+  { label: string; title: string; extra: string[] }
+> = {
+  hero: {
+    label: 'PORTFOLIO_OVERVIEW',
+    title: 'Studio 3D',
+    extra: [],
+  },
+  popclem: {
+    label: 'PORTFOLIO_CO_01',
+    title: 'POPClem Avatar',
+    extra: ['TEMP     94.52', '+01.45'],
+  },
+  hospital: {
+    label: 'PORTFOLIO_CO_02',
+    title: 'Hospital Complex',
+    extra: ['TEMP     91.12', '+00.75'],
+  },
+  house: {
+    label: 'PORTFOLIO_CO_03',
+    title: 'Construction Site',
+    extra: ['TEMP     89.64', '-00.12'],
+  },
+  portal: {
+    label: 'PORTFOLIO_CO_04',
+    title: 'Portal Access',
+    extra: ['TEMP     96.01', '+02.31'],
+  },
+};
+
+const HudOverlay: React.FC<{ hoveredId: ModelStopId | null }> = ({
+  hoveredId,
+}) => {
+  if (!hoveredId || !hudConfig[hoveredId]) return null;
+  const data = hudConfig[hoveredId];
+
+  return (
+    <div className="pointer-events-none fixed inset-0 z-30">
+      <div className="absolute left-14 top-1/2 -translate-y-1/2 text-white font-mono side-info-panel">
+        <p className="sidetitle">{data.label}</p>
+        <p className="biglabel">{data.title}</p>
+        {data.extra.map((line) => (
+          <p key={line} className="side-extra">
+            {line}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/* -------------------------------------------------------------------------- */
+/*                               PAGE PRINCIPALE                              */
+/* -------------------------------------------------------------------------- */
 
 const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
-    const [showContact, setShowContact] = useState(false);
-    const [isPreloaderVisible, setIsPreloaderVisible] = useState(true);
+  const [showContact, setShowContact] = useState(false);
+  const [isPreloaderVisible, setIsPreloaderVisible] = useState(true);
 
-    const { scrollTo } = useSmoothScroll();
-    useSplitText('[data-split]', { stagger: 0.03, duration: 1 });
+  const { scrollTo } = useSmoothScroll();
+  useSplitText('[data-split]', { stagger: 0.03, duration: 1 });
 
-    const scrollPathRef = useRef(0); // t global 0 → 4
-    const mouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const mouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-    const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
-    const [activeSection, setActiveSection] = useState<string>('hero');
-    const snapPointsRef = useRef<number[]>([]);
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const [activeSection, setActiveSection] = useState<string>('hero');
+  const [activeStopIndex, setActiveStopIndex] = useState<number>(0);
+  const [hoveredId, setHoveredId] = useState<ModelStopId | null>(null);
 
-    const registerSection = useCallback((id: string, node: HTMLElement | null) => {
-        sectionRefs.current[id] = node;
-    }, []);
+  const sections = useMemo(
+    () => [
+      { id: 'hero', label: 'Accueil' },
+      { id: 'popclem', label: 'Avatar' },
+      { id: 'hospital', label: 'Hôpital' },
+      { id: 'house', label: 'Maison' },
+      { id: 'portal', label: 'Portail' },
+      { id: 'cta', label: 'Contact' },
+    ],
+    [],
+  );
 
-    // Sections pour le stepper (nav à droite)
-    const sections = useMemo(
-        () => [
-            { id: 'hero', label: 'Accueil' },
-            { id: 'popclem', label: 'Avatar' },
-            { id: 'hospital', label: 'Hôpital' },
-            { id: 'house', label: 'Maison' },
-            { id: 'porsche', label: 'Porsche' },
-            { id: 'portal', label: 'Portail' },
-            { id: 'cta', label: 'Contact' },
-        ],
-        []
-    );
+  const registerSection = useCallback((id: string, node: HTMLElement | null) => {
+    sectionRefs.current[id] = node;
+  }, []);
 
-    const handleNavigation = useCallback(
-        (id: string) => {
-            const target = sectionRefs.current[id];
-            if (target) {
-                scrollTo(target, { offset: -120 });
-            }
+  const handleNavigation = useCallback(
+    (id: string) => {
+      const target = sectionRefs.current[id];
+      if (target) {
+        scrollTo(target, { offset: -120 });
+      }
+    },
+    [scrollTo],
+  );
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setIsPreloaderVisible(false), 1600);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  // parallax souris global
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      const x = (event.clientX / window.innerWidth - 0.5) * 2;
+      const y = (event.clientY / window.innerHeight - 0.5) * 2;
+      mouseRef.current = { x, y };
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  // ScrollTrigger : activeSection + caméra
+  useEffect(() => {
+    const triggers: ScrollTrigger[] = [];
+
+    sections.forEach((section) => {
+      const el = sectionRefs.current[section.id];
+      if (!el) return;
+
+      const trigger = ScrollTrigger.create({
+        trigger: el,
+        start: 'top 60%',
+        end: 'bottom 40%',
+        onEnter: () => {
+          setActiveSection(section.id);
+          const idx = SECTION_TO_STOP_INDEX[section.id];
+          if (idx !== null && idx !== undefined) {
+            setActiveStopIndex(idx);
+          }
         },
-        [scrollTo]
-    );
+        onEnterBack: () => {
+          setActiveSection(section.id);
+          const idx = SECTION_TO_STOP_INDEX[section.id];
+          if (idx !== null && idx !== undefined) {
+            setActiveStopIndex(idx);
+          }
+        },
+      });
 
-    // Preloader simple (temps fixe, tu peux le connecter aux loaders GLTF si tu veux)
-    useEffect(() => {
-        const timer = window.setTimeout(() => setIsPreloaderVisible(false), 1800);
-        return () => window.clearTimeout(timer);
-    }, []);
+      triggers.push(trigger);
+    });
 
-    // Mouvement souris → parallax caméra
-    useEffect(() => {
-        const handleMouseMove = (event: MouseEvent) => {
-            const x = (event.clientX / window.innerWidth - 0.5) * 2;
-            const y = (event.clientY / window.innerHeight - 0.5) * 2;
-            mouseRef.current = { x, y };
-        };
-        window.addEventListener('mousemove', handleMouseMove);
-        return () => window.removeEventListener('mousemove', handleMouseMove);
-    }, []);
+    // Snap “écran par écran”
+    const snapTrigger = ScrollTrigger.create({
+      trigger: document.body,
+      start: 'top top',
+      end: 'bottom bottom',
+      snap: {
+        snapTo: (value) => {
+          const step = 1 / (sections.length - 1);
+          return Math.round(value / step) * step;
+        },
+        duration: 0.5,
+        ease: 'power3.out',
+      },
+    });
 
-    // ScrollTrigger pour :
-    // - set activeSection (UI)
-    // - mapper le scroll sur la timeline 3D globale (scrollPathRef)
-    useEffect(() => {
-        const triggers: ScrollTrigger[] = [];
+    const refreshId = window.setTimeout(() => ScrollTrigger.refresh(), 100);
 
-        // 1) Gestion de l'activeSection pour toutes les sections texte
-        sections.forEach((section) => {
-            const el = sectionRefs.current[section.id];
-            if (!el) return;
+    return () => {
+      window.clearTimeout(refreshId);
+      triggers.forEach((t) => t.kill());
+      snapTrigger.kill();
+    };
+  }, [sections]);
 
-            const trigger = ScrollTrigger.create({
-                trigger: el,
-                start: 'top 60%',
-                end: 'bottom 40%',
-                onEnter: () => setActiveSection(section.id),
-                onEnterBack: () => setActiveSection(section.id),
-            });
+  return (
+    <div className="relative min-h-screen text-white overflow-x-hidden bg-[#03030a]">
+      {/* Canvas plein écran derrière l’UI */}
+      <div className="fixed inset-0 z-0">
+        <Canvas
+          camera={{ position: [0, 2, 10], fov: 45 }}
+          gl={{ antialias: true, alpha: true }}
+        >
+          <Suspense fallback={null}>
+            <CameraRig activeStopIndex={activeStopIndex} mouseRef={mouseRef} />
+            <IslandScene setHoveredId={setHoveredId} />
+          </Suspense>
+        </Canvas>
+      </div>
 
-            triggers.push(trigger);
-        });
+      {/* Effets de fond + HUD */}
+      <AnimatedBackground />
+      <HudOverlay hoveredId={hoveredId} />
 
-        // 2) Mapping spécifique pour les 5 sections modèles → valeur t continue
-        MODEL_IDS.forEach((id, index) => {
-            const el = sectionRefs.current[id];
-            if (!el) return;
-
-            const trigger = ScrollTrigger.create({
-                trigger: el,
-                start: 'top top',
-                end: 'bottom top',
-                scrub: 1,
-                onUpdate: (self) => {
-                    const tRaw = index + self.progress;
-                    scrollPathRef.current = THREE.MathUtils.clamp(
-                        tRaw,
-                        0,
-                        MODEL_STOPS.length - 1
-                    );
-                },
-            });
-
-
-            triggers.push(trigger);
-        });
-
-        const refreshId = window.setTimeout(() => ScrollTrigger.refresh(), 100);
-
-        return () => {
-            window.clearTimeout(refreshId);
-            triggers.forEach((t) => t.kill());
-        };
-    }, [sections]);
-
-    useEffect(() => {
-        const computeSnapPoints = () => {
-            const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-            if (maxScroll <= 0) {
-                snapPointsRef.current = [];
-                return;
-            }
-
-            const points = sections
-                .map((section) => {
-                    const el = sectionRefs.current[section.id];
-                    if (!el) return top
-                    return THREE.MathUtils.clamp(el.offsetTop / maxScroll, 0, 1);
-                })
-                .filter((value): value is number => value !== null);
-
-            snapPointsRef.current = points;
-        };
-
-        const snapTrigger = ScrollTrigger.create({
-            trigger: document.body,
-            start: 'top top',
-            end: 'bottom top',
-            snap: {
-                snapTo: (progress) => {
-                    if (!snapPointsRef.current.length) return progress;
-                    let closest = snapPointsRef.current[0];
-                    let smallestDiff = Math.abs(progress - closest);
-
-                    snapPointsRef.current.forEach((point) => {
-                        const diff = Math.abs(progress - point);
-                        if (diff < smallestDiff) {
-                            smallestDiff = diff;
-                            closest = point;
-                        }
-                    });
-
-                    const snappedIndex = snapPointsRef.current.indexOf(closest);
-                    const sectionMeta = sections[snappedIndex];
-                    const sectionLabel = sectionMeta?.label ?? 'unknown';
-                    const modelStopId: ModelStopId | 'none' = MODEL_IDS.includes(
-                        sectionMeta?.id as ModelStopId
-                    )
-                        ? (sectionMeta?.id as ModelStopId)
-                        : 'none';
-                    const snappedPixels = Math.round(
-                        closest * (document.documentElement.scrollHeight - window.innerHeight)
-                    );
-                    const cameraStop = MODEL_STOPS[snappedIndex];
-                    console.log('[ScrollSnap]', {
-                        from: progress.toFixed(3),
-                        to: closest.toFixed(3),
-                        section: sectionLabel,
-                        modelStopId,
-                        pixelOffset: snappedPixels,
-                        cameraPosition: cameraStop ? cameraStop.position : null,
-                        cameraTarget: cameraStop ? cameraStop.lookAt : null,
-                    });
-
-                    return closest;
-                },
-                duration: 0.6,
-                ease: 'power3.out',
-            },
-        });
-
-        computeSnapPoints();
-
-        const handleResize = () => {
-            computeSnapPoints();
-        };
-
-        window.addEventListener('resize', handleResize);
-        ScrollTrigger.addEventListener('refresh', computeSnapPoints);
-
-        return () => {
-            window.removeEventListener('resize', handleResize);
-            ScrollTrigger.removeEventListener('refresh', computeSnapPoints);
-            snapTrigger.kill();
-        };
-    }, [sections]);
-
-    return (
-        <div className="relative min-h-screen text-white overflow-x-hidden">
-            {/* Canvas global plein écran (sous l'UI mais visible) */}
-            <div className="fixed inset-0 z-0">
-                <Canvas
-                    camera={{ position: [0, 2, 10], fov: 45 }}
-                    gl={{ antialias: true, alpha: true }}
-                >
-                    <Suspense fallback={null}>
-                        <CameraRig scrollPathRef={scrollPathRef} mouseRef={mouseRef} />
-                        <IslandScene />
-                    </Suspense>
-                </Canvas>
-            </div>
-
-            {/* Background FX */}
-            <AnimatedBackground />
-            <div className="absolute inset-0 pointer-events-none bg-transparent" />
-
-
-            {/* Header */}
-            <header className="fixed top-0 left-0 right-0 z-40 px-6 md:px-12 py-6 flex items-center justify-between backdrop-blur-2xl bg-black/30 border-b border-white/5">
-                <div className="flex items-center gap-3">
-                    <span className="h-3 w-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" />
-                    <div>
-                        <p className="text-[0.7rem] uppercase tracking-[0.4em] text-white/60">
-                            Clément
-                        </p>
-                        <p className="font-semibold text-lg">Studio 3D</p>
-                    </div>
-                </div>
-                <div className="hidden md:flex items-center gap-8 text-xs uppercase tracking-[0.4em] text-white/60">
-                    <button
-                        type="button"
-                        onClick={() => handleNavigation('popclem')}
-                        className="hover:text-white transition-colors"
-                    >
-                        Avatar
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => handleNavigation('hospital')}
-                        className="hover:text-white transition-colors"
-                    >
-                        Hôpital
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => handleNavigation('porsche')}
-                        className="hover:text-white transition-colors"
-                    >
-                        Porsche
-                    </button>
-                </div>
-                <div className="flex gap-3">
-                    <button
-                        type="button"
-                        onClick={() => setShowContact(true)}
-                        className="px-5 py-2 rounded-full border border-white/20 text-sm uppercase tracking-[0.3em] hover:border-white/60"
-                    >
-                        Contact
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onEnter3DMode}
-                        className="px-5 py-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-sm font-semibold tracking-[0.2em]"
-                    >
-                        Mode 3D
-                    </button>
-                </div>
-            </header>
-
-            {/* Stepper latéral */}
-            <SectionNavigation
-                sections={sections}
-                activeId={activeSection}
-                onSelect={handleNavigation}
-            />
-
-            {/* Contenu texte overlay */}
-            <main className="relative z-10 pt-32 pb-32 space-y-32">
-                {/* HERO */}
-                <section
-                    id="hero"
-                    ref={(node) => registerSection('hero', node as HTMLElement)}
-                    className="min-h-screen flex items-center px-6 md:px-12"
-                >
-                    <div className="max-w-4xl space-y-8">
-                        <p
-                            className="text-xs uppercase tracking-[0.5em] text-white/60"
-                            data-animate="fade-up"
-                        >
-                            Creative Developer • R3F
-                        </p>
-                        <h1
-                            data-split
-                            className="text-5xl md:text-7xl lg:text-8xl font-semibold leading-[1.05]"
-                        >
-                            Un parcours 3D continu, de l’avatar à la Porsche.
-                        </h1>
-                        <p
-                            className="text-lg md:text-xl text-white/80 max-w-2xl"
-                            data-animate="fade-up"
-                        >
-                            Comme sur igloo.inc, le scroll orchestre la caméra : chaque
-                            section devient un point de vue cinématique sur un nouveau modèle.
-                        </p>
-                    </div>
-                </section>
-
-                {/* POPCLEM */}
-                <section
-                    id="popclem"
-                    ref={(node) => registerSection('popclem', node as HTMLElement)}
-                    className="min-h-screen flex items-center px-6 md:px-12"
-                >
-                    <div className="max-w-3xl space-y-6">
-                        <p className="text-xs uppercase tracking-[0.5em] text-purple-300">
-                            Étape 01 • Avatar
-                        </p>
-                        <h2
-                            data-split
-                            className="text-4xl md:text-6xl font-semibold"
-                        >
-                            POPClem ouvre la marche.
-                        </h2>
-                        <p className="text-white/75" data-animate="fade-up">
-                            Premier stop du voyage : l’avatar. La caméra se place près du
-                            personnage, légèrement en plongée, avec un parallax réactif à la
-                            souris.
-                        </p>
-                    </div>
-                </section>
-
-                {/* HOPITAL */}
-                <section
-                    id="hospital"
-                    ref={(node) => registerSection('hospital', node as HTMLElement)}
-                    className="min-h-screen flex items-center px-6 md:px-12"
-                >
-                    <div className="max-w-3xl space-y-6">
-                        <p className="text-xs uppercase tracking-[0.5em] text-purple-300">
-                            Étape 02 • Bâtiment
-                        </p>
-                        <h2
-                            data-split
-                            className="text-4xl md:text-6xl font-semibold"
-                        >
-                            Zoom out vers l’hôpital.
-                        </h2>
-                        <p className="text-white/75" data-animate="fade-up">
-                            On passe à l’échelle : la caméra recule, monte, et montre
-                            l’hôpital dans son ensemble. Le scroll contrôle la transition, pas
-                            un bouton.
-                        </p>
-                    </div>
-                </section>
-
-                {/* MAISON + PELLETEUSE */}
-                <section
-                    id="house"
-                    ref={(node) => registerSection('house', node as HTMLElement)}
-                    className="min-h-screen flex items-center px-6 md:px-12"
-                >
-                    <div className="max-w-3xl space-y-6">
-                        <p className="text-xs uppercase tracking-[0.5em] text-purple-300">
-                            Étape 03 • Chantier
-                        </p>
-                        <h2
-                            data-split
-                            className="text-4xl md:text-6xl font-semibold"
-                        >
-                            Maison & pelleteuse, en diptyque.
-                        </h2>
-                        <p className="text-white/75" data-animate="fade-up">
-                            La scène mixe architecture et mécanique. La caméra glisse
-                            latéralement pour donner une impression de travelling entre la
-                            maison et l’engin.
-                        </p>
-                    </div>
-                </section>
-
-                {/* PORSCHE */}
-                <section
-                    id="porsche"
-                    ref={(node) => registerSection('porsche', node as HTMLElement)}
-                    className="min-h-screen flex items-center px-6 md:px-12"
-                >
-                    <div className="max-w-3xl space-y-6">
-                        <p className="text-xs uppercase tracking-[0.5em] text-purple-300">
-                            Étape 04 • Performance
-                        </p>
-                        <h2
-                            data-split
-                            className="text-4xl md:text-6xl font-semibold"
-                        >
-                            Focus sur la Porsche 911 GT3 RS.
-                        </h2>
-                        <p className="text-white/75" data-animate="fade-up">
-                            Vue plus serrée, angle ¾ avant, caméra plus basse : on rapproche
-                            le regard de la carrosserie et des volumes pour un rendu
-                            publicitaire.
-                        </p>
-                    </div>
-                </section>
-
-                {/* PORTAIL */}
-                <section
-                    id="portal"
-                    ref={(node) => registerSection('portal', node as HTMLElement)}
-                    className="min-h-screen flex items-center px-6 md:px-12"
-                >
-                    <div className="max-w-3xl space-y-6">
-                        <p className="text-xs uppercase tracking-[0.5em] text-purple-300">
-                            Étape 05 • Portail
-                        </p>
-                        <h2
-                            data-split
-                            className="text-4xl md:text-6xl font-semibold"
-                        >
-                            Le portail vers l’univers complet.
-                        </h2>
-                        <p className="text-white/75" data-animate="fade-up">
-                            La caméra reprend de la hauteur et recentre le portail dans le
-                            cadre, comme une porte vers une expérience plus vaste (mode 3D,
-                            scène libre, etc.).
-                        </p>
-                    </div>
-                </section>
-
-                {/* CTA */}
-                <section
-                    id="cta"
-                    ref={(node) => registerSection('cta', node as HTMLElement)}
-                    className="min-h-screen flex items-center px-6 md:px-12"
-                >
-                    
-                </section>
-            </main>
-
-            <footer className="relative z-10 px-6 md:px-12 pb-10 text-white/50 text-sm uppercase tracking-[0.4em]">
-                © 2024 Clément De Temmerman — Portfolio 3D expérimental
-            </footer>
-
-            <Preloader isVisible={isPreloaderVisible} />
-            {showContact && <ContactModal onClose={() => setShowContact(false)} />}
+      {/* Header */}
+      <header className="fixed top-0 left-0 right-0 z-40 px-6 md:px-12 py-6 flex items-center justify-between backdrop-blur-2xl bg-black/30 border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <span className="h-3 w-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" />
+          <div>
+            <p className="text-[0.7rem] uppercase tracking-[0.4em] text-white/60">
+              Clément
+            </p>
+            <p className="font-semibold text-lg">Studio 3D</p>
+          </div>
         </div>
-    );
+        <div className="hidden md:flex items-center gap-8 text-xs uppercase tracking-[0.4em] text-white/60">
+          <button
+            type="button"
+            onClick={() => handleNavigation('popclem')}
+            className="hover:text-white transition-colors"
+          >
+            Avatar
+          </button>
+          <button
+            type="button"
+            onClick={() => handleNavigation('hospital')}
+            className="hover:text-white transition-colors"
+          >
+            Hôpital
+          </button>
+          <button
+            type="button"
+            onClick={() => handleNavigation('portal')}
+            className="hover:text-white transition-colors"
+          >
+            Portail
+          </button>
+        </div>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => setShowContact(true)}
+            className="px-5 py-2 rounded-full border border-white/20 text-sm uppercase tracking-[0.3em] hover:border-white/60"
+          >
+            Contact
+          </button>
+          <button
+            type="button"
+            onClick={onEnter3DMode}
+            className="px-5 py-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-sm font-semibold tracking-[0.2em]"
+          >
+            Mode 3D
+          </button>
+        </div>
+      </header>
+
+      {/* Stepper latéral */}
+      <SectionNavigation
+        sections={sections}
+        activeId={activeSection}
+        onSelect={handleNavigation}
+      />
+
+      {/* Contenu texte (sections 100vh) */}
+      <main className="relative z-10 pt-32 pb-32 space-y-32">
+        {/* HERO */}
+        <section
+          id="hero"
+          ref={(node) => registerSection('hero', node as HTMLElement)}
+          className="h-screen flex items-center px-6 md:px-12"
+        >
+          <div className="max-w-4xl space-y-8">
+            <p
+              className="text-xs uppercase tracking-[0.5em] text-white/60"
+              data-animate="fade-up"
+            >
+              Creative Developer • R3F
+            </p>
+            <h1
+              data-split
+              className="text-5xl md:text-7xl lg:text-8xl font-semibold leading-[1.05]"
+            >
+              Un parcours 3D continu, de l’avatar au portail.
+            </h1>
+            <p
+              className="text-lg md:text-xl text-white/80 max-w-2xl"
+              data-animate="fade-up"
+            >
+              Comme sur igloo.inc, le scroll pilote la caméra : chaque écran
+              révèle un nouveau modèle 3D, accompagné de son HUD technique.
+            </p>
+          </div>
+        </section>
+
+        {/* POPCLEM */}
+        <section
+          id="popclem"
+          ref={(node) => registerSection('popclem', node as HTMLElement)}
+          className="h-screen flex items-center px-6 md:px-12"
+        >
+          <div className="max-w-3xl space-y-6">
+            <p className="text-xs uppercase tracking-[0.5em] text-purple-300">
+              Étape 01 • Avatar
+            </p>
+            <h2 data-split className="text-4xl md:text-6xl font-semibold">
+              POPClem ouvre la marche.
+            </h2>
+            <p className="text-white/75" data-animate="fade-up">
+              Premier stop du voyage : l’avatar. La caméra se rapproche,
+              légèrement en plongée, pendant que le HUD affiche les infos du
+              personnage sur le côté.
+            </p>
+          </div>
+        </section>
+
+        {/* HÔPITAL */}
+        <section
+          id="hospital"
+          ref={(node) => registerSection('hospital', node as HTMLElement)}
+          className="h-screen flex items-center px-6 md:px-12"
+        >
+          <div className="max-w-3xl space-y-6">
+            <p className="text-xs uppercase tracking-[0.5em] text-purple-300">
+              Étape 02 • Bâtiment
+            </p>
+            <h2 data-split className="text-4xl md:text-6xl font-semibold">
+              Zoom out vers l’hôpital.
+            </h2>
+            <p className="text-white/75" data-animate="fade-up">
+              On passe à l’échelle : la caméra recule, se décale, et le HUD
+              affiche le contexte du bâtiment comme un artefact d’archives
+              glacées.
+            </p>
+          </div>
+        </section>
+
+        {/* MAISON + PELLETEUSE */}
+        <section
+          id="house"
+          ref={(node) => registerSection('house', node as HTMLElement)}
+          className="h-screen flex items-center px-6 md:px-12"
+        >
+          <div className="max-w-3xl space-y-6">
+            <p className="text-xs uppercase tracking-[0.5em] text-purple-300">
+              Étape 03 • Chantier
+            </p>
+            <h2 data-split className="text-4xl md:text-6xl font-semibold">
+              Maison & pelleteuse, en diptyque.
+            </h2>
+            <p className="text-white/75" data-animate="fade-up">
+              Architecture et mécanique réunies dans une même scène. La caméra
+              glisse latéralement, le HUD réagit au survol du côté gauche de la
+              composition.
+            </p>
+          </div>
+        </section>
+
+        {/* PORTAIL */}
+        <section
+          id="portal"
+          ref={(node) => registerSection('portal', node as HTMLElement)}
+          className="h-screen flex items-center px-6 md:px-12"
+        >
+          <div className="max-w-3xl space-y-6">
+            <p className="text-xs uppercase tracking-[0.5em] text-purple-300">
+              Étape 04 • Portail
+            </p>
+            <h2 data-split className="text-4xl md:text-6xl font-semibold">
+              Le portail vers l’univers complet.
+            </h2>
+            <p className="text-white/75" data-animate="fade-up">
+              Dernier stop : le portail. Il sert de passerelle vers ton mode
+              3D libre, pendant que le HUD affiche l’entrée “PORTFOLIO_CO_04”.
+            </p>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section
+          id="cta"
+          ref={(node) => registerSection('cta', node as HTMLElement)}
+          className="h-screen flex items-center px-6 md:px-12"
+        >
+          <div className="rounded-[40px] border border-white/10 bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-3xl text-center py-20 px-8 space-y-8 max-w-3xl mx-auto">
+            <p className="text-xs uppercase tracking-[0.5em] text-white/60">
+              Next step
+            </p>
+            <h3 data-split className="text-4xl md:text-6xl font-semibold">
+              On applique ce pattern à ton prochain projet ?
+            </h3>
+            <p className="text-white/70">
+              Scroll → mouvement de caméra → HUD contextuel → narration 3D
+              cohérente. Le pattern est prêt à être adapté pour n’importe quel
+              produit ou univers.
+            </p>
+            <div
+              className="flex flex-wrap justify-center gap-4"
+              data-animate="fade-up"
+            >
+              <button
+                type="button"
+                onClick={() => setShowContact(true)}
+                className="px-10 py-4 rounded-full border border-white/20 uppercase tracking-[0.4em]"
+              >
+                Écrire
+              </button>
+              <button
+                type="button"
+                onClick={onEnter3DMode}
+                className="px-10 py-4 rounded-full bg-white text-black font-semibold uppercase tracking-[0.4em]"
+              >
+                Mode libre 3D
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="relative z-10 px-6 md:px-12 pb-10 text-white/50 text-sm uppercase tracking-[0.4em]">
+        © 2024 Clément De Temmerman — Portfolio 3D expérimental
+      </footer>
+
+      <Preloader isVisible={isPreloaderVisible} />
+      {showContact && <ContactModal onClose={() => setShowContact(false)} />}
+    </div>
+  );
 };
 
 export default NewHomePage;

@@ -1,13 +1,21 @@
 
-import {useGLTF, useAnimations } from '@react-three/drei'
-import * as THREE from 'three';
-import { useFrame} from '@react-three/fiber';
-import React, { forwardRef } from 'react';
-import SVGLogo3D from './SVGLogo3D';
+import { useGLTF, useAnimations } from '@react-three/drei'
+import * as THREE from 'three'
+import { useFrame } from '@react-three/fiber'
+import React, { forwardRef } from 'react'
+import SVGLogo3D from './SVGLogo3D'
 
+type Vec3 = [number, number, number]
+
+interface ExcavatorProps {
+    position?: Vec3
+    scale?: number | Vec3
+    logoHide?: boolean
+}
 
 // Composant persistant pour l'excavator animé
-const ExcavatorGLTF = forwardRef<THREE.Group, { position: [number, number, number], logoHide?: boolean }>(({ position, logoHide }, ref) => {
+const ExcavatorGLTF = forwardRef<THREE.Group, ExcavatorProps>(
+    ({ position = [-3.2, 0, -2.7], scale = 0.2, logoHide }, ref) => {
     const gltf = useGLTF('models/Excavator/Excavator.gltf');
     const anims = useAnimations(gltf.animations, gltf.scene);
     const mixerRef = React.useRef<any>(null);
@@ -127,8 +135,8 @@ const ExcavatorGLTF = forwardRef<THREE.Group, { position: [number, number, numbe
             <primitive
                 ref={excavatorRef}
                 object={gltf.scene}
-                scale={[0.2, 0.2, 0.2]}
-                position={[-3.2, position[1], -2.7]}
+                scale={scale}
+                position={position}
                 rotation={[0, -Math.PI / 4, 0]}
             />
             {/* Logo SVG 3D extrudé avec scale adapté */}

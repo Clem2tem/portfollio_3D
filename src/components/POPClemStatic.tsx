@@ -175,7 +175,7 @@ const POPClemStatic: React.FC = () => {
     }, [actions, mixer])
 
     return (
-        <group ref={group} position={[-1, 0, 1]} scale={[0.05, 0.05, 0.05]} onClick={(e) => { e.stopPropagation(); playSalutOnce() }} dispose={null}>
+        <group ref={group} position={[-0, 0, 0]} scale={[0.05, 0.05, 0.05]} onClick={(e) => { e.stopPropagation(); playSalutOnce() }} dispose={null}>
             <primitive object={gltf.scene} rotation={[0, Math.PI / 3, 0]} />
         </group>
     )
