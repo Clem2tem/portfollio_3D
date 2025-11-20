@@ -9,7 +9,6 @@ import React, {
   Suspense,
 } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
@@ -29,6 +28,41 @@ import useSmoothScroll from '../hooks/useSmoothScroll';
 import useSplitText from '../hooks/useSplitText';
 
 gsap.registerPlugin(ScrollTrigger);
+
+const HOLOGRAM_VERTEX_SHADER = /* glsl */ `
+  varying vec3 vWorldPosition;
+
+  void main() {
+    vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+    vWorldPosition = worldPosition.xyz;
+    gl_Position = projectionMatrix * viewMatrix * worldPosition;
+  }
+`;
+
+const HOLOGRAM_FRAGMENT_SHADER = /* glsl */ `
+  uniform float uTime;
+  uniform vec3 uColorA;
+  uniform vec3 uColorB;
+  uniform float uOpacity;
+  varying vec3 vWorldPosition;
+
+  float hash(float n) {
+    return fract(sin(n) * 43758.5453123);
+  }
+
+  void main() {
+    float height = clamp(vWorldPosition.y * 0.15 + 0.5, 0.0, 1.0);
+    vec3 baseColor = mix(uColorA, uColorB, height);
+
+    float scan = sin((vWorldPosition.y + uTime * 2.0) * 12.0) * 0.5 + 0.5;
+    float flicker = hash(floor(vWorldPosition.y * 10.0 + uTime * 8.0));
+
+    float alpha = clamp(uOpacity + scan * 0.25, 0.2, 1.0);
+    vec3 color = baseColor + scan * 0.4 + flicker * 0.15;
+
+    gl_FragColor = vec4(color, alpha);
+  }
+`;
 
 interface HomePageProps {
   onEnter3DMode: () => void;
@@ -52,12 +86,12 @@ const MODEL_STOPS: ModelStop[] = [
   {
     id: 'hero',
     position: [1.2, 3.2, 5],
-    lookAt: [0, 1.2, 0],
+    lookAt: [0, 4.2, 0],
   },
   {
     id: 'popclem',
     position: [0.6, 1.8, 1.5],
-    lookAt: [0, 1.4, 0],
+    lookAt: [0, 1.8, 0],
   },
   {
     id: 'hospital',
@@ -67,12 +101,12 @@ const MODEL_STOPS: ModelStop[] = [
   {
     id: 'house',
     position: [0.6, -1.2, 1.5],
-    lookAt: [0, -1.2, 0],
+    lookAt: [0, -1.4, 0],
   },
   {
     id: 'portal',
     position: [0.6, -2.4, 1.5],
-    lookAt: [0, -2.4, 0],
+    lookAt: [0, -2.8, 0],
   },
 ];
 
@@ -135,7 +169,7 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef }) => {
   // 3. parallax + légère rotation subtile (Option A)
 useFrame(() => {
     const mouse = mouseRef.current;
-    const parallaxStrength = 0.25;
+    const parallaxStrength = 0.10;
 
     // Calcule l'offset parallax
     const offsetX = mouse.x * parallaxStrength;
@@ -183,12 +217,10 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
     <>
       {/* éclairage global */}
       <ambientLight intensity={0.5} />
-      <directionalLight position={[5, 6, 6]} intensity={1.4} />
+      <directionalLight position={[5, 6, 6]} intensity={0.4} />
       <directionalLight position={[-4, 4, -3]} intensity={0.5} />
-      <Environment preset="sunset" />
-
       {/* POPClem ------------------------------------------------------------ */}
-      <group position={[0, 1.15, 0]} rotation={[0, -Math.PI / 4, 0]}>
+      <group position={[0, 1.5, 0]} rotation={[0, -Math.PI / 4, 0]}>
         <POPClemStatic />
         {/* hotspot côté gauche */}
         <mesh
@@ -203,8 +235,8 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
 
       {/* Hôpital ------------------------------------------------------------ */}
       <group
-        position={[-0.4, -0.1, 0]}
-        rotation={[0, -(1.2 * Math.PI) / 2, 0]}
+        position={[-0.3, 0, 0]}
+        rotation={[0, -(1.1 * Math.PI) / 2, 0]}
       >
         <HospitalGLTF position={[0, 0, 0]} scale={0.1} logoHide />
         <mesh
@@ -218,9 +250,9 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
       </group>
 
       {/* Maison + pelleteuse ----------------------------------------------- */}
-      <group position={[-0.8, -1.3, 0.9]} rotation={[0, -Math.PI / 2, 0]}>
-        <House position={[-2, 0, 0]} scale={0.1} />
-        <ExcavatorGLTF position={[0, 0, 0]} scale={0.1} logoHide />
+      <group position={[0 , -1.7, 0]} rotation={[0, -Math.PI / 2, 0]}>
+        <House position={[-0.5, 0, 0.5]} scale={0.1} />
+        <ExcavatorGLTF position={[0, 0, -0.]} scale={0.1} logoHide />
         <mesh
           position={[-3, 1.3, 0]}
           onPointerOver={() => setHoveredId('house')}
@@ -232,7 +264,7 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
       </group>
 
       {/* Portail ------------------------------------------------------------ */}
-      <group position={[0, -12, 0]}>
+      <group position={[0, -3, 0]} scale={0.6}>
         <Portal />
         <mesh
           position={[-2.5, 1.5, 0]}
@@ -419,7 +451,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
   }, [sections]);
 
   return (
-    <div className="relative min-h-screen text-white overflow-x-hidden bg-[#03030a]">
+    <div className="relative min-h-screen text-white overflow-x-hidden">
       {/* Canvas plein écran derrière l’UI */}
       <div className="fixed inset-0 z-0">
         <Canvas
@@ -438,7 +470,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
       <HudOverlay hoveredId={hoveredId} />
 
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 px-6 md:px-12 py-6 flex items-center justify-between backdrop-blur-2xl bg-black/30 border-b border-white/5">
+      <header className="fixed top-0 left-0 right-0 z-40 px-6 md:px-12 py-6 flex items-center justify-between ">
         <div className="flex items-center gap-3">
           <span className="h-3 w-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" />
           <div>
@@ -616,29 +648,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
           ref={(node) => registerSection('cta', node as HTMLElement)}
           className="h-screen flex items-center px-6 md:px-12"
         >
-          <div className="rounded-[40px] border border-white/10 bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-3xl text-center py-20 px-8 space-y-8 max-w-3xl mx-auto">
-            <p className="text-xs uppercase tracking-[0.5em] text-white/60">
-              Next step
-            </p>
-            <h3 data-split className="text-4xl md:text-6xl font-semibold">
-              On applique ce pattern à ton prochain projet ?
-            </h3>
-            <p className="text-white/70">
-              Scroll → mouvement de caméra → HUD contextuel → narration 3D
-              cohérente. Le pattern est prêt à être adapté pour n’importe quel
-              produit ou univers.
-            </p>
-            <div
-              className="flex flex-wrap justify-center gap-4"
-              data-animate="fade-up"
-            >
-              <button
-                type="button"
-                onClick={() => setShowContact(true)}
-                className="px-10 py-4 rounded-full border border-white/20 uppercase tracking-[0.4em]"
-              >
-                Écrire
-              </button>
+          <div className="mx-auto">
               <button
                 type="button"
                 onClick={onEnter3DMode}
@@ -646,7 +656,6 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
               >
                 Mode libre 3D
               </button>
-            </div>
           </div>
         </section>
       </main>
