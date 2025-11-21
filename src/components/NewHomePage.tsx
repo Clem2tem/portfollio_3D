@@ -38,7 +38,7 @@ interface HomePageProps {
 
 type Vec3 = [number, number, number];
 
-type ModelStopId = 'hero' | 'popclem' | 'hospital' | 'house' | 'portal';
+type ModelStopId = 'popclem' | 'hospital' | 'house' | 'portal';
 
 interface ModelStop {
     id: ModelStopId;
@@ -52,39 +52,33 @@ interface ModelStop {
 
 const MODEL_STOPS: ModelStop[] = [
     {
-        id: 'hero',
-        position: [1.2, 3.2, 5],
-        lookAt: [0, 4.2, 0],
-    },
-    {
         id: 'popclem',
-        position: [0.6, 1.8, 1.5],
+        position: [1.5, 1.8, 0],
         lookAt: [0, 1.8, 0],
     },
     {
         id: 'hospital',
-        position: [0.8, 0.4, 1.8],
-        lookAt: [-0.05, 0.4, -0.1],
+        position: [2, 0.4, 0],
+        lookAt: [0, 0.4, 0],
     },
     {
         id: 'house',
-        position: [0.7, -1.2, 1.8],
-        lookAt: [-0.15, -1.4, -0.35],
+        position: [3, -1.2, 0],
+        lookAt: [0, -1.2, 0],
     },
     {
         id: 'portal',
-        position: [0.6, -2.4, 1.5],
-        lookAt: [0, -2.8, 0],
+        position: [1.3, -2.4, 0],
+        lookAt: [0, -2.4, 0],
     },
 ];
 
 /* map section -> index dans MODEL_STOPS */
 const SECTION_TO_STOP_INDEX: Record<string, number | null> = {
-    hero: 0,
-    popclem: 1,
-    hospital: 2,
-    house: 3,
-    portal: 4,
+    popclem: 0,
+    hospital: 1,
+    house: 2,
+    portal: 3,
     cta: null,
 };
 
@@ -149,31 +143,30 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef }) => {
         const stop = MODEL_STOPS[activeStopIndex];
 
         const stopOffsets = {
-            hero: 0,
-            popclem: 1,
-            hospital: 1.4,
-            house: 1.7,
+            popclem: 1.5,
+            hospital: 2.5,
+            house: 3,
             portal: 0,
         }
         if (!stop) return;
-        if (mouse.x < -0.9) {
+        if (mouse.x < -0.5) {
             targetPos = new THREE.Vector3(
-                stop.position[0] - 2 * stopOffsets[stop.id],
+                stop.position[0] * (1 - Math.abs(mouse.x)),
                 stop.position[1] - offsetY,
-                stop.position[2] - 1 * stopOffsets[stop.id]
+                stopOffsets[stop.id]
             );
-        } else if (mouse.x > 0.9) {
+        } else if (mouse.x > 0.5) {
             targetPos = new THREE.Vector3(
-                stop.position[0] + 1 * stopOffsets[stop.id],
+                stop.position[0] * (1 - Math.abs(mouse.x)),
                 stop.position[1],
-                stop.position[2] - 2 * stopOffsets[stop.id]
+                -stopOffsets[stop.id]
             );
         } else {
             // Nouvelle position avec parallax
             targetPos = new THREE.Vector3(
-                stop.position[0] + offsetX,
+                stop.position[0],
                 stop.position[1] + offsetY,
-                stop.position[2]
+                stop.position[2] + offsetX,
             );
         }
         // Interpolation douce vers la nouvelle position
@@ -214,7 +207,7 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
                 blur={0.5}
             />
             {/* POPClem ------------------------------------------------------------ */}
-            <group position={[0, 1.5, 0]} rotation={[0, -Math.PI / 4, 0]}>
+            <group position={[0, 1.5, 0]} rotation={[0, 1.1 * Math.PI / 8, 0]}>
                 <POPClemStatic />
                 <ToyBox
                     position={[0, 0.29, 0]}
@@ -222,17 +215,17 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
                     size={[0.5, 0.6, 0.5]} // W / H / D
                     thickness={0.01}
                     color="#1a2d58"
-                    headerHeight={0.1}
+                    headerHeight={0.12}
                     headerText="Clément"
-                    headerTextSize={0.10}
+                    headerTextSize={0.11}
                     headerTextColor="#fff"
                 />
             </group>
 
             {/* Hôpital ------------------------------------------------------------ */}
             <group
-                position={[-0.3, 0, 0]}
-                rotation={[0, -(1.1 * Math.PI) / 2, 0]}
+                position={[0, 0, 0.27]}
+                rotation={[0, -(0.96 * Math.PI) / 6, 0]}
             >
                 <HospitalGLTF position={[0, 0, 0]} scale={0.1} logoHide />
                 <ToyBox
@@ -245,28 +238,30 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
                     headerText="MEDCHEM STRUCTURE GENIUS"
                     headerTextSize={0.12}
                     headerTextColor="#fff"
+                    technologies={['React', 'Node.js', 'Next.js', 'Supabase', 'Vercel', 'TypeScript']}
                 />
             </group>
 
             {/* Maison + pelleteuse ----------------------------------------------- */}
-            <group position={[0, -1.7, 0]} rotation={[0, -Math.PI / 2, 0]}>
-                <House position={[-0.5, 0, 0.5]} scale={0.1} />
-                <ExcavatorGLTF position={[0, 0, -0.]} scale={0.1} logoHide />
+            <group position={[0, -1.5, 0]} rotation={[0, - 0.91 * Math.PI / 7, 0]}>
+                <House position={[0.35, -0.03, 0]} scale={0.1} />
+                <ExcavatorGLTF position={[1, -0.04, 0]} scale={0.1} logoHide />
                 <ToyBox
-                    position={[-0.5, 0.30, 0.3]}
+                    position={[0, 0.30, 0]}
                     rotation={[0, (1.9 * Math.PI / 3), 0]}
                     size={[2.2, 0.7, 2]} // W / H / D
                     thickness={0.01}
                     color="#1a2d58"
                     headerHeight={0.2}
-                    headerText="ERP SAAS - EGS"
+                    headerText="SAAS ERP - EGS"
                     headerTextSize={0.12}
                     headerTextColor="#fff"
+                    technologies={['React', 'TypeScript', 'Next.js', 'Node.js', 'Firebase', 'Git', 'Google Cloud']}
                 />
             </group>
 
             {/* Portail ------------------------------------------------------------ */}
-            <group position={[0, -3, 0]} scale={0.6}>
+            <group position={[0, -2.7, 0]} scale={0.6} rotation={[0, 1.05 * Math.PI / 3, 0]}>
                 <Portal />
                 <mesh
                     position={[-2.5, 1.5, 0]}
@@ -289,11 +284,6 @@ const hudConfig: Record<
     ModelStopId,
     { label: string; title: string; extra: string[] }
 > = {
-    hero: {
-        label: 'PORTFOLIO_OVERVIEW',
-        title: 'Studio 3D',
-        extra: [],
-    },
     popclem: {
         label: 'PORTFOLIO_CO_01',
         title: 'POPClem Avatar',
@@ -352,32 +342,26 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             title: 'Ingénieur FullStack / Ingénieur Logiciel',
             contact: 'Contact',
             mode3d: 'Mode 3D',
-            hero: {
-                subtitle: 'Creative Developer',
-                title: 'Clément DE TEMMERMAN',
-                description: 'Découvrez mon parcours et mes compétences dans ce portfolio intéractif.'
-            },
             popclem: {
-                step: 'Avatar',
-                title: '',
-                description: ''
+                step: 'MOI',
+                title: 'Bonjour !',
+                description: 'Ça c\'est moi ! A travers ce portfolio intéractif, découvre mon parcours et mes compétences.'
             },
             hospital: {
-                step: 'Étape 02 • Bâtiment',
+                step: 'MEDCHEM STRUCTURE GENIUS',
                 title: 'Zoom out vers l\'hôpital.',
                 description: 'On passe à l\'échelle : la caméra recule, se décale, et le HUD affiche le contexte du bâtiment comme un artefact d\'archives glacées.'
             },
             house: {
-                step: 'Étape 03 • Chantier',
+                step: 'SAAS ERP - EGS',
                 title: 'Maison & pelleteuse, en diptyque.',
                 description: 'Architecture et mécanique réunies dans une même scène. La caméra glisse latéralement, le HUD réagit au survol du côté gauche de la composition.'
             },
             portal: {
-                step: 'Étape 04 • Portail',
+                step: 'MODE LIBRE 3D',
                 title: 'Le portail vers l\'univers complet.',
                 description: 'Dernier stop : le portail. Il sert de passerelle vers ton mode 3D libre, pendant que le HUD affiche l\'entrée "PORTFOLIO_CO_04".'
             },
-            cta: 'Mode libre 3D',
             footer: '© 2024 Clément De Temmerman — Portfolio 3D expérimental'
         },
         en: {
@@ -385,32 +369,26 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             title: 'FullStack Engineer / Software Engineer',
             contact: 'Contact',
             mode3d: '3D Mode',
-            hero: {
-                subtitle: 'Creative Developer',
-                title: 'A continuous 3D journey, from avatar to portal.',
-                description: 'Like on igloo.inc, scrolling drives the camera: each screen reveals a new 3D model, accompanied by its technical HUD.'
-            },
             popclem: {
-                step: 'Step 01 • Avatar',
+                step: 'ME',
                 title: 'POPClem leads the way.',
                 description: 'First stop of the journey: the avatar. The camera moves closer, slightly from above, while the HUD displays character info on the side.'
             },
             hospital: {
-                step: 'Step 02 • Building',
+                step: 'MEDCHEM STRUCTURE GENIUS',
                 title: 'Zoom out to the hospital.',
                 description: 'Scaling up: the camera pulls back, shifts, and the HUD displays the building context like a frozen archive artifact.'
             },
             house: {
-                step: 'Step 03 • Construction Site',
+                step: 'SAAS ERP - EGS',
                 title: 'House & excavator, in diptych.',
                 description: 'Architecture and mechanics united in a single scene. The camera glides laterally, the HUD reacts on hover over the left side of the composition.'
             },
             portal: {
-                step: 'Step 04 • Portal',
+                step: '3D FREE MODE',
                 title: 'The portal to the complete universe.',
                 description: 'Final stop: the portal. It serves as a gateway to your free 3D mode, while the HUD displays the "PORTFOLIO_CO_04" entry.'
             },
-            cta: 'Free 3D Mode',
             footer: '© 2024 Clément De Temmerman — Experimental 3D Portfolio'
         }
     }), []);
@@ -423,18 +401,16 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     const mouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
     const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
-    const [activeSection, setActiveSection] = useState<string>('hero');
+    const [activeSection, setActiveSection] = useState<string>('popclem');
     const [activeStopIndex, setActiveStopIndex] = useState<number>(0);
     const [hoveredId, setHoveredId] = useState<ModelStopId | null>(null);
 
     const sections = useMemo(
         () => [
-            { id: 'hero', label: 'Accueil' },
-            { id: 'popclem', label: 'Avatar' },
-            { id: 'hospital', label: 'Hôpital' },
-            { id: 'house', label: 'Maison' },
-            { id: 'portal', label: 'Portail' },
-            { id: 'cta', label: 'Monde 3D' },
+            { id: 'popclem', label: 'MOI' },
+            { id: 'hospital', label: 'MEDCHEM STRUCTURE GENIUS' },
+            { id: 'house', label: 'SAAS ERP - EGS' },
+            { id: 'portal', label: 'MODE LIBRE 3D' },
         ],
         [],
     );
@@ -581,33 +557,6 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
             {/* Contenu texte (sections 100vh) */}
             <main className="relative z-10 pt-32 pb-32 space-y-32">
-                {/* HERO */}
-                <section
-                    id="hero"
-                    ref={(node) => registerSection('hero', node as HTMLElement)}
-                    className="h-screen flex items-center px-6 md:px-12"
-                >
-                    <div className="max-w-4xl space-y-8">
-                        <p
-                            className="text-xs uppercase tracking-[0.5em] text-white/60"
-                            data-animate="fade-up"
-                        >
-                            {t.hero.subtitle}
-                        </p>
-                        <h1
-                            data-split
-                            className="text-5xl md:text-7xl lg:text-8xl font-semibold leading-[1.05]"
-                        >
-                            {t.hero.title}
-                        </h1>
-                        <p
-                            className="text-lg md:text-xl text-white/80 max-w-2xl"
-                            data-animate="fade-up"
-                        >
-                            {t.hero.description}
-                        </p>
-                    </div>
-                </section>
 
                 {/* POPCLEM */}
                 <section
@@ -615,6 +564,26 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     ref={(node) => registerSection('popclem', node as HTMLElement)}
                     className="h-screen flex items-center px-6 md:px-12"
                 >
+                    <div className="max-w-4xl space-y-8">
+                        <p
+                            className="text-xs uppercase tracking-[0.5em] text-white/60"
+                            data-animate="fade-up"
+                        >
+                            {t.popclem.step}
+                        </p>
+                        <h1
+                            data-split
+                            className="text-5xl md:text-7xl lg:text-8xl font-semibold leading-[1.05]"
+                        >
+                            {t.popclem.title}
+                        </h1>
+                        <p
+                            className="text-lg md:text-xl text-white/80 max-w-2xl"
+                            data-animate="fade-up"
+                        >
+                            {t.popclem.description}
+                        </p>
+                    </div>
 
                 </section>
 
@@ -640,24 +609,15 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 <section
                     id="portal"
                     ref={(node) => registerSection('portal', node as HTMLElement)}
-                    className="h-screen flex items-center px-6 md:px-12"
-                >
-
-                </section>
-
-                {/* CTA */}
-                <section
-                    id="cta"
-                    ref={(node) => registerSection('cta', node as HTMLElement)}
-                    className="h-screen flex items-center px-6 md:px-12"
+                    className="h-screen flex items-end px-6 md:px-12"
                 >
                     <div className="mx-auto">
                         <button
                             type="button"
                             onClick={onEnter3DMode}
-                            className="px-10 py-4 rounded-full bg-white text-black font-semibold uppercase tracking-[0.4em]"
+                            className="px-10 py-4 rounded-full bg-white text-black font-semibold uppercase tracking-[0.4em] "
                         >
-                            {t.cta}
+                            {t.portal.step}
                         </button>
                     </div>
                 </section>
