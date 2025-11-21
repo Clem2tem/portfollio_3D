@@ -8,7 +8,7 @@ interface SectionNavigationProps {
 
 const SectionNavigation: React.FC<SectionNavigationProps> = ({ sections, activeId, onSelect }) => {
   return (
-    <div className="hidden xl:flex fixed right-10 top-1/2 -translate-y-1/2 z-40 flex-col gap-4">
+    <div className="hidden xl:flex fixed right-10 top-1/2 -translate-y-1/2 z-40 flex-col gap-4 text-right items-end">
       {sections.map((section) => {
         const isActive = activeId === section.id
         return (
@@ -16,7 +16,7 @@ const SectionNavigation: React.FC<SectionNavigationProps> = ({ sections, activeI
             key={section.id}
             type="button"
             onClick={() => onSelect(section.id)}
-            className="group flex items-center gap-3 text-left"
+            className="group flex items-center gap-3 text-right"
           >
             <span className={`text-xs tracking-[0.3em] uppercase transition-opacity duration-300 ${
               isActive ? 'opacity-100 text-white' : 'opacity-0 group-hover:opacity-60 text-gray-400'

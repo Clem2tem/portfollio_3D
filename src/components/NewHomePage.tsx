@@ -143,30 +143,44 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef }) => {
         const offsetX = mouse.x * parallaxStrength;
         const offsetY = -mouse.y * parallaxStrength;
 
+        let targetPos = new THREE.Vector3();
+
         // Position cible du stop actif
         const stop = MODEL_STOPS[activeStopIndex];
         if (!stop) return;
-
-        // Nouvelle position avec parallax
-        const targetPos = new THREE.Vector3(
-            stop.position[0] + offsetX,
-            stop.position[1] + offsetY,
-            stop.position[2]
-        );
-
+        if (mouse.x < -0.9) {
+            targetPos = new THREE.Vector3(
+                stop.position[0] - 2,
+                stop.position[1] - offsetY,
+                stop.position[2] - 1
+            );
+        } else if (mouse.x > 0.9) {
+             targetPos = new THREE.Vector3(
+                stop.position[0] + 1,
+                stop.position[1],
+                stop.position[2] - 2
+            );
+        } else {
+            // Nouvelle position avec parallax
+            targetPos = new THREE.Vector3(
+                stop.position[0] + offsetX,
+                stop.position[1] + offsetY,
+                stop.position[2]
+            );
+        }
         // Interpolation douce vers la nouvelle position
         camera.position.lerp(targetPos, 0.08);
-
+        console.log(mouse.x);
         // LookAt inchangé
         camera.lookAt(lookAtRef.current);
 
-        // légère roll subtile
-        const targetRoll = mouse.x * 0.04;
-        camera.rotation.z = THREE.MathUtils.lerp(
-            camera.rotation.z,
-            targetRoll,
-            0.08,
-        );
+        // const targetRoll = mouse.x * 0.04;
+        // camera.rotation.z = THREE.MathUtils.lerp(
+        //     camera.rotation.z,
+        //     targetRoll,
+        //     0.08,
+        // );
+
     });
 
     return null;
@@ -232,7 +246,7 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
                 <House position={[-0.5, 0, 0.5]} scale={0.1} />
                 <ExcavatorGLTF position={[0, 0, -0.]} scale={0.1} logoHide />
                 <ToyBox
-                    position={[-0.5 , 0.385, 0.3]}
+                    position={[-0.5, 0.385, 0.3]}
                     rotation={[0, (1.9 * Math.PI / 3), 0]}
                     size={[2.2, 0.8, 1.5]} // W / H / D
                     thickness={0.01}
@@ -323,6 +337,78 @@ const HudOverlay: React.FC<{ hoveredId: ModelStopId | null }> = ({
 const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     const [showContact, setShowContact] = useState(false);
     const [isPreloaderVisible, setIsPreloaderVisible] = useState(true);
+    const [lang, setLang] = useState<'fr' | 'en'>('fr');
+
+    const translations = useMemo(() => ({
+        fr: {
+            subtitle: 'Clément',
+            title: 'Ingénieur FullStack / Ingénieur Logiciel',
+            contact: 'Contact',
+            mode3d: 'Mode 3D',
+            hero: {
+                subtitle: 'Creative Developer',
+                title: 'Clément DE TEMMERMAN',
+                description: 'Découvrez mon parcours et mes compétences dans ce portfolio intéractif.'
+            },
+            popclem: {
+                step: 'Avatar',
+                title: '',
+                description: ''
+            },
+            hospital: {
+                step: 'Étape 02 • Bâtiment',
+                title: 'Zoom out vers l\'hôpital.',
+                description: 'On passe à l\'échelle : la caméra recule, se décale, et le HUD affiche le contexte du bâtiment comme un artefact d\'archives glacées.'
+            },
+            house: {
+                step: 'Étape 03 • Chantier',
+                title: 'Maison & pelleteuse, en diptyque.',
+                description: 'Architecture et mécanique réunies dans une même scène. La caméra glisse latéralement, le HUD réagit au survol du côté gauche de la composition.'
+            },
+            portal: {
+                step: 'Étape 04 • Portail',
+                title: 'Le portail vers l\'univers complet.',
+                description: 'Dernier stop : le portail. Il sert de passerelle vers ton mode 3D libre, pendant que le HUD affiche l\'entrée "PORTFOLIO_CO_04".'
+            },
+            cta: 'Mode libre 3D',
+            footer: '© 2024 Clément De Temmerman — Portfolio 3D expérimental'
+        },
+        en: {
+            subtitle: 'Clément',
+            title: 'FullStack Engineer / Software Engineer',
+            contact: 'Contact',
+            mode3d: '3D Mode',
+            hero: {
+                subtitle: 'Creative Developer',
+                title: 'A continuous 3D journey, from avatar to portal.',
+                description: 'Like on igloo.inc, scrolling drives the camera: each screen reveals a new 3D model, accompanied by its technical HUD.'
+            },
+            popclem: {
+                step: 'Step 01 • Avatar',
+                title: 'POPClem leads the way.',
+                description: 'First stop of the journey: the avatar. The camera moves closer, slightly from above, while the HUD displays character info on the side.'
+            },
+            hospital: {
+                step: 'Step 02 • Building',
+                title: 'Zoom out to the hospital.',
+                description: 'Scaling up: the camera pulls back, shifts, and the HUD displays the building context like a frozen archive artifact.'
+            },
+            house: {
+                step: 'Step 03 • Construction Site',
+                title: 'House & excavator, in diptych.',
+                description: 'Architecture and mechanics united in a single scene. The camera glides laterally, the HUD reacts on hover over the left side of the composition.'
+            },
+            portal: {
+                step: 'Step 04 • Portal',
+                title: 'The portal to the complete universe.',
+                description: 'Final stop: the portal. It serves as a gateway to your free 3D mode, while the HUD displays the "PORTFOLIO_CO_04" entry.'
+            },
+            cta: 'Free 3D Mode',
+            footer: '© 2024 Clément De Temmerman — Experimental 3D Portfolio'
+        }
+    }), []);
+
+    const t = translations[lang];
 
     const { scrollTo } = useSmoothScroll();
     useSplitText('[data-split]', { stagger: 0.03, duration: 1 });
@@ -341,7 +427,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             { id: 'hospital', label: 'Hôpital' },
             { id: 'house', label: 'Maison' },
             { id: 'portal', label: 'Portail' },
-            { id: 'cta', label: 'Contact' },
+            { id: 'cta', label: 'Monde 3D' },
         ],
         [],
     );
@@ -456,25 +542,25 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     <span className="h-3 w-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" />
                     <div>
                         <p className="text-[0.7rem] uppercase tracking-[0.4em] text-white/60">
-                            Clément
+                            {t.subtitle}
                         </p>
-                        <p className="font-semibold text-lg">Ingénieur FullStack</p>
+                        <p className="font-semibold text-lg">{t.title}</p>
                     </div>
                 </div>
                 <div className="flex gap-3">
                     <button
                         type="button"
-                        onClick={() => setShowContact(true)}
-                        className="px-5 py-2 rounded-full border border-white/20 text-sm uppercase tracking-[0.3em] hover:border-white/60"
+                        onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
+                        className="px-4 py-2 rounded-full border border-white/20 text-sm font-semibold hover:border-white/60 transition-colors"
                     >
-                        Contact
+                        {lang === 'fr' ? '🇬🇧 EN' : '🇫🇷 FR'}
                     </button>
                     <button
                         type="button"
                         onClick={onEnter3DMode}
                         className="px-5 py-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-sm font-semibold tracking-[0.2em]"
                     >
-                        Mode 3D
+                        {t.mode3d}
                     </button>
                 </div>
             </header>
@@ -499,20 +585,19 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                             className="text-xs uppercase tracking-[0.5em] text-white/60"
                             data-animate="fade-up"
                         >
-                            Creative Developer • R3F
+                            {t.hero.subtitle}
                         </p>
                         <h1
                             data-split
                             className="text-5xl md:text-7xl lg:text-8xl font-semibold leading-[1.05]"
                         >
-                            Un parcours 3D continu, de l’avatar au portail.
+                            {t.hero.title}
                         </h1>
                         <p
                             className="text-lg md:text-xl text-white/80 max-w-2xl"
                             data-animate="fade-up"
                         >
-                            Comme sur igloo.inc, le scroll pilote la caméra : chaque écran
-                            révèle un nouveau modèle 3D, accompagné de son HUD technique.
+                            {t.hero.description}
                         </p>
                     </div>
                 </section>
@@ -523,19 +608,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     ref={(node) => registerSection('popclem', node as HTMLElement)}
                     className="h-screen flex items-center px-6 md:px-12"
                 >
-                    <div className="max-w-3xl space-y-6">
-                        <p className="text-xs uppercase tracking-[0.5em] text-purple-300">
-                            Étape 01 • Avatar
-                        </p>
-                        <h2 data-split className="text-4xl md:text-6xl font-semibold">
-                            POPClem ouvre la marche.
-                        </h2>
-                        <p className="text-white/75" data-animate="fade-up">
-                            Premier stop du voyage : l’avatar. La caméra se rapproche,
-                            légèrement en plongée, pendant que le HUD affiche les infos du
-                            personnage sur le côté.
-                        </p>
-                    </div>
+
                 </section>
 
                 {/* HÔPITAL */}
@@ -544,19 +617,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     ref={(node) => registerSection('hospital', node as HTMLElement)}
                     className="h-screen flex items-center px-6 md:px-12"
                 >
-                    <div className="max-w-3xl space-y-6">
-                        <p className="text-xs uppercase tracking-[0.5em] text-purple-300">
-                            Étape 02 • Bâtiment
-                        </p>
-                        <h2 data-split className="text-4xl md:text-6xl font-semibold">
-                            Zoom out vers l’hôpital.
-                        </h2>
-                        <p className="text-white/75" data-animate="fade-up">
-                            On passe à l’échelle : la caméra recule, se décale, et le HUD
-                            affiche le contexte du bâtiment comme un artefact d’archives
-                            glacées.
-                        </p>
-                    </div>
+
                 </section>
 
                 {/* MAISON + PELLETEUSE */}
@@ -565,19 +626,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     ref={(node) => registerSection('house', node as HTMLElement)}
                     className="h-screen flex items-center px-6 md:px-12"
                 >
-                    <div className="max-w-3xl space-y-6">
-                        <p className="text-xs uppercase tracking-[0.5em] text-purple-300">
-                            Étape 03 • Chantier
-                        </p>
-                        <h2 data-split className="text-4xl md:text-6xl font-semibold">
-                            Maison & pelleteuse, en diptyque.
-                        </h2>
-                        <p className="text-white/75" data-animate="fade-up">
-                            Architecture et mécanique réunies dans une même scène. La caméra
-                            glisse latéralement, le HUD réagit au survol du côté gauche de la
-                            composition.
-                        </p>
-                    </div>
+
                 </section>
 
                 {/* PORTAIL */}
@@ -586,18 +635,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     ref={(node) => registerSection('portal', node as HTMLElement)}
                     className="h-screen flex items-center px-6 md:px-12"
                 >
-                    <div className="max-w-3xl space-y-6">
-                        <p className="text-xs uppercase tracking-[0.5em] text-purple-300">
-                            Étape 04 • Portail
-                        </p>
-                        <h2 data-split className="text-4xl md:text-6xl font-semibold">
-                            Le portail vers l’univers complet.
-                        </h2>
-                        <p className="text-white/75" data-animate="fade-up">
-                            Dernier stop : le portail. Il sert de passerelle vers ton mode
-                            3D libre, pendant que le HUD affiche l’entrée “PORTFOLIO_CO_04”.
-                        </p>
-                    </div>
+
                 </section>
 
                 {/* CTA */}
@@ -612,14 +650,14 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                             onClick={onEnter3DMode}
                             className="px-10 py-4 rounded-full bg-white text-black font-semibold uppercase tracking-[0.4em]"
                         >
-                            Mode libre 3D
+                            {t.cta}
                         </button>
                     </div>
                 </section>
             </main>
 
             <footer className="relative z-10 px-6 md:px-12 pb-10 text-white/50 text-sm uppercase tracking-[0.4em]">
-                © 2024 Clément De Temmerman — Portfolio 3D expérimental
+                {t.footer}
             </footer>
 
             <Preloader isVisible={isPreloaderVisible} />
