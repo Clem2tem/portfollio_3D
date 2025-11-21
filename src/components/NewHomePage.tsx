@@ -63,13 +63,13 @@ const MODEL_STOPS: ModelStop[] = [
     },
     {
         id: 'hospital',
-        position: [0.7, 0.4, 1.8],
-        lookAt: [0, 0.4, 0],
+        position: [0.8, 0.4, 1.8],
+        lookAt: [-0.05, 0.4, -0.1],
     },
     {
         id: 'house',
-        position: [0.6, -1.2, 1.5],
-        lookAt: [0, -1.4, 0],
+        position: [0.7, -1.2, 1.8],
+        lookAt: [-0.15, -1.4, -0.35],
     },
     {
         id: 'portal',
@@ -149,11 +149,11 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef }) => {
         const stop = MODEL_STOPS[activeStopIndex];
 
         const stopOffsets = {
-            hero : 0,
-            popclem : 1,
-            hospital : 1.3,
-            house : 1.7,
-            portal : 0,
+            hero: 0,
+            popclem: 1,
+            hospital: 1.4,
+            house: 1.7,
+            portal: 0,
         }
         if (!stop) return;
         if (mouse.x < -0.9) {
@@ -163,7 +163,7 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef }) => {
                 stop.position[2] - 1 * stopOffsets[stop.id]
             );
         } else if (mouse.x > 0.9) {
-             targetPos = new THREE.Vector3(
+            targetPos = new THREE.Vector3(
                 stop.position[0] + 1 * stopOffsets[stop.id],
                 stop.position[1],
                 stop.position[2] - 2 * stopOffsets[stop.id]
@@ -181,7 +181,6 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef }) => {
         console.log(mouse.x);
         // LookAt inchangé
         camera.lookAt(lookAtRef.current);
-
         // const targetRoll = mouse.x * 0.04;
         // camera.rotation.z = THREE.MathUtils.lerp(
         //     camera.rotation.z,

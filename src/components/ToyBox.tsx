@@ -101,7 +101,7 @@ const ToyBox: React.FC<ToyBoxProps> = ({
 
       {/* FRONT WINDOW - toujours parfaitement alignée */}
       <mesh position={[0, 0, frontZ+0.001]} material={materialTransparent}>
-        <boxGeometry args={[w, h, thickness]} />
+        <boxGeometry args={[w - 0.001, h - 0.001, thickness]} />
       </mesh>
     </group>
   );
