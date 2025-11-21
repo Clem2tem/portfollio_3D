@@ -147,18 +147,26 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef }) => {
 
         // Position cible du stop actif
         const stop = MODEL_STOPS[activeStopIndex];
+
+        const stopOffsets = {
+            hero : 0,
+            popclem : 1,
+            hospital : 1.3,
+            house : 1.7,
+            portal : 0,
+        }
         if (!stop) return;
         if (mouse.x < -0.9) {
             targetPos = new THREE.Vector3(
-                stop.position[0] - 2,
+                stop.position[0] - 2 * stopOffsets[stop.id],
                 stop.position[1] - offsetY,
-                stop.position[2] - 1
+                stop.position[2] - 1 * stopOffsets[stop.id]
             );
         } else if (mouse.x > 0.9) {
              targetPos = new THREE.Vector3(
-                stop.position[0] + 1,
+                stop.position[0] + 1 * stopOffsets[stop.id],
                 stop.position[1],
-                stop.position[2] - 2
+                stop.position[2] - 2 * stopOffsets[stop.id]
             );
         } else {
             // Nouvelle position avec parallax
@@ -246,9 +254,9 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
                 <House position={[-0.5, 0, 0.5]} scale={0.1} />
                 <ExcavatorGLTF position={[0, 0, -0.]} scale={0.1} logoHide />
                 <ToyBox
-                    position={[-0.5, 0.385, 0.3]}
+                    position={[-0.5, 0.30, 0.3]}
                     rotation={[0, (1.9 * Math.PI / 3), 0]}
-                    size={[2.2, 0.8, 1.5]} // W / H / D
+                    size={[2.2, 0.7, 2]} // W / H / D
                     thickness={0.01}
                     color="#1a2d58"
                     headerHeight={0.2}
