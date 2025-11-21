@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import gsap from "gsap";
-import * as THREE from "three";
-import { useFrame } from "@react-three/fiber";
 import SideInfoPanel from "./SideInfoPanel";
 
 interface Props {

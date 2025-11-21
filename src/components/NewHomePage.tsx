@@ -195,15 +195,17 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
             {/* POPClem ------------------------------------------------------------ */}
             <group position={[0, 1.5, 0]} rotation={[0, -Math.PI / 4, 0]}>
                 <POPClemStatic />
-                {/* hotspot côté gauche */}
-                <mesh
-                    position={[-2.3, 1.1, 0]}
-                    onPointerOver={() => setHoveredId('popclem')}
-                    onPointerOut={() => setHoveredId(null)}
-                >
-                    <planeGeometry args={[3, 3]} />
-                    <meshBasicMaterial transparent opacity={0} />
-                </mesh>
+                <ToyBox
+                    position={[0, 0.29, 0]}
+                    rotation={[0, (1.1 * Math.PI / 3), 0]}
+                    size={[0.5, 0.6, 0.5]} // W / H / D
+                    thickness={0.01}
+                    color="#1a2d58"
+                    headerHeight={0.1}
+                    headerText="Clément"
+                    headerTextSize={0.10}
+                    headerTextColor="#fff"
+                />
             </group>
 
             {/* Hôpital ------------------------------------------------------------ */}
@@ -219,6 +221,9 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
                     thickness={0.01}
                     color="#1a2d58"
                     headerHeight={0.2}
+                    headerText="MEDCHEM STRUCTURE GENIUS"
+                    headerTextSize={0.12}
+                    headerTextColor="#fff"
                 />
             </group>
 
@@ -226,14 +231,17 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
             <group position={[0, -1.7, 0]} rotation={[0, -Math.PI / 2, 0]}>
                 <House position={[-0.5, 0, 0.5]} scale={0.1} />
                 <ExcavatorGLTF position={[0, 0, -0.]} scale={0.1} logoHide />
-                <mesh
-                    position={[-3, 1.3, 0]}
-                    onPointerOver={() => setHoveredId('house')}
-                    onPointerOut={() => setHoveredId(null)}
-                >
-                    <planeGeometry args={[4, 3]} />
-                    <meshBasicMaterial transparent opacity={0} />
-                </mesh>
+                <ToyBox
+                    position={[-0.5 , 0.385, 0.3]}
+                    rotation={[0, (1.9 * Math.PI / 3), 0]}
+                    size={[2.2, 0.8, 1.5]} // W / H / D
+                    thickness={0.01}
+                    color="#1a2d58"
+                    headerHeight={0.2}
+                    headerText="ERP SAAS - EGS"
+                    headerTextSize={0.12}
+                    headerTextColor="#fff"
+                />
             </group>
 
             {/* Portail ------------------------------------------------------------ */}
