@@ -131,9 +131,14 @@ const ToyBox: React.FC<ToyBoxProps> = ({
               const logoSize = 0.15;
               const padding = 0.05;
 
+              let cols = Math.ceil(Math.sqrt(technologies.length));
+              let rows = Math.ceil(technologies.length / cols);
+
               // Calculate grid dimensions
-              const cols = Math.ceil(Math.sqrt(technologies.length));
-              const rows = Math.ceil(technologies.length / cols);
+              if (technologies.length > 6) {
+                cols = 4;
+                rows = Math.ceil(technologies.length / cols);
+              }
 
               // Calculate available space
               const availableWidth = d - padding * 2;

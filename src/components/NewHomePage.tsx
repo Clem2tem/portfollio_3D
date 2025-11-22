@@ -189,7 +189,14 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCame
 
     });
 
-    return null;
+    return (
+        <>
+            {/* Lumière attachée à la caméra */}
+            <directionalLight position={[camera.position.x, camera.position.y, camera.position.z]} intensity={1}  />
+            <directionalLight position={[0, camera.position.y + 1, -3]} intensity={1}  />
+            <directionalLight position={[0, camera.position.y + 1, 3]} intensity={1}  />
+        </>
+    );
 };
 
 /* -------------------------------------------------------------------------- */
@@ -198,24 +205,11 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCame
 
 interface IslandSceneProps {
     setHoveredId: (id: ModelStopId | null) => void;
-    cameraPosition?: Vec3;
 }
 
-const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId, cameraPosition }) => {
-    // Calculer les positions des lumières relatives à la caméra
-    const light1Position: Vec3 = cameraPosition 
-        ? [cameraPosition[0], cameraPosition[1] + 2, cameraPosition[2]]
-        : [5, 1.5, 6];
-    
-    const light2Position: Vec3 = cameraPosition
-        ? [0, cameraPosition[1] + 2, cameraPosition[2]]
-        : [0, 1.5, -3];
-
+const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
     return (
         <>
-            {/* éclairage global qui suit la caméra */}
-            <directionalLight position={light1Position} intensity={0.04} />
-            <directionalLight position={light2Position} intensity={0.5} />
             <Environment
                 preset="sunset"
                 environmentIntensity={0.5}
@@ -351,7 +345,6 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     const [showContact, setShowContact] = useState(false);
     const [isPreloaderVisible, setIsPreloaderVisible] = useState(true);
     const [lang, setLang] = useState<'fr' | 'en'>('fr');
-    const [cameraPosition, setCameraPosition] = useState<Vec3>([0, 0, 0]);
 
     const translations = useMemo(() => ({
         fr: {
@@ -529,11 +522,9 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                         <CameraRig 
                             activeStopIndex={activeStopIndex} 
                             mouseRef={mouseRef} 
-                            onCameraPositionChange={setCameraPosition}
                         />
                         <IslandScene 
                             setHoveredId={setHoveredId} 
-                            cameraPosition={cameraPosition}
                         />
                     </Suspense>
                 </Canvas>
