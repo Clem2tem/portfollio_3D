@@ -89,9 +89,10 @@ const SECTION_TO_STOP_INDEX: Record<string, number | null> = {
 interface CameraRigProps {
     activeStopIndex: number;
     mouseRef: React.MutableRefObject<{ x: number; y: number }>;
+    onCameraPositionChange?: (position: Vec3) => void;
 }
 
-const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef }) => {
+const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCameraPositionChange }) => {
     const { camera } = useThree();
     const lookAtRef = useRef(new THREE.Vector3(0, 1.2, 0));
     const hasInitialised = useRef(false);
@@ -171,7 +172,12 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef }) => {
         }
         // Interpolation douce vers la nouvelle position
         camera.position.lerp(targetPos, 0.08);
-        console.log(mouse.x);
+        
+        // Update camera position callback
+        if (onCameraPositionChange) {
+            onCameraPositionChange([camera.position.x, camera.position.y, camera.position.z]);
+        }
+        
         // LookAt inchangé
         camera.lookAt(lookAtRef.current);
         // const targetRoll = mouse.x * 0.04;
@@ -192,14 +198,24 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef }) => {
 
 interface IslandSceneProps {
     setHoveredId: (id: ModelStopId | null) => void;
+    cameraPosition?: Vec3;
 }
 
-const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
+const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId, cameraPosition }) => {
+    // Calculer les positions des lumières relatives à la caméra
+    const light1Position: Vec3 = cameraPosition 
+        ? [cameraPosition[0], cameraPosition[1] + 2, cameraPosition[2]]
+        : [5, 1.5, 6];
+    
+    const light2Position: Vec3 = cameraPosition
+        ? [0, cameraPosition[1] + 2, cameraPosition[2]]
+        : [0, 1.5, -3];
+
     return (
         <>
-            {/* éclairage global */}
-            <directionalLight position={[5, 6, 6]} intensity={0.04} />
-            <directionalLight position={[-4, 4, -3]} intensity={0.05} />
+            {/* éclairage global qui suit la caméra */}
+            <directionalLight position={light1Position} intensity={0.04} />
+            <directionalLight position={light2Position} intensity={0.5} />
             <Environment
                 preset="sunset"
                 environmentIntensity={0.5}
@@ -335,6 +351,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     const [showContact, setShowContact] = useState(false);
     const [isPreloaderVisible, setIsPreloaderVisible] = useState(true);
     const [lang, setLang] = useState<'fr' | 'en'>('fr');
+    const [cameraPosition, setCameraPosition] = useState<Vec3>([0, 0, 0]);
 
     const translations = useMemo(() => ({
         fr: {
@@ -509,8 +526,15 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     gl={{ antialias: true, alpha: true }}
                 >
                     <Suspense fallback={null}>
-                        <CameraRig activeStopIndex={activeStopIndex} mouseRef={mouseRef} />
-                        <IslandScene setHoveredId={setHoveredId} />
+                        <CameraRig 
+                            activeStopIndex={activeStopIndex} 
+                            mouseRef={mouseRef} 
+                            onCameraPositionChange={setCameraPosition}
+                        />
+                        <IslandScene 
+                            setHoveredId={setHoveredId} 
+                            cameraPosition={cameraPosition}
+                        />
                     </Suspense>
                 </Canvas>
             </div>
