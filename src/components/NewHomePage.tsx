@@ -222,7 +222,7 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
             {/* POPClem ------------------------------------------------------------ */}
             <group position={[0, 1.5, 0]} rotation={[0, 1.1 * Math.PI / 8, 0]}>
                 <POPClemStatic />
-                <POPBoxed position={[0, 0, 0]} scale={0.05} rotation={[0, Math.PI / 3, 0]} />
+                <POPBoxed position={[0, 0, 0]} scale={0.05} rotation={[0, Math.PI / 3, 0]} playAnimation={true} />
             </group>
 
             {/* Hôpital ------------------------------------------------------------ */}
