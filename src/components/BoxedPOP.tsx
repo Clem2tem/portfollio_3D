@@ -8,9 +8,10 @@ interface HouseProps {
     position?: Vec3
     rotation?: Vec3
     scale?: number | Vec3
-
-    /** Pour déclencher l'animation */
     playAnimation?: boolean
+    playReverse?: boolean
+    onPointerOver?: () => void
+    onPointerOut?: () => void
 }
 
 const POPBoxed = forwardRef<THREE.Group, HouseProps>(
@@ -19,81 +20,98 @@ const POPBoxed = forwardRef<THREE.Group, HouseProps>(
             position = [0, 0, 0],
             rotation = [0, 0, 0],
             scale = 1,
-            playAnimation = false
+            playAnimation = false,
+            playReverse = false,
+            onPointerOver,
+            onPointerOut
         },
         ref
     ) => {
 
         const { scene, animations } = useGLTF('models/POPBOXED/POPBoxed.glb')
 
-        // Mixer pour gérer l’animation
         const mixerRef = useRef<THREE.AnimationMixer | null>(null)
         const actionRef = useRef<THREE.AnimationAction | null>(null)
 
-        /** Initialisation de l’animation */
+        // 🔥 Initialisation du mixer + animation
         useEffect(() => {
-            if (!scene) return
+            if (!scene || animations.length < 2) return
 
-            // Création du mixer
             mixerRef.current = new THREE.AnimationMixer(scene)
 
-            // On suppose qu'il n’y a qu’une seule animation dans le glb (celle du couvercle)
-            if (animations && animations.length > 0) {
-                actionRef.current = mixerRef.current.clipAction(animations[1])
-                actionRef.current.clampWhenFinished = true
-                actionRef.current.loop = THREE.LoopOnce
-            }
+            // Sélection de l'animation 1 (celle qui fonctionnait)
+            const clip = animations[1]
+            actionRef.current = mixerRef.current.clipAction(clip)
+
+            actionRef.current.loop = THREE.LoopOnce
+            actionRef.current.clampWhenFinished = true
 
         }, [scene, animations])
 
-        /** Jouer ou arrêter l’animation selon playAnimation */
+        // 🔥 Jouer ou inverser l’animation
+        // 🔥 Jouer ou inverser l’animation correctement
         useEffect(() => {
             if (!actionRef.current) return
+            const action = actionRef.current
+            const duration = action.getClip().duration
 
             if (playAnimation) {
-                actionRef.current.reset().play()
-            }
-        }, [playAnimation])
+                // Animation normale
+                action.paused = false
+                action.timeScale = 1
+                action.setLoop(THREE.LoopOnce, 1)
+                action.clampWhenFinished = true
 
-        /** Rafraîchir le mixer à chaque frame */
+                // IMPORTANT : commencer au début
+                action.time = 0
+                action.play()
+
+            } else if (playReverse) {
+                // Animation en reverse
+                action.paused = false
+                action.timeScale = -1
+                action.setLoop(THREE.LoopOnce, 1)
+                action.clampWhenFinished = true
+
+                // IMPORTANT : commencer à la fin
+                action.time = duration
+                action.play()
+            }
+        }, [playAnimation, playReverse])
+
+
+        // 🔥 Animation loop
         useEffect(() => {
             if (!mixerRef.current) return
 
-            let prevTime = performance.now()
-            let animationFrameId: number
+            let prev = performance.now()
+            let frame: number
 
-            const animate = () => {
-                const currentTime = performance.now()
-                const delta = (currentTime - prevTime) / 1000
-                prevTime = currentTime
+            const loop = () => {
+                const now = performance.now()
+                const delta = (now - prev) / 1000
+                prev = now
 
                 mixerRef.current!.update(delta)
-                animationFrameId = requestAnimationFrame(animate)
+                frame = requestAnimationFrame(loop)
             }
 
-            animationFrameId = requestAnimationFrame(animate)
+            frame = requestAnimationFrame(loop)
 
-            return () => {
-                cancelAnimationFrame(animationFrameId)
-            }
+            return () => cancelAnimationFrame(frame)
         }, [])
 
+        // Tagging de la scène
         useEffect(() => {
-            console.log('Animations:', animations);
-        }, [animations]);
-
-        /** Tagging de la scène */
-        useEffect(() => {
+            if (!scene) return
             try {
-                if (scene) {
-                    if (!scene.name) scene.name = 'POPBoxed'
-                    scene.userData = {
-                        ...(scene.userData || {}),
-                        collisionName: 'POPBoxed',
-                        animated: true
-                    }
+                scene.name ||= 'POPBoxed'
+                scene.userData = {
+                    ...(scene.userData || {}),
+                    collisionName: 'POPBoxed',
+                    animated: true
                 }
-            } catch (e) { }
+            } catch (_) { }
         }, [scene])
 
         if (!scene) return null
@@ -105,6 +123,8 @@ const POPBoxed = forwardRef<THREE.Group, HouseProps>(
                 scale={scale}
                 position={position}
                 rotation={rotation}
+                onPointerOver={onPointerOver}
+                onPointerOut={onPointerOut}
             />
         )
     }

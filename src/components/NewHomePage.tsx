@@ -85,6 +85,9 @@ const SECTION_TO_STOP_INDEX: Record<string, number | null> = {
     cta: null,
 };
 
+
+
+
 /* -------------------------------------------------------------------------- */
 /*                                 CAMERA RIG                                 */
 /* -------------------------------------------------------------------------- */
@@ -208,9 +211,15 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCame
 
 interface IslandSceneProps {
     setHoveredId: (id: ModelStopId | null) => void;
+    mouseRef: React.MutableRefObject<{ x: number; y: number }>;
 }
 
-const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
+const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId, mouseRef }) => {
+    const [popBoxReverse, setPopBoxReverse] = useState(false);
+    const mouse = mouseRef.current;
+
+
+
     return (
         <>
             <Environment
@@ -222,7 +231,15 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
             {/* POPClem ------------------------------------------------------------ */}
             <group position={[0, 1.5, 0]} rotation={[0, 1.1 * Math.PI / 8, 0]}>
                 <POPClemStatic />
-                <POPBoxed position={[0, 0, 0]} scale={0.05} rotation={[0, Math.PI / 3, 0]} playAnimation={true} />
+                <POPBoxed
+                    position={[0, 0, 0]}
+                    scale={0.05}
+                    rotation={[0, Math.PI / 3, 0]}
+                    playAnimation={!popBoxReverse}
+                    playReverse={popBoxReverse}
+                    onPointerOver={() => setPopBoxReverse(true)}
+                    onPointerOut={() => setPopBoxReverse(false)}
+                />
             </group>
 
             {/* Hôpital ------------------------------------------------------------ */}
@@ -520,6 +537,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                         />
                         <IslandScene
                             setHoveredId={setHoveredId}
+                            mouseRef={mouseRef}
                         />
                     </Suspense>
                 </Canvas>
