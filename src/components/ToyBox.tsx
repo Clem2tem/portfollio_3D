@@ -1,7 +1,8 @@
 import * as THREE from "three";
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { MeshStandardMaterial } from 'three';
 import { Text, Image } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
 
 interface ToyBoxProps {
   position?: [number, number, number];
@@ -53,6 +54,18 @@ const ToyBox: React.FC<ToyBoxProps> = ({
       }),
     [color]
   );
+
+  const materialWhite = useMemo(
+    () =>
+      new MeshStandardMaterial({
+        color: "#ffffff",
+        roughness: 1,
+        metalness: 0,
+      }),
+    []
+  );
+
+
   const materialTransparent = useMemo(
     () =>
       new MeshStandardMaterial({
@@ -70,65 +83,118 @@ const ToyBox: React.FC<ToyBoxProps> = ({
   interface RoundedCardProps extends React.ComponentProps<'mesh'> {
     width: number;
     height: number;
+    depth: number;
     radius: number;
-    color: string;
+    color: MeshStandardMaterial;
+    animationOffset: number;
+    PositionOffset: number;
   }
 
-  function RoundedCard({ width, height, radius, color, ...props }: RoundedCardProps) {
-    const shape = useMemo(() => {
-      const shape = new THREE.Shape();
+  function RoundedCard({ width, height, depth, radius, color, animationOffset, ...props }: RoundedCardProps) {
+    const meshRef = useRef<THREE.Mesh>(null);
 
-      const w = width;
-      const h = height;
-      const r = radius;
-
-      shape.moveTo(-w / 2 + r, -h / 2);
-      shape.lineTo(w / 2 - r, -h / 2);
-      shape.quadraticCurveTo(w / 2, -h / 2, w / 2, -h / 2 + r);
-
-      shape.lineTo(w / 2, h / 2 - r);
-      shape.quadraticCurveTo(w / 2, h / 2, w / 2 - r, h / 2);
-
-      shape.lineTo(-w / 2 + r, h / 2);
-      shape.quadraticCurveTo(-w / 2, h / 2, -w / 2, h / 2 - r);
-
-      shape.lineTo(-w / 2, -h / 2 + r);
-      shape.quadraticCurveTo(-w / 2, -h / 2, -w / 2 + r, -h / 2);
-
-      return shape;
-    }, [width, height, radius]);
+    useFrame((state) => {
+      if (meshRef.current) {
+        // Animation de mouvement avant/arrière
+        const time = state.clock.getElapsedTime();
+        meshRef.current.position.z = (Math.sin(time * 2 + animationOffset) * 0.02) + props.PositionOffset;
+      }
+    });
 
     return (
-      <mesh {...props}>
-        <shapeGeometry args={[shape]} />
-        <meshStandardMaterial color={color} opacity={1} />
+      <mesh ref={meshRef} {...props} material={color}>
+        <boxGeometry args={[width, height, depth]} />
       </mesh>
+    );
+  }
+
+  interface AnimatedImageProps {
+    url: string;
+    position: [number, number, number];
+    scale: number;
+    animationOffset: number;
+  }
+
+  function AnimatedImage({ url, position, scale, animationOffset }: AnimatedImageProps) {
+    const groupRef = useRef<THREE.Group>(null);
+
+    useFrame((state) => {
+      if (groupRef.current) {
+        const time = state.clock.getElapsedTime();
+        groupRef.current.position.z = position[2] + Math.sin(time * 2 + animationOffset) * 0.02;
+      }
+    });
+
+    return (
+      <group ref={groupRef} position={[position[0], position[1], 0]}>
+        <Image url={url} scale={scale} transparent />
+      </group>
     );
   }
 
   return (
     <group position={position} rotation={rotation}>
-      {/* BACK */}
-      <mesh position={[0, 0, backZ]} material={materialOpaque}>
-        <boxGeometry args={[w, h, thickness]} />
-      </mesh>
 
-      {/* LEFT */}
-      <mesh position={[leftX, 0, 0]} material={materialOpaque}>
-        <boxGeometry args={[thickness, h, d]} />
+      {thickness > 0 && (
+        <group>
+          {/* BACK */}
+          <mesh position={[0, 0, backZ]} material={materialOpaque}>
+            <boxGeometry args={[w, h, thickness]} />
+          </mesh>
 
-      </mesh>
+          {/* LEFT */}
+          <mesh position={[leftX, 0, 0]} material={materialOpaque}>
+            <boxGeometry args={[thickness, h, d]} />
 
+          </mesh>
+
+
+
+          {/* RIGHT */}
+          <mesh position={[rightX, 0, 0]} material={materialOpaque}>
+            <boxGeometry args={[thickness, h, d]} />
+          </mesh>
+
+          {/* BOTTOM */}
+          <mesh position={[0, bottomY, 0]} material={materialOpaque}>
+            <boxGeometry args={[w, thickness, d]} />
+          </mesh>
+
+          {/* TOP */}
+          <mesh position={[0, topY, 0]} material={materialOpaque}>
+            <boxGeometry args={[w, thickness, d]} />
+          </mesh>
+
+          {/* TOP HEADER (OPAQUE) */}
+          <mesh position={[0, headerY, frontZ]} material={materialOpaque}>
+            <boxGeometry args={[w, headerHeight, thickness]} />
+            <Text position={[0, -0.01, 0.01]} fontSize={headerTextSize} color={headerTextColor} font="/fonts/Chewy-Regular.ttf">
+              {headerText}
+            </Text>
+          </mesh>
+
+          {/* FRONT WINDOW - toujours parfaitement alignée */}
+          <mesh position={[0, 0, frontZ + 0.001]} material={materialTransparent}>
+            <boxGeometry args={[w - 0.001, h - 0.001, thickness]} />
+          </mesh>
+        </group>
+      )}
 
       {/* TECHNOLOGY LOGOS on left side */}
       {technologies.length > 0 && (
         <group position={[leftX - 0.05, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
-          <Text position={[0, (h - 0.18) / 2, 0]} fontSize={0.08} font="/fonts/Chewy-Regular.ttf">
+            <Text
+            position={[0, (h - 0.18) / 2, 0]}
+            fontSize={0.08}
+            font="/fonts/Chewy-Regular.ttf"
+            outlineWidth={0.006}
+            outlineColor="#000"
+            >
             Technologies
-          </Text>
+            </Text>
           <group position={[0, -0.05, 0]}>
             {technologies.map((tech, index) => {
-              const logoSize = 0.15;
+              const logoSize = 0.10;
               const padding = 0.05;
 
               let cols = Math.ceil(Math.sqrt(technologies.length));
@@ -173,62 +239,41 @@ const ToyBox: React.FC<ToyBoxProps> = ({
               if (!logoPath) return null;
 
               return (
-                <><Image
-                  key={tech}
-                  url={logoPath}
-                  position={[xPos, yPos, 0]}
-                  scale={Math.min(logoSize, spacingX * 0.7, spacingY * 0.7)}
-                  transparent />
+                <group key={tech}>
+                  <AnimatedImage
+                    url={logoPath}
+                    position={[xPos, yPos, 0.03]}
+                    scale={Math.min(logoSize, spacingX * 0.7, spacingY * 0.7)}
+                    animationOffset={index * 0.5}
+                  />
                   <RoundedCard
-                    position={[xPos, yPos, -0.01]}
+                    position={[xPos, yPos, 0]}
                     rotation={[0, 0, 0]}
                     width={logoSize * 1.5}
                     height={logoSize * 1.5}
-                    radius={logoSize * 1.5 / 2} // règle le rayon des coins
-                    color="#fff"
+                    depth={0.03}
+                    radius={0.02}
+                    color={materialWhite}
+                    animationOffset={index * 0.5}
+                    PositionOffset={0}
                   />
                   <RoundedCard
-                    position={[xPos, yPos, -0.015]}
+                    position={[xPos, yPos, -0.01]}
                     rotation={[0, 0, 0]}
                     width={logoSize * 1.5 + 0.02}
                     height={logoSize * 1.5 + 0.02}
-                    radius={(logoSize * 1.5 + 0.02) / 2} // règle le rayon des coins
-                    color="#000"
+                    depth={0.03}
+                    radius={0.02}
+                    color={materialOpaque}
+                    animationOffset={index * 0.5}
+                    PositionOffset={-0.01}
                   />
-                </>
+                </group>
               );
             })}
           </group>
         </group>
       )}
-
-      {/* RIGHT */}
-      <mesh position={[rightX, 0, 0]} material={materialOpaque}>
-        <boxGeometry args={[thickness, h, d]} />
-      </mesh>
-
-      {/* BOTTOM */}
-      <mesh position={[0, bottomY, 0]} material={materialOpaque}>
-        <boxGeometry args={[w, thickness, d]} />
-      </mesh>
-
-      {/* TOP */}
-      <mesh position={[0, topY, 0]} material={materialOpaque}>
-        <boxGeometry args={[w, thickness, d]} />
-      </mesh>
-
-      {/* TOP HEADER (OPAQUE) */}
-      <mesh position={[0, headerY, frontZ]} material={materialOpaque}>
-        <boxGeometry args={[w, headerHeight, thickness]} />
-        <Text position={[0, -0.01, 0.01]} fontSize={headerTextSize} color={headerTextColor} font="/fonts/Chewy-Regular.ttf">
-          {headerText}
-        </Text>
-      </mesh>
-
-      {/* FRONT WINDOW - toujours parfaitement alignée */}
-      <mesh position={[0, 0, frontZ + 0.001]} material={materialTransparent}>
-        <boxGeometry args={[w - 0.001, h - 0.001, thickness]} />
-      </mesh>
 
     </group>
   );

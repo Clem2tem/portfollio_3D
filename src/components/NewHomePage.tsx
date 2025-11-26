@@ -28,6 +28,9 @@ import useSmoothScroll from '../hooks/useSmoothScroll';
 import useSplitText from '../hooks/useSplitText';
 import ToyBox from './ToyBox';
 import { Environment } from '@react-three/drei';
+import POPBoxed from './BoxedPOP';
+import BoxedHospital from './BoxedHospital';
+import HouseBox from './BoxedHouse';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -219,17 +222,7 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
             {/* POPClem ------------------------------------------------------------ */}
             <group position={[0, 1.5, 0]} rotation={[0, 1.1 * Math.PI / 8, 0]}>
                 <POPClemStatic />
-                <ToyBox
-                    position={[0, 0.29, 0]}
-                    rotation={[0, (1.1 * Math.PI / 3), 0]}
-                    size={[0.5, 0.6, 0.5]} // W / H / D
-                    thickness={0.01}
-                    color="#1a2d58"
-                    headerHeight={0.12}
-                    headerText="Clément"
-                    headerTextSize={0.11}
-                    headerTextColor="#fff"
-                />
+                <POPBoxed position={[0, 0, 0]} scale={0.05} rotation={[0, Math.PI / 3, 0]}/>
             </group>
 
             {/* Hôpital ------------------------------------------------------------ */}
@@ -238,13 +231,14 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
                 rotation={[0, -(0.96 * Math.PI) / 6, 0]}
             >
                 <HospitalGLTF position={[0, 0, 0]} scale={0.1} logoHide />
+                <BoxedHospital position={[0, 0, 0]} scale={0.1} rotation={[0, (0.96 * Math.PI) / 6, 0]}/>
                 <ToyBox
-                    position={[-0.23, 0.4, -0.2]}
+                    position={[0.05, 0.4, -0.2]}
                     rotation={[0, (4 * Math.PI / 6), 0]}
-                    size={[1.5, 0.8, 1.5]} // W / H / D
-                    thickness={0.01}
+                    size={[1.5, 0.7, 0.8]} // W / H / D
+                    thickness={0}
                     color="#1a2d58"
-                    headerHeight={0.2}
+                    headerHeight={0}
                     headerText="MEDCHEM STRUCTURE GENIUS"
                     headerTextSize={0.12}
                     headerTextColor="#fff"
@@ -256,11 +250,12 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
             <group position={[0, -1.5, 0]} rotation={[0, - 0.91 * Math.PI / 7, 0]}>
                 <House position={[0.35, -0.03, 0]} scale={0.1} />
                 <ExcavatorGLTF position={[1, -0.04, 0]} scale={0.1} logoHide />
+                <HouseBox position={[0, -0.12, -0.24]} scale={0.1} rotation={[0, (0.91 * Math.PI / 7) + Math.PI / 2, 0]} />
                 <ToyBox
-                    position={[0, 0.30, 0]}
+                    position={[0.35, 0.30, 0]}
                     rotation={[0, (1.9 * Math.PI / 3), 0]}
-                    size={[2.2, 0.7, 2]} // W / H / D
-                    thickness={0.01}
+                    size={[2.2, 0.7, 1.5]} // W / H / D
+                    thickness={0}
                     color="#1a2d58"
                     headerHeight={0.2}
                     headerText="SAAS ERP - EGS"
