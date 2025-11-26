@@ -175,12 +175,12 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCame
         }
         // Interpolation douce vers la nouvelle position
         camera.position.lerp(targetPos, 0.08);
-        
+
         // Update camera position callback
         if (onCameraPositionChange) {
             onCameraPositionChange([camera.position.x, camera.position.y, camera.position.z]);
         }
-        
+
         // LookAt inchangé
         camera.lookAt(lookAtRef.current);
         // const targetRoll = mouse.x * 0.04;
@@ -195,9 +195,9 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCame
     return (
         <>
             {/* Lumière attachée à la caméra */}
-            <directionalLight position={[camera.position.x, camera.position.y, camera.position.z]} intensity={1}  />
-            <directionalLight position={[0, camera.position.y + 1, -3]} intensity={1}  />
-            <directionalLight position={[0, camera.position.y + 1, 3]} intensity={1}  />
+            <directionalLight position={[camera.position.x, camera.position.y, camera.position.z]} intensity={1} />
+            <directionalLight position={[0, camera.position.y + 1, -3]} intensity={1} />
+            <directionalLight position={[0, camera.position.y + 1, 3]} intensity={1} />
         </>
     );
 };
@@ -222,7 +222,7 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
             {/* POPClem ------------------------------------------------------------ */}
             <group position={[0, 1.5, 0]} rotation={[0, 1.1 * Math.PI / 8, 0]}>
                 <POPClemStatic />
-                <POPBoxed position={[0, 0, 0]} scale={0.05} rotation={[0, Math.PI / 3, 0]}/>
+                <POPBoxed position={[0, 0, 0]} scale={0.05} rotation={[0, Math.PI / 3, 0]} />
             </group>
 
             {/* Hôpital ------------------------------------------------------------ */}
@@ -231,7 +231,7 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId }) => {
                 rotation={[0, -(0.96 * Math.PI) / 6, 0]}
             >
                 <HospitalGLTF position={[0, 0, 0]} scale={0.1} logoHide />
-                <BoxedHospital position={[0, 0, 0]} scale={0.1} rotation={[0, (0.96 * Math.PI) / 6, 0]}/>
+                <BoxedHospital position={[0, 0, 0]} scale={0.1} rotation={[0, (0.96 * Math.PI) / 6, 0]} />
                 <ToyBox
                     position={[0.05, 0.4, -0.2]}
                     rotation={[0, (4 * Math.PI / 6), 0]}
@@ -354,8 +354,8 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             },
             hospital: {
                 step: 'MEDCHEM STRUCTURE GENIUS',
-                title: 'Zoom out vers l\'hôpital.',
-                description: 'On passe à l\'échelle : la caméra recule, se décale, et le HUD affiche le contexte du bâtiment comme un artefact d\'archives glacées.'
+                title: 'E-Learning app',
+                description: 'Ce projet marque le début de ma carrière professionnelle. Une application de e-learning pour les chercheurs en pharmacologie et les étudiants de l\'IUT de Lille. Vous découvrirez ensuite les détails des projets auquels j\'ai contribué dans une navigation intéractive.'
             },
             house: {
                 step: 'SAAS ERP - EGS',
@@ -514,12 +514,12 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     gl={{ antialias: true, alpha: true }}
                 >
                     <Suspense fallback={null}>
-                        <CameraRig 
-                            activeStopIndex={activeStopIndex} 
-                            mouseRef={mouseRef} 
+                        <CameraRig
+                            activeStopIndex={activeStopIndex}
+                            mouseRef={mouseRef}
                         />
-                        <IslandScene 
-                            setHoveredId={setHoveredId} 
+                        <IslandScene
+                            setHoveredId={setHoveredId}
                         />
                     </Suspense>
                 </Canvas>
@@ -583,12 +583,12 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                         </p>
                         <h1
                             data-split
-                            className="text-5xl md:text-7xl lg:text-8xl font-semibold leading-[1.05]"
+                            className="text-5xl md:text-7xl lg:text-8xl font-semibold leading-[1.05] drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"
                         >
                             {t.popclem.title}
                         </h1>
                         <p
-                            className="text-lg md:text-xl text-white/80 max-w-2xl"
+                            className="text-lg md:text-xl text-white max-w-2xl drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"
                             data-animate="fade-up"
                         >
                             {t.popclem.description}
@@ -601,9 +601,28 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 <section
                     id="hospital"
                     ref={(node) => registerSection('hospital', node as HTMLElement)}
-                    className="h-screen flex items-center px-6 md:px-12"
+                    className="h-screen flex items-end px-6 md:px-12 pb-20"
                 >
-
+                    <div className="max-w-4xl space-y-8">
+                        <p
+                            className="text-xs uppercase tracking-[0.5em] text-white/60"
+                            data-animate="fade-up"
+                        >
+                            {t.hospital.step}
+                        </p>
+                        <h1
+                            data-split
+                            className="text-5xl md:text-7xl lg:text-8xl font-semibold leading-[1.05] drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"
+                        >
+                            {t.hospital.title}
+                        </h1>
+                        <p
+                            className="text-lg md:text-xl text-white max-w-4xl drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"
+                            data-animate="fade-up"
+                        >
+                            {t.hospital.description}
+                        </p>
+                    </div>
                 </section>
 
                 {/* MAISON + PELLETEUSE */}
