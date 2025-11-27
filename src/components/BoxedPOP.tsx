@@ -11,8 +11,9 @@ interface HouseProps {
     scale?: number | Vec3
     playAnimation?: boolean
     playReverse?: boolean
-    onPointerOver?: () => void
-    onPointerOut?: () => void
+    onPointerOver?: (e: ThreeEvent<PointerEvent>) => void
+    onPointerOut?: (e: ThreeEvent<PointerEvent>) => void
+    onClick?: (e: ThreeEvent<MouseEvent>) => void
 }
 
 const POPBoxed = forwardRef<THREE.Group, HouseProps>(
@@ -24,7 +25,8 @@ const POPBoxed = forwardRef<THREE.Group, HouseProps>(
             playAnimation = false,
             playReverse = false,
             onPointerOver,
-            onPointerOut
+            onPointerOut,
+            onClick
         },
         ref
     ) => {
@@ -126,9 +128,10 @@ const POPBoxed = forwardRef<THREE.Group, HouseProps>(
                 rotation={rotation}
                 onPointerOver={(e: ThreeEvent<PointerEvent>) => {
                     console.log('BoxedPOP.tsx: onPointerOver fired', e);
-                    if (onPointerOver) onPointerOver();
+                    if (onPointerOver) onPointerOver(e);
                 }}
                 onPointerOut={onPointerOut}
+                onClick={onClick}
             />
         )
     }

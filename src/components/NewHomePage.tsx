@@ -96,9 +96,10 @@ interface CameraRigProps {
     activeStopIndex: number;
     mouseRef: React.MutableRefObject<{ x: number; y: number }>;
     onCameraPositionChange?: (position: Vec3) => void;
+    isPopZoomed?: boolean;
 }
 
-const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCameraPositionChange }) => {
+const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCameraPositionChange, isPopZoomed }) => {
     const { camera } = useThree();
     const lookAtRef = useRef(new THREE.Vector3(0, 1.2, 0));
     const hasInitialised = useRef(false);
@@ -113,10 +114,29 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCame
         hasInitialised.current = true;
     }, [camera]);
 
-    // 2. tween quand la section change
+    // 2. tween quand la section change ou zoom
     useEffect(() => {
+        if (isPopZoomed) {
+            // Zoom sur POPClem
+            gsap.to(camera.position, {
+                x: 0.5,
+                y: 3,
+                z: 1.2,
+                duration: 1.2,
+                ease: 'power3.inOut',
+            });
+            gsap.to(lookAtRef.current, {
+                x: 0,
+                y: 3,
+                z: 0,
+                duration: 1.2,
+                ease: 'power3.inOut',
+            });
+            return;
+        }
+
         const stop = MODEL_STOPS[activeStopIndex];
-        if (!stop) return;
+        if (!stop || isPopZoomed) return;
 
         gsap.to(camera.position, {
             x: stop.position[0],
@@ -133,7 +153,7 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCame
             duration: 0.8,
             ease: 'power3.inOut',
         });
-    }, [activeStopIndex, camera]);
+    }, [activeStopIndex, camera, isPopZoomed]);
 
     // 3. parallax + légère rotation subtile (Option A)
     useFrame(() => {
@@ -212,13 +232,23 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCame
 interface IslandSceneProps {
     setHoveredId: (id: ModelStopId | null) => void;
     mouseRef: React.MutableRefObject<{ x: number; y: number }>;
+    isPopZoomed: boolean;
+    setIsPopZoomed: (v: boolean) => void;
 }
 
-const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId, mouseRef }) => {
+const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId, isPopZoomed, setIsPopZoomed }) => {
     const [popBoxReverse, setPopBoxReverse] = useState(false);
-    const mouse = mouseRef.current;
+    const popClemRef = useRef<THREE.Group>(null);
 
-
+    useEffect(() => {
+        if (popClemRef.current) {
+            gsap.to(popClemRef.current.position, {
+                y: isPopZoomed ? 1 : 0,
+                duration: 1,
+                ease: 'power3.inOut'
+            });
+        }
+    }, [isPopZoomed]);
 
     return (
         <>
@@ -230,18 +260,25 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId, mouseRef }) => 
             />
             {/* POPClem ------------------------------------------------------------ */}
             <group position={[0, 1.5, 0]} rotation={[0, 1.1 * Math.PI / 8, 0]}>
-                <POPClemStatic />
+                <group ref={popClemRef}>
+                    <POPClemStatic />
+                </group>
                 <POPBoxed
                     position={[0, 0, 0]}
                     scale={0.05}
                     rotation={[0, Math.PI / 3, 0]}
-                    playAnimation={!popBoxReverse}
-                    playReverse={popBoxReverse}
+                    playAnimation={isPopZoomed || !popBoxReverse}
+                    playReverse={!isPopZoomed && popBoxReverse}
                     onPointerOver={() => {
-                        console.log('POPBoxed hover ON');
-                        setPopBoxReverse(true);
+                        if (!isPopZoomed) setPopBoxReverse(true);
                     }}
-                    onPointerOut={() => setPopBoxReverse(false)}
+                    onPointerOut={() => {
+                        if (!isPopZoomed) setPopBoxReverse(false);
+                    }}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsPopZoomed(!isPopZoomed);
+                    }}
                 />
             </group>
 
@@ -359,6 +396,7 @@ const HudOverlay: React.FC<{ hoveredId: ModelStopId | null }> = ({
 const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     const [showContact, setShowContact] = useState(false);
     const [isPreloaderVisible, setIsPreloaderVisible] = useState(true);
+    const [isPopZoomed, setIsPopZoomed] = useState(false);
     const [lang, setLang] = useState<'fr' | 'en'>('fr');
 
     const translations = useMemo(() => ({
@@ -537,10 +575,13 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                         <CameraRig
                             activeStopIndex={activeStopIndex}
                             mouseRef={mouseRef}
+                            isPopZoomed={isPopZoomed}
                         />
                         <IslandScene
                             setHoveredId={setHoveredId}
                             mouseRef={mouseRef}
+                            isPopZoomed={isPopZoomed}
+                            setIsPopZoomed={setIsPopZoomed}
                         />
                     </Suspense>
                 </Canvas>
