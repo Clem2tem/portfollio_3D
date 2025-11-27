@@ -119,15 +119,15 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCame
         if (isPopZoomed) {
             // Zoom sur POPClem
             gsap.to(camera.position, {
-                x: 0.5,
-                y: 3,
-                z: 1.2,
+                x: 1.5,
+                y: 2.8,
+                z: 0,
                 duration: 1.2,
                 ease: 'power3.inOut',
             });
             gsap.to(lookAtRef.current, {
                 x: 0,
-                y: 3,
+                y: 2.8,
                 z: 0,
                 duration: 1.2,
                 ease: 'power3.inOut',
@@ -136,7 +136,7 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCame
         }
 
         const stop = MODEL_STOPS[activeStopIndex];
-        if (!stop || isPopZoomed) return;
+        if (!stop) return;
 
         gsap.to(camera.position, {
             x: stop.position[0],
@@ -176,13 +176,13 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCame
             portal: 0,
         }
         if (!stop) return;
-        if (mouse.x < -0.5) {
+        if (mouse.x < -0.5 && !isPopZoomed) {
             targetPos = new THREE.Vector3(
                 stop.position[0] * (1 - Math.abs(mouse.x)),
                 stop.position[1] - offsetY,
                 stopOffsets[stop.id]
             );
-        } else if (mouse.x > 0.5) {
+        } else if (mouse.x > 0.5 && !isPopZoomed) {
             targetPos = new THREE.Vector3(
                 stop.position[0] * (1 - Math.abs(mouse.x)),
                 stop.position[1],
@@ -192,7 +192,7 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCame
             // Nouvelle position avec parallax
             targetPos = new THREE.Vector3(
                 stop.position[0],
-                stop.position[1] + offsetY,
+                isPopZoomed ? 2.8 + offsetY : stop.position[1] + offsetY,
                 stop.position[2] + offsetX,
             );
         }
