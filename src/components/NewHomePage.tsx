@@ -608,7 +608,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 className={`fixed transition-all duration-1000 ease-in-out z-0 overflow-hidden
         ${isMiniaturized
                         ? 'w-[90dvw] h-[40dvh] md:w-[30dvw] md:h-[80dvh] rounded-3xl shadow-2xl border border-white/10 cursor-pointer md:top-[10dvh] md:left-[10dvh] top-[5dvw] left-[5dvw]'
-                        : 'top-0 left-0 w-full h-full rounded-none pointer-events-none'
+                        : 'top-0 left-0 w-full h-full rounded-none'
                     }
     `}
                 onClick={handleReturnFromBento}
@@ -620,8 +620,10 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             top-1/2 left-1/2 
             -translate-x-1/2 -translate-y-1/2
             w-[100dvw] h-[100dvh]
+            z-50
             pointer-events-none
-        "
+            "
+
                 >
                     <Canvas
                         camera={{ position: [0, 2, 10], fov: 45 }}
@@ -657,7 +659,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
 
             {/* UI Standard - Fade out */}
-            <div className={`transition-opacity duration-500 ${isPopZoomed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+            <div className={`transition-opacity duration-500 pointer-events-none ${isPopZoomed ? 'opacity-0 ' : 'opacity-100'}`}>
 
                 {/* Effets de fond + HUD */}
 
@@ -794,7 +796,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 {showContact && <ContactModal onClose={() => setShowContact(false)} />}
 
                 {/* Bento Grid */}
-                <div className={`fixed inset-0 z-40 p-6 transition-opacity duration-1000 ${isMiniaturized ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+                <div className={`fixed inset-0 -z-10 p-6 transition-opacity duration-1000 bg-none pointer-events-none ${isMiniaturized ? 'opacity-100' : 'opacity-0'}`}>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full pt-0">
                         {/* Left Column */}
                         <div className="lg:col-span-2 flex flex-col gap-6">
