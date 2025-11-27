@@ -397,7 +397,17 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     const [showContact, setShowContact] = useState(false);
     const [isPreloaderVisible, setIsPreloaderVisible] = useState(true);
     const [isPopZoomed, setIsPopZoomed] = useState(false);
+    const [isMiniaturized, setIsMiniaturized] = useState(false);
     const [lang, setLang] = useState<'fr' | 'en'>('fr');
+
+    useEffect(() => {
+        if (isPopZoomed) {
+            const timer = setTimeout(() => setIsMiniaturized(true), 1200);
+            return () => clearTimeout(timer);
+        } else {
+            setIsMiniaturized(false);
+        }
+    }, [isPopZoomed]);
 
     const translations = useMemo(() => ({
         fr: {
@@ -564,9 +574,17 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     }, [sections]);
 
     return (
-        <div className="relative min-h-screen text-white overflow-x-hidden">
+        <div className="relative min-h-screen text-white overflow-x-hidden bg-[#0a0a0a]">
             {/* Canvas plein écran derrière l’UI */}
-            <div className="fixed inset-0 z-[5]">
+            <div
+                className={`fixed transition-all duration-1000 ease-in-out z-50
+                    ${isMiniaturized
+                        ? 'top-6 left-6 w-[400px] h-[300px] rounded-3xl shadow-2xl border border-white/10 cursor-pointer'
+                        : 'inset-0'
+                    }
+                `}
+                onClick={() => isMiniaturized && setIsPopZoomed(false)}
+            >
                 <Canvas
                     camera={{ position: [0, 2, 10], fov: 45 }}
                     gl={{ antialias: true, alpha: true }}
@@ -585,7 +603,12 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                         />
                     </Suspense>
                 </Canvas>
+                {/* Overlay assombrissant */}
+                <div className={`absolute inset-0 bg-black/40 transition-opacity duration-500 pointer-events-none ${isMiniaturized ? 'opacity-100' : 'opacity-0'}`} />
             </div>
+
+            {/* UI Standard - Fade out */}
+            <div className={`transition-opacity duration-500 ${isPopZoomed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
 
             {/* Effets de fond + HUD */}
             <AnimatedBackground />
@@ -720,7 +743,38 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
             <Preloader isVisible={isPreloaderVisible} />
             {showContact && <ContactModal onClose={() => setShowContact(false)} />}
+
+            {/* Bento Grid */}
+            <div className={`fixed inset-0 z-40 p-6 transition-opacity duration-1000 ${isMiniaturized ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full pt-0">
+                    {/* Left Column */}
+                    <div className="lg:col-span-2 flex flex-col gap-6">
+                        {/* Placeholder for 3D View space */}
+                        <div className="h-[300px] w-[400px] shrink-0" /> {/* Spacer */}
+
+                        {/* Large Block */}
+                        <div className="flex-1 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8">
+                            <h2 className="text-2xl font-bold mb-4">À propos du projet</h2>
+                            <p className="text-white/70">Détails et description complète...</p>
+                        </div>
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="flex flex-col gap-6">
+                        <div className="h-1/3 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 flex items-center justify-center">
+                            <h3 className="text-xl font-bold">Technologies</h3>
+                        </div>
+                        <div className="h-1/3 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 flex items-center justify-center">
+                            <h3 className="text-xl font-bold text-center">Fonctionnalités Techniques</h3>
+                        </div>
+                        <div className="h-1/3 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 flex items-center justify-center">
+                            <h3 className="text-xl font-bold">Logo en 3D</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+    </div>
     );
 };
 
