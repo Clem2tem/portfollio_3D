@@ -397,6 +397,7 @@ const HudOverlay: React.FC<{ hoveredId: ModelStopId | null }> = ({
 /* -------------------------------------------------------------------------- */
 
 const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
+    const canvasContainerRef = useRef<HTMLDivElement>(null);
     const [showContact, setShowContact] = useState(false);
     const [isPreloaderVisible, setIsPreloaderVisible] = useState(true);
     const [isPopZoomed, setIsPopZoomed] = useState(false);
@@ -405,18 +406,34 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
     useEffect(() => {
         if (isPopZoomed) {
-            const timer = setTimeout(() => setIsMiniaturized(true), 1200);
+            const timer = setTimeout(() => {
+                setIsMiniaturized(true);
+            }, 1200);
             return () => clearTimeout(timer);
         }
     }, [isPopZoomed]);
 
     const handleReturnFromBento = () => {
         if (isMiniaturized) {
-            setIsMiniaturized(false);
-            // Attendre la fin de la transition d'agrandissement (1s) avant de dézoomer la caméra
-            setTimeout(() => setIsPopZoomed(false), 1000);
+            setTimeout(() => {
+                setIsMiniaturized(false);
+                // Attendre la fin de la transition d'agrandissement (1s) avant de dézoomer la caméra
+                setTimeout(() => setIsPopZoomed(false), 1000);
+            }, 1000);
         }
     };
+
+
+    function FixCameraAspect() {
+        const { camera, size } = useThree();
+        useFrame(() => {
+            if (camera instanceof THREE.PerspectiveCamera) {
+                camera.aspect = size.width / size.height;
+                camera.updateProjectionMatrix();
+            }
+        });
+        return null;
+    }
 
     const translations = useMemo(() => ({
         fr: {
@@ -583,209 +600,230 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     }, [sections]);
 
     return (
-        <div className="relative min-h-screen text-white overflow-x-hidden">
+        <div className={`relative min-h-screen text-white overflow-x-hidden`}>
             <AnimatedBackground />
             {/* Canvas plein écran derrière l’UI */}
             <div
-                className={`fixed transition-all duration-1000 ease-in-out z-50
-                    ${isMiniaturized
-                        ? 'w-[90dvw] left-[5dvw] h-[40dvh] top-[5dvh] md:w-[30dvw] md:h-[80dvh] md:top-[50dvh] md:translate-y-[-50%] md:left-[10dvh]  rounded-3xl shadow-2xl border border-white/10 cursor-pointer'
-                        : 'top-0 left-0 rounded-none pointer-events-none w-full h-full'
+                ref={canvasContainerRef}
+                className={`fixed transition-all duration-1000 ease-in-out z-50 overflow-hidden
+        ${isMiniaturized
+                        ? 'w-[90dvw] h-[40dvh] md:w-[30dvw] md:h-[80dvh] rounded-3xl shadow-2xl border border-white/10 cursor-pointer md:top-[10dvh] md:left-[10dvh] top-[5dvw] left-[5dvw]'
+                        : 'top-0 left-0 w-full h-full rounded-none pointer-events-none'
                     }
-                `}
+    `}
                 onClick={handleReturnFromBento}
             >
-                <Canvas
-                    camera={{ position: [0, 2, 10], fov: 45 }}
-                    gl={{ antialias: true, alpha: true }}
+                {/** ⬇️ WRAPPER STABLE (ne bouge jamais) */}
+                <div
+                    className="
+            absolute 
+            top-1/2 left-1/2 
+            -translate-x-1/2 -translate-y-1/2
+            w-[100dvw] h-[100dvh]
+            pointer-events-none
+        "
                 >
-                    <Suspense fallback={null}>
-                        <CameraRig
-                            activeStopIndex={activeStopIndex}
-                            mouseRef={mouseRef}
-                            isPopZoomed={isPopZoomed}
-                            isMiniaturized={isMiniaturized}
-                        />
-                        <IslandScene
-                            setHoveredId={setHoveredId}
-                            mouseRef={mouseRef}
-                            isPopZoomed={isPopZoomed}
-                            setIsPopZoomed={setIsPopZoomed}
-                        />
-                    </Suspense>
-                </Canvas>
-                {/* Overlay assombrissant */}
-                <div className={`absolute inset-0 rounded-3xl bg-black/40 transition-opacity duration-500 pointer-events-none ${isMiniaturized ? 'opacity-100' : 'opacity-0'}`} />
+                    <Canvas
+                        camera={{ position: [0, 2, 10], fov: 45 }}
+                        gl={{ antialias: true, alpha: true }}
+                        className="w-full h-full"
+                    >
+                        <Suspense fallback={null}>
+                            <FixCameraAspect />
+                            <CameraRig
+                                activeStopIndex={activeStopIndex}
+                                mouseRef={mouseRef}
+                                isPopZoomed={isPopZoomed}
+                                isMiniaturized={isMiniaturized}
+                            />
+                            <IslandScene
+                                setHoveredId={setHoveredId}
+                                mouseRef={mouseRef}
+                                isPopZoomed={isPopZoomed}
+                                setIsPopZoomed={setIsPopZoomed}
+                            />
+                        </Suspense>
+                    </Canvas>
+
+                    <div
+                        className={`
+                absolute inset-0 rounded-3xl bg-black/40 
+                transition-opacity duration-500 pointer-events-none 
+                ${isMiniaturized ? 'opacity-100' : 'opacity-0'}
+            `}
+                    />
+                </div>
             </div>
+
 
             {/* UI Standard - Fade out */}
             <div className={`transition-opacity duration-500 ${isPopZoomed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
 
-            {/* Effets de fond + HUD */}
-            
-            <HudOverlay hoveredId={hoveredId} />
+                {/* Effets de fond + HUD */}
 
-            {/* Header */}
-            <header className="fixed top-0 left-0 right-0 z-40 px-6 md:px-12 py-6 flex items-center justify-between ">
-                <div className="flex items-center gap-3">
-                    <span className="h-3 w-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" />
-                    <div>
-                        <p className="text-[0.7rem] uppercase tracking-[0.4em] text-white/60">
-                            {t.subtitle}
-                        </p>
-                        <p className="font-semibold text-lg">{t.title}</p>
+                <HudOverlay hoveredId={hoveredId} />
+
+                {/* Header */}
+                <header className="fixed top-0 left-0 right-0 z-40 px-6 md:px-12 py-6 flex items-center justify-between ">
+                    <div className="flex items-center gap-3">
+                        <span className="h-3 w-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" />
+                        <div>
+                            <p className="text-[0.7rem] uppercase tracking-[0.4em] text-white/60">
+                                {t.subtitle}
+                            </p>
+                            <p className="font-semibold text-lg">{t.title}</p>
+                        </div>
                     </div>
-                </div>
-                <div className="flex gap-3">
-                    <button
-                        type="button"
-                        onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
-                        className="px-4 py-2 rounded-full border border-white/20 text-sm font-semibold hover:border-white/60 transition-colors"
-                    >
-                        {lang === 'fr' ? '🇬🇧 EN' : '🇫🇷 FR'}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onEnter3DMode}
-                        className="px-5 py-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-sm font-semibold tracking-[0.2em]"
-                    >
-                        {t.mode3d}
-                    </button>
-                </div>
-            </header>
-
-            {/* Stepper latéral */}
-            <SectionNavigation
-                sections={sections}
-                activeId={activeSection}
-                onSelect={handleNavigation}
-            />
-
-            {/* Contenu texte (sections 100vh) */}
-            <main className="relative z-20 pt-32 pb-32 space-y-32 pointer-events-none background-none">
-
-                {/* POPCLEM */}
-                <section
-                    id="popclem"
-                    ref={(node) => registerSection('popclem', node as HTMLElement)}
-                    className="h-screen flex items-center px-6 md:px-12"
-                >
-                    <div className="max-w-4xl space-y-8">
-                        <p
-                            className="text-xs uppercase tracking-[0.5em] text-white/60"
-                            data-animate="fade-up"
+                    <div className="flex gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
+                            className="px-4 py-2 rounded-full border border-white/20 text-sm font-semibold hover:border-white/60 transition-colors"
                         >
-                            {t.popclem.step}
-                        </p>
-                        <h1
-                            data-split
-                            className="text-5xl md:text-7xl lg:text-8xl font-semibold leading-[1.05] drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"
-                        >
-                            {t.popclem.title}
-                        </h1>
-                        <p
-                            className="text-lg md:text-xl text-white max-w-2xl drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"
-                            data-animate="fade-up"
-                        >
-                            {t.popclem.description}
-                        </p>
-                    </div>
-
-                </section>
-
-                {/* HÔPITAL */}
-                <section
-                    id="hospital"
-                    ref={(node) => registerSection('hospital', node as HTMLElement)}
-                    className="h-screen flex items-end px-6 md:px-12 pb-20"
-                >
-                    <div className="max-w-4xl space-y-8">
-                        <p
-                            className="text-xs uppercase tracking-[0.5em] text-white/60"
-                            data-animate="fade-up"
-                        >
-                            {t.hospital.step}
-                        </p>
-                        <h1
-                            data-split
-                            className="text-5xl md:text-7xl lg:text-8xl font-semibold leading-[1.05] drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"
-                        >
-                            {t.hospital.title}
-                        </h1>
-                        <p
-                            className="text-lg md:text-xl text-white max-w-4xl drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"
-                            data-animate="fade-up"
-                        >
-                            {t.hospital.description}
-                        </p>
-                    </div>
-                </section>
-
-                {/* MAISON + PELLETEUSE */}
-                <section
-                    id="house"
-                    ref={(node) => registerSection('house', node as HTMLElement)}
-                    className="h-screen flex items-center px-6 md:px-12"
-                >
-
-                </section>
-
-                {/* PORTAIL */}
-                <section
-                    id="portal"
-                    ref={(node) => registerSection('portal', node as HTMLElement)}
-                    className="h-screen flex items-end px-6 md:px-12"
-                >
-                    <div className="mx-auto">
+                            {lang === 'fr' ? '🇬🇧 EN' : '🇫🇷 FR'}
+                        </button>
                         <button
                             type="button"
                             onClick={onEnter3DMode}
-                            className="px-10 py-4 rounded-full bg-white text-black font-semibold uppercase tracking-[0.4em] "
+                            className="px-5 py-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-sm font-semibold tracking-[0.2em]"
                         >
-                            {t.portal.step}
+                            {t.mode3d}
                         </button>
                     </div>
-                </section>
-            </main>
+                </header>
 
-            <footer className="relative z-10 px-6 md:px-12 pb-10 text-white/50 text-sm uppercase tracking-[0.4em]">
-                {t.footer}
-            </footer>
+                {/* Stepper latéral */}
+                <SectionNavigation
+                    sections={sections}
+                    activeId={activeSection}
+                    onSelect={handleNavigation}
+                />
 
-            <Preloader isVisible={isPreloaderVisible} />
-            {showContact && <ContactModal onClose={() => setShowContact(false)} />}
+                {/* Contenu texte (sections 100vh) */}
+                <main className="relative z-20 pt-32 pb-32 space-y-32 pointer-events-none background-none">
 
-            {/* Bento Grid */}
-            <div className={`fixed inset-0 z-40 p-6 transition-opacity duration-1000 ${isMiniaturized ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full pt-0">
-                    {/* Left Column */}
-                    <div className="lg:col-span-2 flex flex-col gap-6">
-                        {/* Placeholder for 3D View space */}
-                        <div className="h-[300px] w-[400px] shrink-0" /> {/* Spacer */}
-
-                        {/* Large Block */}
-                        <div className="flex-1 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8">
-                            <h2 className="text-2xl font-bold mb-4">À propos du projet</h2>
-                            <p className="text-white/70">Détails et description complète...</p>
+                    {/* POPCLEM */}
+                    <section
+                        id="popclem"
+                        ref={(node) => registerSection('popclem', node as HTMLElement)}
+                        className="h-screen flex items-center px-6 md:px-12"
+                    >
+                        <div className="max-w-4xl space-y-8">
+                            <p
+                                className="text-xs uppercase tracking-[0.5em] text-white/60"
+                                data-animate="fade-up"
+                            >
+                                {t.popclem.step}
+                            </p>
+                            <h1
+                                data-split
+                                className="text-5xl md:text-7xl lg:text-8xl font-semibold leading-[1.05] drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"
+                            >
+                                {t.popclem.title}
+                            </h1>
+                            <p
+                                className="text-lg md:text-xl text-white max-w-2xl drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"
+                                data-animate="fade-up"
+                            >
+                                {t.popclem.description}
+                            </p>
                         </div>
-                    </div>
 
-                    {/* Right Column */}
-                    <div className="flex flex-col gap-6">
-                        <div className="h-1/3 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 flex items-center justify-center">
-                            <h3 className="text-xl font-bold">Technologies</h3>
+                    </section>
+
+                    {/* HÔPITAL */}
+                    <section
+                        id="hospital"
+                        ref={(node) => registerSection('hospital', node as HTMLElement)}
+                        className="h-screen flex items-end px-6 md:px-12 pb-20"
+                    >
+                        <div className="max-w-4xl space-y-8">
+                            <p
+                                className="text-xs uppercase tracking-[0.5em] text-white/60"
+                                data-animate="fade-up"
+                            >
+                                {t.hospital.step}
+                            </p>
+                            <h1
+                                data-split
+                                className="text-5xl md:text-7xl lg:text-8xl font-semibold leading-[1.05] drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"
+                            >
+                                {t.hospital.title}
+                            </h1>
+                            <p
+                                className="text-lg md:text-xl text-white max-w-4xl drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"
+                                data-animate="fade-up"
+                            >
+                                {t.hospital.description}
+                            </p>
                         </div>
-                        <div className="h-1/3 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 flex items-center justify-center">
-                            <h3 className="text-xl font-bold text-center">Fonctionnalités Techniques</h3>
+                    </section>
+
+                    {/* MAISON + PELLETEUSE */}
+                    <section
+                        id="house"
+                        ref={(node) => registerSection('house', node as HTMLElement)}
+                        className="h-screen flex items-center px-6 md:px-12"
+                    >
+
+                    </section>
+
+                    {/* PORTAIL */}
+                    <section
+                        id="portal"
+                        ref={(node) => registerSection('portal', node as HTMLElement)}
+                        className="h-screen flex items-end px-6 md:px-12"
+                    >
+                        <div className="mx-auto">
+                            <button
+                                type="button"
+                                onClick={onEnter3DMode}
+                                className="px-10 py-4 rounded-full bg-white text-black font-semibold uppercase tracking-[0.4em] "
+                            >
+                                {t.portal.step}
+                            </button>
                         </div>
-                        <div className="h-1/3 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 flex items-center justify-center">
-                            <h3 className="text-xl font-bold">Logo en 3D</h3>
+                    </section>
+                </main>
+
+                <footer className="relative z-10 px-6 md:px-12 pb-10 text-white/50 text-sm uppercase tracking-[0.4em]">
+                    {t.footer}
+                </footer>
+
+                <Preloader isVisible={isPreloaderVisible} />
+                {showContact && <ContactModal onClose={() => setShowContact(false)} />}
+
+                {/* Bento Grid */}
+                <div className={`fixed inset-0 z-40 p-6 transition-opacity duration-1000 ${isMiniaturized ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full pt-0">
+                        {/* Left Column */}
+                        <div className="lg:col-span-2 flex flex-col gap-6">
+                            {/* Placeholder for 3D View space */}
+                            <div className="h-[300px] w-[400px] shrink-0" /> {/* Spacer */}
+
+                            {/* Large Block */}
+                            <div className="flex-1 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8">
+                                <h2 className="text-2xl font-bold mb-4">À propos du projet</h2>
+                                <p className="text-white/70">Détails et description complète...</p>
+                            </div>
+                        </div>
+
+                        {/* Right Column */}
+                        <div className="flex flex-col gap-6">
+                            <div className="h-1/3 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 flex items-center justify-center">
+                                <h3 className="text-xl font-bold">Technologies</h3>
+                            </div>
+                            <div className="h-1/3 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 flex items-center justify-center">
+                                <h3 className="text-xl font-bold text-center">Fonctionnalités Techniques</h3>
+                            </div>
+                            <div className="h-1/3 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 flex items-center justify-center">
+                                <h3 className="text-xl font-bold">Logo en 3D</h3>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
     );
 };
 
