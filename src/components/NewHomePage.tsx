@@ -97,9 +97,10 @@ interface CameraRigProps {
     mouseRef: React.MutableRefObject<{ x: number; y: number }>;
     onCameraPositionChange?: (position: Vec3) => void;
     isPopZoomed?: boolean;
+    isMiniaturized?: boolean;
 }
 
-const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCameraPositionChange, isPopZoomed }) => {
+const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCameraPositionChange, isPopZoomed, isMiniaturized }) => {
     const { camera } = useThree();
     const lookAtRef = useRef(new THREE.Vector3(0, 1.2, 0));
     const hasInitialised = useRef(false);
@@ -157,6 +158,8 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCame
 
     // 3. parallax + légère rotation subtile (Option A)
     useFrame(() => {
+        if (isMiniaturized) return; // Pause parallax when miniaturized
+
         const mouse = mouseRef.current;
         const parallaxStrength = 0.10;
 
@@ -404,10 +407,16 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
         if (isPopZoomed) {
             const timer = setTimeout(() => setIsMiniaturized(true), 1200);
             return () => clearTimeout(timer);
-        } else {
-            setIsMiniaturized(false);
         }
     }, [isPopZoomed]);
+
+    const handleReturnFromBento = () => {
+        if (isMiniaturized) {
+            setIsMiniaturized(false);
+            // Attendre la fin de la transition d'agrandissement (1s) avant de dézoomer la caméra
+            setTimeout(() => setIsPopZoomed(false), 1000);
+        }
+    };
 
     const translations = useMemo(() => ({
         fr: {
@@ -579,11 +588,15 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             <div
                 className={`fixed transition-all duration-1000 ease-in-out z-50
                     ${isMiniaturized
-                        ? 'top-6 left-6 w-[400px] h-[300px] rounded-3xl shadow-2xl border border-white/10 cursor-pointer'
-                        : 'inset-0'
+                        ? 'top-6 left-6 rounded-3xl shadow-2xl border border-white/10 cursor-pointer'
+                        : 'top-0 left-0 rounded-none pointer-events-none'
                     }
                 `}
-                onClick={() => isMiniaturized && setIsPopZoomed(false)}
+                style={{
+                    width: isMiniaturized ? '400px' : '100vw',
+                    height: isMiniaturized ? '300px' : '100vh',
+                }}
+                onClick={handleReturnFromBento}
             >
                 <Canvas
                     camera={{ position: [0, 2, 10], fov: 45 }}
@@ -594,6 +607,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                             activeStopIndex={activeStopIndex}
                             mouseRef={mouseRef}
                             isPopZoomed={isPopZoomed}
+                            isMiniaturized={isMiniaturized}
                         />
                         <IslandScene
                             setHoveredId={setHoveredId}
