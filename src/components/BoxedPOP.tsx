@@ -1,6 +1,7 @@
 import { forwardRef, useRef, useEffect } from 'react'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
+import type { ThreeEvent } from '@react-three/fiber'
 
 type Vec3 = [number, number, number]
 
@@ -123,7 +124,10 @@ const POPBoxed = forwardRef<THREE.Group, HouseProps>(
                 scale={scale}
                 position={position}
                 rotation={rotation}
-                onPointerOver={onPointerOver}
+                onPointerOver={(e: ThreeEvent<PointerEvent>) => {
+                    console.log('BoxedPOP.tsx: onPointerOver fired', e);
+                    if (onPointerOver) onPointerOver();
+                }}
                 onPointerOut={onPointerOut}
             />
         )

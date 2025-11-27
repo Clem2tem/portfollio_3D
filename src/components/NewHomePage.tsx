@@ -237,7 +237,10 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId, mouseRef }) => 
                     rotation={[0, Math.PI / 3, 0]}
                     playAnimation={!popBoxReverse}
                     playReverse={popBoxReverse}
-                    onPointerOver={() => setPopBoxReverse(true)}
+                    onPointerOver={() => {
+                        console.log('POPBoxed hover ON');
+                        setPopBoxReverse(true);
+                    }}
                     onPointerOut={() => setPopBoxReverse(false)}
                 />
             </group>
@@ -335,7 +338,7 @@ const HudOverlay: React.FC<{ hoveredId: ModelStopId | null }> = ({
     const data = hudConfig[hoveredId];
 
     return (
-        <div className="pointer-events-none fixed inset-0 z-30">
+        <div className="fixed inset-0 z-30">
             <div className="absolute left-14 top-1/2 -translate-y-1/2 text-white font-mono side-info-panel">
                 <p className="sidetitle">{data.label}</p>
                 <p className="biglabel">{data.title}</p>
@@ -525,7 +528,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     return (
         <div className="relative min-h-screen text-white overflow-x-hidden">
             {/* Canvas plein écran derrière l’UI */}
-            <div className="fixed inset-0 z-0">
+            <div className="fixed inset-0 z-[5]">
                 <Canvas
                     camera={{ position: [0, 2, 10], fov: 45 }}
                     gl={{ antialias: true, alpha: true }}
@@ -584,7 +587,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             />
 
             {/* Contenu texte (sections 100vh) */}
-            <main className="relative z-10 pt-32 pb-32 space-y-32">
+            <main className="relative z-20 pt-32 pb-32 space-y-32 pointer-events-none background-none">
 
                 {/* POPCLEM */}
                 <section
