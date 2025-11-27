@@ -605,7 +605,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             {/* Canvas plein écran derrière l’UI */}
             <div
                 ref={canvasContainerRef}
-                className={`fixed transition-all duration-1000 ease-in-out z-50 overflow-hidden
+                className={`fixed transition-all duration-1000 ease-in-out z-0 overflow-hidden
         ${isMiniaturized
                         ? 'w-[90dvw] h-[40dvh] md:w-[30dvw] md:h-[80dvh] rounded-3xl shadow-2xl border border-white/10 cursor-pointer md:top-[10dvh] md:left-[10dvh] top-[5dvw] left-[5dvw]'
                         : 'top-0 left-0 w-full h-full rounded-none pointer-events-none'
