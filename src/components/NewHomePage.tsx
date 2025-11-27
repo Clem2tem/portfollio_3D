@@ -583,19 +583,16 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     }, [sections]);
 
     return (
-        <div className="relative min-h-screen text-white overflow-x-hidden bg-[#0a0a0a]">
+        <div className="relative min-h-screen text-white overflow-x-hidden">
+            <AnimatedBackground />
             {/* Canvas plein écran derrière l’UI */}
             <div
                 className={`fixed transition-all duration-1000 ease-in-out z-50
                     ${isMiniaturized
-                        ? 'top-6 left-6 rounded-3xl shadow-2xl border border-white/10 cursor-pointer'
-                        : 'top-0 left-0 rounded-none pointer-events-none'
+                        ? 'w-[90dvw] left-[5dvw] h-[40dvh] top-[5dvh] md:w-[30dvw] md:h-[80dvh] md:top-[50dvh] md:translate-y-[-50%] md:left-[10dvh]  rounded-3xl shadow-2xl border border-white/10 cursor-pointer'
+                        : 'top-0 left-0 rounded-none pointer-events-none w-full h-full'
                     }
                 `}
-                style={{
-                    width: isMiniaturized ? '400px' : '100vw',
-                    height: isMiniaturized ? '300px' : '100vh',
-                }}
                 onClick={handleReturnFromBento}
             >
                 <Canvas
@@ -618,14 +615,14 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     </Suspense>
                 </Canvas>
                 {/* Overlay assombrissant */}
-                <div className={`absolute inset-0 bg-black/40 transition-opacity duration-500 pointer-events-none ${isMiniaturized ? 'opacity-100' : 'opacity-0'}`} />
+                <div className={`absolute inset-0 rounded-3xl bg-black/40 transition-opacity duration-500 pointer-events-none ${isMiniaturized ? 'opacity-100' : 'opacity-0'}`} />
             </div>
 
             {/* UI Standard - Fade out */}
             <div className={`transition-opacity duration-500 ${isPopZoomed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
 
             {/* Effets de fond + HUD */}
-            <AnimatedBackground />
+            
             <HudOverlay hoveredId={hoveredId} />
 
             {/* Header */}
