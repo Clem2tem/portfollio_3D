@@ -1068,7 +1068,17 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                         onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
                         className="px-4 py-2 rounded-full border border-white/20 text-sm font-semibold hover:border-white/60 transition-colors"
                     >
-                        {lang === 'fr' ? '🇬🇧 EN' : '🇫🇷 FR'}
+                        {lang === 'fr' ? (
+                            <span className="flex items-center gap-2">
+                                <img src="/flags/France.svg" alt="French" className="w-5 h-5 inline-block" />
+                                FR
+                            </span>
+                        ) : (
+                            <span className="flex items-center gap-2">
+                                <img src="/flags/GB.svg" alt="English" className="w-5 h-5 inline-block" />
+                                EN
+                            </span>
+                        )}
                     </button>
                     <button
                         type="button"
