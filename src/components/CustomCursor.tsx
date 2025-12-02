@@ -9,12 +9,15 @@ interface Particle {
   size: number
 }
 
+export const cursorPointerEvent = new EventTarget();
+
 const CustomCursor: React.FC = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [particles, setParticles] = useState<Particle[]>([])
   const [isMoving, setIsMoving] = useState(false)
   const [isVisible, setIsVisible] = useState(true)
   const [isPointer, setIsPointer] = useState(false)
+  const [isPointerForce, setIsPointerForce] = useState(false)
   const [isTouchDevice, setIsTouchDevice] = useState<boolean | null>(null)
 
   /* --------------------------- Detect Touch Devices --------------------------- */
@@ -27,6 +30,20 @@ const CustomCursor: React.FC = () => {
       return isMobileUA || (isMobileScreen && isPrimaryTouch)
     }
     setIsTouchDevice(checkTouchDevice())
+  }, [])
+
+  useEffect(() => {
+    const enter = () => { console.log("Cursor Pointer Enter"); setIsPointerForce(true) }
+    const leave = () => { console.log("Cursor Pointer Leave"); setIsPointerForce(false) }
+
+    cursorPointerEvent.addEventListener("enter", enter)
+    cursorPointerEvent.addEventListener("leave", leave)
+    console.log("Cursor Pointer Event Listeners Added");
+
+    return () => {
+      cursorPointerEvent.removeEventListener("enter", enter)
+      cursorPointerEvent.removeEventListener("leave", leave)
+    }
   }, [])
 
   /* ----------------------- Cursor Movement & Particles ----------------------- */
@@ -94,6 +111,7 @@ const CustomCursor: React.FC = () => {
       const clickable =
         target.closest('[data-cursor="pointer"]') ||
         target.closest('.cursor-pointer') ||
+        target.closest("[data-cursor]") ||
         ['A', 'BUTTON'].includes(target.tagName)
 
       setIsPointer(Boolean(clickable))
@@ -128,22 +146,22 @@ const CustomCursor: React.FC = () => {
   /* ---------------------------------- Render ---------------------------------- */
   return (
     <div className="pointer-events-none fixed inset-0 z-[999999999]" style={{ cursor: 'none' }}>
-      
+
       {/* Main Cursor */}
       <div
         className="absolute -translate-x-1/2 -translate-y-1/2 transition-transform"
         style={{
           left: mousePosition.x,
           top: mousePosition.y,
-          width: isPointer ? 50 : isMoving ? 40 : 32,
-          height: isPointer ? 50 : isMoving ? 40 : 32,
+          width: isPointer || isPointerForce ? 50 : isMoving ? 40 : 32,
+          height: isPointer || isPointerForce ? 50 : isMoving ? 40 : 32,
         }}
       >
         <div
           className="w-full h-full rounded-full backdrop-blur-sm border-2 transition-transform flex items-center justify-center"
           style={{
-            borderColor: isPointer ? '#00eaff' : 'rgba(147,51,234,0.6)',
-            backgroundColor: isPointer ? 'rgba(0,234,255,0.12)' : 'rgba(147,51,234,0.1)',
+            borderColor: isPointer || isPointerForce ? '#00eaff' : 'rgba(147,51,234,0.6)',
+            backgroundColor: isPointer || isPointerForce ? 'rgba(0,234,255,0.12)' : 'rgba(147,51,234,0.1)',
             boxShadow: isPointer
               ? '0 0 12px rgba(0,234,255,0.7)'
               : '0 0 8px rgba(147,51,234,0.5)'
@@ -153,9 +171,9 @@ const CustomCursor: React.FC = () => {
           <div
             className="rounded-full transition-transform"
             style={{
-              width: isPointer ? 6 : 4,
-              height: isPointer ? 6 : 4,
-              backgroundColor: isPointer ? '#00eaff' : '#a855f7'
+              width: isPointer || isPointerForce ? 6 : 4,
+              height: isPointer || isPointerForce ? 6 : 4,
+              backgroundColor: isPointer || isPointerForce ? '#00eaff' : '#a855f7'
             }}
           />
         </div>

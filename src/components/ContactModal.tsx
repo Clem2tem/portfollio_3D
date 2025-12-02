@@ -9,7 +9,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ onClose }) => {
 
   return (
     <div 
-      className='fixed bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4'
+      className='fixed bg-black/60 backdrop-blur-md z-[99999] flex items-center justify-center p-4'
       style={{
         top: 'env(safe-area-inset-top)',
         left: 'env(safe-area-inset-left)',
@@ -35,7 +35,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ onClose }) => {
       </div>
       <button
             onClick={onClose}
-            className="absolute text-white/70 hover:text-white text-3xl font-bold transition-colors duration-300 cursor-none right-4 md:right-8 top-4 md:top-6 z-20"
+            className="absolute text-white/70 hover:text-white text-3xl font-bold transition-colors duration-300  right-4 md:right-8 top-4 md:top-6 z-[9999]"
           >
             ×
           </button>
@@ -63,7 +63,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ onClose }) => {
             {/* Téléphone */}
             <a
               href="tel:+33615651016"
-              className="bg-white/10 backdrop-blur-sm rounded-xl p-3 md:p-4 border border-white/20 hover:scale-105 transition-transform duration-300 group cursor-none flex flex-col items-center"
+              className="bg-white/10 backdrop-blur-sm rounded-xl p-3 md:p-4 border border-white/20 hover:scale-105 transition-transform duration-300 group  flex flex-col items-center"
               aria-label="Appeler le numéro"
             >
               <div className="text-xl md:text-2xl mb-1 md:mb-2">📱</div>
@@ -73,7 +73,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ onClose }) => {
             {/* Email */}
             <a
               href="mailto:cldetemmerman@icloud.com"
-              className="bg-white/10 backdrop-blur-sm rounded-xl p-3 md:p-4 border border-white/20 hover:scale-105 transition-transform duration-300 group cursor-none flex flex-col items-center"
+              className="bg-white/10 backdrop-blur-sm rounded-xl p-3 md:p-4 border border-white/20 hover:scale-105 transition-transform duration-300 group  flex flex-col items-center"
               aria-label="Envoyer un email"
             >
               <div className="text-xl md:text-2xl mb-1 md:mb-2">📧</div>
@@ -82,7 +82,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ onClose }) => {
             </a>
             <a
               href="https://www.linkedin.com/in/cl%C3%A9ment-de-temmerman-8975882a0/"
-              className="bg-white/10 backdrop-blur-sm rounded-xl p-3 md:p-4 border border-white/20 hover:scale-105 transition-transform duration-300 group cursor-none flex flex-col items-center"
+              className="bg-white/10 backdrop-blur-sm rounded-xl p-3 md:p-4 border border-white/20 hover:scale-105 transition-transform duration-300 group  flex flex-col items-center"
               aria-label="Voir le profil LinkedIn"
               target="_blank"
               rel="noopener noreferrer"
@@ -93,7 +93,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ onClose }) => {
             </a>
             <a
               href="https://github.com/clem2tem"
-              className="bg-white/10 backdrop-blur-sm rounded-xl p-3 md:p-4 border border-white/20 hover:scale-105 transition-transform duration-300 group cursor-none flex flex-col items-center"
+              className="bg-white/10 backdrop-blur-sm rounded-xl p-3 md:p-4 border border-white/20 hover:scale-105 transition-transform duration-300 group  flex flex-col items-center"
               aria-label="Voir le profil GitHub"
               target="_blank"
               rel="noopener noreferrer"

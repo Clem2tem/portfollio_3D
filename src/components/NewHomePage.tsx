@@ -701,13 +701,11 @@ const IslandScene: React.FC<IslandSceneProps> = ({ isPopZoomed, setIsPopZoomed }
                     onPointerOver={() => {
                         if (!isPopZoomed) {
                             setPopBoxReverse(true);
-                            document.body.style.cursor = 'pointer';
                         }
                     }}
                     onPointerOut={() => {
                         if (!isPopZoomed) {
                             setPopBoxReverse(false);
-                            document.body.style.cursor = 'default';
                         }
                     }}
                     onClick={(e) => {
@@ -1092,6 +1090,13 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                         )}
                     </button>
                     <button
+                        className="px-4 py-2 rounded-full border border-white/20 text-sm font-semibold hover:border-white/60 transition-colors "
+
+                        type="button"
+                        onClick={() => setShowContact(true)}>
+                        {t.contact}
+                    </button>
+                    <button
                         type="button"
                         onClick={onEnter3DMode}
                         className="px-5 py-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-sm font-semibold tracking-[0.2em] "
@@ -1167,10 +1172,11 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 </footer>
 
                 <Preloader isVisible={isPreloaderVisible} />
-                {showContact && <ContactModal onClose={() => setShowContact(false)} />}
+                
 
 
             </div>
+            {showContact && <ContactModal onClose={() => setShowContact(false)} />}
         </div>
     );
 };
