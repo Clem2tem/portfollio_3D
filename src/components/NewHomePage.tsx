@@ -657,13 +657,12 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCame
 /* -------------------------------------------------------------------------- */
 
 interface IslandSceneProps {
-    setHoveredId: (id: ModelStopId | null) => void;
     mouseRef: React.MutableRefObject<{ x: number; y: number }>;
     isPopZoomed: boolean;
     setIsPopZoomed: (v: boolean) => void;
 }
 
-const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId, isPopZoomed, setIsPopZoomed }) => {
+const IslandScene: React.FC<IslandSceneProps> = ({isPopZoomed, setIsPopZoomed }) => {
     const [popBoxReverse, setPopBoxReverse] = useState(false);
     const popClemRef = useRef<THREE.Group>(null);
 
@@ -752,67 +751,8 @@ const IslandScene: React.FC<IslandSceneProps> = ({ setHoveredId, isPopZoomed, se
             {/* Portail ------------------------------------------------------------ */}
             <group position={[0, -2.7, 0]} scale={0.6} rotation={[0, 1.05 * Math.PI / 3, 0]}>
                 <Portal />
-                <mesh
-                    position={[-2.5, 1.5, 0]}
-                    onPointerOver={() => setHoveredId('portal')}
-                    onPointerOut={() => setHoveredId(null)}
-                >
-                    <planeGeometry args={[3.5, 3]} />
-                    <meshBasicMaterial transparent opacity={0} />
-                </mesh>
             </group>
         </>
-    );
-};
-
-/* -------------------------------------------------------------------------- */
-/*                              HUD SIDE OVERLAY                              */
-/* -------------------------------------------------------------------------- */
-
-const hudConfig: Record<
-    ModelStopId,
-    { label: string; title: string; extra: string[] }
-> = {
-    popclem: {
-        label: 'PORTFOLIO_CO_01',
-        title: 'POPClem Avatar',
-        extra: ['TEMP     94.52', '+01.45'],
-    },
-    hospital: {
-        label: 'PORTFOLIO_CO_02',
-        title: 'Hospital Complex',
-        extra: ['TEMP     91.12', '+00.75'],
-    },
-    house: {
-        label: 'PORTFOLIO_CO_03',
-        title: 'Construction Site',
-        extra: ['TEMP     89.64', '-00.12'],
-    },
-    portal: {
-        label: 'PORTFOLIO_CO_04',
-        title: 'Portal Access',
-        extra: ['TEMP     96.01', '+02.31'],
-    },
-};
-
-const HudOverlay: React.FC<{ hoveredId: ModelStopId | null }> = ({
-    hoveredId,
-}) => {
-    if (!hoveredId || !hudConfig[hoveredId]) return null;
-    const data = hudConfig[hoveredId];
-
-    return (
-        <div className="fixed inset-0 z-30">
-            <div className="absolute left-14 top-1/2 -translate-y-1/2 text-white font-mono side-info-panel">
-                <p className="sidetitle">{data.label}</p>
-                <p className="biglabel">{data.title}</p>
-                {data.extra.map((line) => (
-                    <p key={line} className="side-extra">
-                        {line}
-                    </p>
-                ))}
-            </div>
-        </div>
     );
 };
 
@@ -926,7 +866,6 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
     const [activeSection, setActiveSection] = useState<string>('popclem');
     const [activeStopIndex, setActiveStopIndex] = useState<number>(0);
-    const [hoveredId, setHoveredId] = useState<ModelStopId | null>(null);
 
     const sections = useMemo(
         () => [
@@ -1052,7 +991,9 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 <div className="flex flex-col items-center justify-center h-full px-[20dvw] gap-12 relative">
                     {isMiniaturized && (
                         <p className="text-2xl md:text-3xl font-mono text-center leading-snug absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/2">
-                            <GlitchText text="Je m'appelle Clément, créateur de solutions digitales pour aider les entreprises et particuliers à digitaliser leurs outils et marketing. Je vous accompagnerai afin de réaliser les projets de vos rêves, que ce soit d'un simple site web jusqu'à une application complexe." />
+                            <GlitchText text="Je m'appelle Clément. Je conçois des expériences digitales qui transforment une idée en produit réel.
+Qu'il s'agisse d'un site web vitrine, d'un outil métier stratégique ou d'une application complète, j'accompagne mes clients de la vision jusqu'à la livraison.
+Mon objectif est simple : créer des solutions utiles, optimales et durables pour donner vie à des projets que vous n'avez pas encore osé imaginer." />
                         </p>
                     )}
                     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-full flex justify-center">
@@ -1060,7 +1001,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     </div>
                 </div>
             </div>
-            {/* Canvas plein écran derrière l’UI */}
+            {/* Canvas plein écran derrière l'UI */}
             <div
                 ref={canvasContainerRef}
                 className={`fixed transition-all duration-1000 ease-in-out z-0 overflow-hidden top-0 left-0 w-full h-full rounded-none`}
@@ -1092,7 +1033,6 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                 isMiniaturized={isMiniaturized}
                             />
                             <IslandScene
-                                setHoveredId={setHoveredId}
                                 mouseRef={mouseRef}
                                 isPopZoomed={isPopZoomed}
                                 setIsPopZoomed={setIsPopZoomed}
@@ -1143,8 +1083,6 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             <div className={`transition-opacity duration-500 pointer-events-none ${isPopZoomed ? 'opacity-0 ' : 'opacity-100'}`}>
 
                 {/* Effets de fond + HUD */}
-
-                <HudOverlay hoveredId={hoveredId} />
 
 
                 {/* Stepper latéral */}

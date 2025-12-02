@@ -8,7 +8,7 @@ import NewHomePage from './components/NewHomePage'
 import { LoadingProvider, ProgressBridge } from './contexts/LoadingContext'
 import { PlayerPositionProvider } from './contexts/PlayerPositionContext'
 import { ProjectViewProvider } from './contexts/ProjectViewContext'
-import { SpeedInsights } from "@vercel/speed-insights/next"
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 
 function App() {
@@ -30,6 +30,8 @@ function App() {
   }
 
   return (
+    <>
+    <SpeedInsights/>
     <LoadingProvider>
       <ProjectViewProvider>
         <PlayerPositionProvider>
@@ -37,7 +39,7 @@ function App() {
             className={`w-full relative ${
               currentView === 'home' ? 'min-h-screen overflow-visible' : 'h-screen overflow-hidden'
             }`}
-          >
+            >
 
             {/* HomePage */}
             {currentView === 'home' && (
@@ -47,20 +49,20 @@ function App() {
             {/* 3D World */}
             {currentView === '3d' && (
               <Canvas
-                gl={{ antialias: true }}
-                camera={{
-                  fov: 60,
-                  position: [0, 6, 10],
-                  near: 0.1,
-                  far: 1000
-                }}
-                style={{
-                  visibility: 'visible',
-                  pointerEvents: undefined
-                }}
-                shadows
-                className="absolute inset-0"
-                dpr={[1, 2]}
+              gl={{ antialias: true }}
+              camera={{
+                fov: 60,
+                position: [0, 6, 10],
+                near: 0.1,
+                far: 1000
+              }}
+              style={{
+                visibility: 'visible',
+                pointerEvents: undefined
+              }}
+              shadows
+              className="absolute inset-0"
+              dpr={[1, 2]}
               >
                 <ProgressBridge />
                 <Suspense fallback={null}>
@@ -68,7 +70,7 @@ function App() {
                     isNightMode={isNightMode}
                     isEntering={isEntering}
                     onAnimationComplete={handleAnimationComplete}
-                  />
+                    />
                 </Suspense>
               </Canvas>
             )}
@@ -76,9 +78,9 @@ function App() {
             {/* UI pour le mode 3D */}
             {currentView === '3d' && (
               <UI
-                isNightMode={isNightMode}
-                setIsNightMode={setIsNightMode}
-                onBackToHome={handleBackToHome}
+              isNightMode={isNightMode}
+              setIsNightMode={setIsNightMode}
+              onBackToHome={handleBackToHome}
               />
             )}
 
@@ -87,6 +89,7 @@ function App() {
         </PlayerPositionProvider>
       </ProjectViewProvider>
     </LoadingProvider>
+            </>
   )
 }
 
