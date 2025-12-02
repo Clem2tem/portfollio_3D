@@ -8,6 +8,8 @@ import NewHomePage from './components/NewHomePage'
 import { LoadingProvider, ProgressBridge } from './contexts/LoadingContext'
 import { PlayerPositionProvider } from './contexts/PlayerPositionContext'
 import { ProjectViewProvider } from './contexts/ProjectViewContext'
+import { SpeedInsights } from "@vercel/speed-insights/next"
+
 
 function App() {
   const [currentView, setCurrentView] = useState<'home' | '3d'>('home')
@@ -29,6 +31,7 @@ function App() {
 
   return (
     <LoadingProvider>
+      <SpeedInsights />
       <ProjectViewProvider>
         <PlayerPositionProvider>
           <div
