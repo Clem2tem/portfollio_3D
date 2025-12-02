@@ -1079,27 +1079,6 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                         ref={(node) => registerSection('popclem', node as HTMLElement)}
                         className="h-screen flex items-center px-6 md:px-12"
                     >
-                        <div className="max-w-4xl space-y-8">
-                            <p
-                                className="text-xs uppercase tracking-[0.5em] text-white/60"
-                                data-animate="fade-up"
-                            >
-                                {t.popclem.step}
-                            </p>
-                            <h1
-                                data-split
-                                className="text-5xl md:text-7xl lg:text-8xl font-semibold leading-[1.05] drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"
-                            >
-                                {t.popclem.title}
-                            </h1>
-                            <p
-                                className="text-lg md:text-xl text-white max-w-2xl drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"
-                                data-animate="fade-up"
-                            >
-                                {t.popclem.description}
-                            </p>
-                        </div>
-
                     </section>
 
                     {/* HÔPITAL */}
@@ -1108,26 +1087,6 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                         ref={(node) => registerSection('hospital', node as HTMLElement)}
                         className="h-screen flex items-end px-6 md:px-12 pb-20"
                     >
-                        <div className="max-w-4xl space-y-8">
-                            <p
-                                className="text-xs uppercase tracking-[0.5em] text-white/60"
-                                data-animate="fade-up"
-                            >
-                                {t.hospital.step}
-                            </p>
-                            <h1
-                                data-split
-                                className="text-5xl md:text-7xl lg:text-8xl font-semibold leading-[1.05] drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"
-                            >
-                                {t.hospital.title}
-                            </h1>
-                            <p
-                                className="text-lg md:text-xl text-white max-w-4xl drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"
-                                data-animate="fade-up"
-                            >
-                                {t.hospital.description}
-                            </p>
-                        </div>
                     </section>
 
                     {/* MAISON + PELLETEUSE */}
