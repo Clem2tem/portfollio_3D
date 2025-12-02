@@ -825,7 +825,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 title: 'Le portail vers l\'univers complet.',
                 description: 'Dernier stop : le portail. Il sert de passerelle vers ton mode 3D libre, pendant que le HUD affiche l\'entrée "PORTFOLIO_CO_04".'
             },
-            footer: '© 2024 Clément De Temmerman — Portfolio 3D expérimental'
+            footer: '© 2025 Clément De Temmerman — Portfolio 3D expérimental'
         },
         en: {
             subtitle: 'Clément',
