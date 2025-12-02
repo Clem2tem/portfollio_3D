@@ -878,10 +878,10 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
     const sections = useMemo(
         () => [
-            { id: 'popclem', label: 'MOI' },
-            { id: 'hospital', label: 'MEDCHEM STRUCTURE GENIUS' },
-            { id: 'house', label: 'SAAS ERP - EGS' },
-            { id: 'portal', label: 'MODE LIBRE 3D' },
+            { id: 'popclem', label: t.popclem.step },
+            { id: 'hospital', label: t.hospital.step },
+            { id: 'house', label: t.house.step },
+            { id: 'portal', label: t.portal.step },
         ],
         [],
     );
