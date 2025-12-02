@@ -31,7 +31,6 @@ function App() {
 
   return (
     <LoadingProvider>
-      <SpeedInsights />
       <ProjectViewProvider>
         <PlayerPositionProvider>
           <div

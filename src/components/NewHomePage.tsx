@@ -39,222 +39,304 @@ gsap.registerPlugin(ScrollTrigger);
 /* -------------------------------------------------------------------------- */
 
 interface GlitchTextProps {
-  text: string;
-  className?: string; // Permet d'ajouter vos propres classes
+    text: string;
+    className?: string;
 }
 
 const CONFIG = {
-  waveSpeed: 0.5,      // Vitesse du projectile relâché
-  waveWidth: 15,       // Épaisseur de la zone d'impact
-  waveLife: 1000,      // Durée de vie projectile (ms)
-  initialRadius: 15,   // Rayon de la tête chercheuse autour de la souris
-  glitchChance: 0.4,   // Très probable si touché
-  colors: ["#ff00ff", "#00ffff", "#f0f"], // Couleurs cyber
-  chars: "XMW_-/\\:<>[]{}*+=?#", // Caractères de remplacement
-  coneThreshold: 0.5,  // Définit l'angle du cône avant (plus proche de 1 = plus étroit)
-  stopTimeout: 25,    // Temps d'arrêt avant de lâcher le projectile
+    waveSpeed: 0.5,
+    waveWidth: 15,
+    waveLife: 1000,
+    initialRadius: 20,
+    glitchChance: 0.8,
+    colors: ["#ff00ff", "#00ffff", "#f0f"],
+    chars: "XMW_-/\\:<>[]{}*+=?#",
+    coneThreshold: 0.4,
+    stopTimeout: 150,
+    introWaveSpeed: 0.6,
+    introWaveLife: 5000,
+    introWaveWidthMult: 2,
+    revealDelay: 2000, // Temps max avant affichage forcé
 };
 
 interface Ripple {
-  x: number; y: number;   // Position actuelle du centre de l'onde
-  vx: number; vy: number; // Direction normalisée
-  time: number;           // Temps de référence pour l'animation
-  id: number;
-  released: boolean;      // État du projectile
+    x: number; y: number;
+    vx: number; vy: number;
+    time: number;
+    id: number;
+    released: boolean;
+    isIntro?: boolean;
+}
+
+interface CharData {
+    centerX: number;
+    centerY: number;
+    char: string;
+    isGlitching: boolean;
 }
 
 const GlitchText: React.FC<GlitchTextProps> = ({ text, className = "" }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const spansRef = useRef<(HTMLSpanElement | null)[]>([]);
-  
-  const ripples = useRef<Ripple[]>([]);
-  const activeRippleRef = useRef<Ripple | null>(null);
-  
-  const lastDirRef = useRef<{ x: number; y: number } | null>(null);
-  const lastMousePos = useRef<{ x: number; y: number } | null>(null);
-  const stopTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const spansRef = useRef<(HTMLSpanElement | null)[]>([]);
 
-  const randomChar = () => CONFIG.chars[Math.floor(Math.random() * CONFIG.chars.length)];
+    // Cache des positions pour la performance
+    const charPositions = useRef<CharData[]>([]);
 
-  // --- BOUCLE D'ANIMATION PRINCIPALE ---
-  useEffect(() => {
-    let frameId: number;
+    const ripples = useRef<Ripple[]>([]);
+    const activeRippleRef = useRef<Ripple | null>(null);
+    const revealedIndices = useRef(new Set<number>());
+    const forceRevealRef = useRef(false);
 
-    const loop = () => {
-      const now = performance.now();
-      const container = containerRef.current;
-      if (!container) return;
+    const lastDirRef = useRef<{ x: number; y: number } | null>(null);
+    const lastMousePos = useRef<{ x: number; y: number } | null>(null);
+    const stopTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-      // 1. Nettoyage des projectiles expirés
-      ripples.current = ripples.current.filter((r) => 
-        !r.released || (now - r.time < CONFIG.waveLife)
-      );
+    const randomChar = () => CONFIG.chars[Math.floor(Math.random() * CONFIG.chars.length)];
 
-      // 2. Calculs physiques et rendu
-      spansRef.current.forEach((span, index) => {
-        if (!span) return;
+    // --- 1. CALCUL DES POSITIONS ---
+    const measureChars = useCallback(() => {
+        const container = containerRef.current;
+        if (!container) return;
 
-        // Reset du style par défaut au début de la frame
-        span.innerText = text[index];
-        span.style.transform = "none";
-        span.style.color = "inherit";
-        span.style.textShadow = "none";
-        span.style.opacity = "1";
-
-        const rect = span.getBoundingClientRect();
+        // On force un recalcul propre
         const containerRect = container.getBoundingClientRect();
-        const charX = rect.left - containerRect.left + rect.width / 2;
-        const charY = rect.top - containerRect.top + rect.height / 2;
 
-        let isAffected = false;
-        let intensity = 0;
+        charPositions.current = spansRef.current.map((span, index) => {
+            if (!span) return { centerX: 0, centerY: 0, char: text[index], isGlitching: false };
 
-        ripples.current.forEach((ripple) => {
-          const age = now - ripple.time;
-          let waveCenterX = ripple.x;
-          let waveCenterY = ripple.y;
-
-          // Si relâchée, le centre avance comme un projectile
-          if (ripple.released) {
-            const distanceTraveled = age * CONFIG.waveSpeed;
-            waveCenterX += ripple.vx * distanceTraveled;
-            waveCenterY += ripple.vy * distanceTraveled;
-          }
-
-          // Vecteur entre le centre de l'onde et le caractère
-          const dx = charX - waveCenterX;
-          const dy = charY - waveCenterY;
-          const distToWaveCenter = Math.sqrt(dx * dx + dy * dy);
-
-          // --- LOGIQUE DIRECTIONNELLE STRICTE ---
-          let isInFront = false;
-          // On ne calcule que s'il y a une direction et que le char n'est pas pile au centre
-          if ((ripple.vx !== 0 || ripple.vy !== 0) && distToWaveCenter > 0) {
-             // Normalisation du vecteur vers le caractère
-             const ndx = dx / distToWaveCenter;
-             const ndy = dy / distToWaveCenter;
-             // Produit scalaire normalisé = cosinus de l'angle
-             const dot = ndx * ripple.vx + ndy * ripple.vy;
-             // On vérifie si c'est dans le cône avant défini par le seuil
-             isInFront = dot > CONFIG.coneThreshold;
-          }
-
-          // Le rayon d'intérêt est constant (la taille de la "tête" de l'onde)
-          const radiusOfInterest = CONFIG.initialRadius;
-
-          // Collision : Dans le cône avant ET sur le bord du cercle
-          if (isInFront && Math.abs(distToWaveCenter - radiusOfInterest) < CONFIG.waveWidth) {
-            isAffected = true;
-            const currentIntensity = 1 - Math.abs(distToWaveCenter - radiusOfInterest) / CONFIG.waveWidth;
-            intensity = Math.max(intensity, currentIntensity);
-          }
+            const rect = span.getBoundingClientRect();
+            return {
+                // Coordonnées relatives au conteneur
+                centerX: rect.left - containerRect.left + rect.width / 2,
+                centerY: rect.top - containerRect.top + rect.height / 2,
+                char: text[index],
+                isGlitching: false
+            };
         });
+    }, [text]);
 
-        // 3. Application du Glitch (SI affecté)
-        if (isAffected && Math.random() < CONFIG.glitchChance) {
-          span.innerText = randomChar();
-          
-          // CORRECTION POINT 4 : Pas de translate, juste un scale léger
-          span.style.transform = `scale(${1 + intensity * 0.15})`; 
-          
-          span.style.color = CONFIG.colors[Math.floor(Math.random() * CONFIG.colors.length)];
-          
-          // L'effet RGB shift se fait via text-shadow, sans bouger le texte lui-même
-          const shadowDist = intensity * 3;
-          span.style.textShadow = `
-            ${shadowDist}px 0 0 ${CONFIG.colors[0]}, 
-            -${shadowDist}px 0 0 ${CONFIG.colors[1]}
-          `;
+    // Observer le redimensionnement et le chargement initial
+    useEffect(() => {
+        // Petit délai pour laisser le temps au layout de se faire (important pour la position exacte)
+        const timer = setTimeout(measureChars, 50);
+        window.addEventListener("resize", measureChars);
+        return () => {
+            window.removeEventListener("resize", measureChars);
+            clearTimeout(timer);
         }
-      });
+    }, [measureChars]);
 
-      frameId = requestAnimationFrame(loop);
+    // --- 2. TIMEOUT DE RÉVÉLATION (Fallback) ---
+    useEffect(() => {
+        forceRevealRef.current = false;
+        const timer = setTimeout(() => {
+            forceRevealRef.current = true;
+        }, CONFIG.revealDelay);
+        return () => clearTimeout(timer);
+    }, [text]);
+
+    // --- 3. LANCEMENT DE L'ONDE D'INTRO ---
+    useEffect(() => {
+        revealedIndices.current.clear();
+        const dirX = 0.7071;
+        const dirY = 0.7071;
+
+        ripples.current.push({
+            x: -150, y: -150, // Départ bien en dehors
+            vx: dirX, vy: dirY,
+            time: performance.now(),
+            id: Math.random(),
+            released: true,
+            isIntro: true,
+        });
+    }, [text]);
+
+    // --- 4. BOUCLE D'ANIMATION ---
+    useEffect(() => {
+        let frameId: number;
+
+        const loop = () => {
+            const now = performance.now();
+
+            // Nettoyage des ondes expirées
+            ripples.current = ripples.current.filter((r) => {
+                const life = r.isIntro ? CONFIG.introWaveLife : CONFIG.waveLife;
+                return !r.released || (now - r.time < life);
+            });
+
+            // Boucle optimisée sur les données en cache
+            charPositions.current.forEach((charData, index) => {
+                const span = spansRef.current[index];
+                if (!span) return;
+
+                let isAffected = false;
+                let intensity = 0;
+
+                // A. D'ABORD : Calculer les collisions (MÊME si invisible)
+                ripples.current.forEach((ripple) => {
+                    const age = now - ripple.time;
+                    let waveCenterX = ripple.x;
+                    let waveCenterY = ripple.y;
+                    const speed = ripple.isIntro ? CONFIG.introWaveSpeed : CONFIG.waveSpeed;
+
+                    if (ripple.released) {
+                        const distanceTraveled = age * speed;
+                        waveCenterX += ripple.vx * distanceTraveled;
+                        waveCenterY += ripple.vy * distanceTraveled;
+                    }
+
+                    const dx = charData.centerX - waveCenterX;
+                    const dy = charData.centerY - waveCenterY;
+
+                    if (ripple.isIntro) {
+                        // Logique de "Ligne de front" infinie pour l'intro
+                        const distanceToWaveFront = dx * ripple.vx + dy * ripple.vy;
+                        const introWidth = CONFIG.waveWidth * CONFIG.introWaveWidthMult;
+
+                        if (Math.abs(distanceToWaveFront) < introWidth) {
+                            isAffected = true;
+                            intensity = Math.max(intensity, 1 - Math.abs(distanceToWaveFront) / introWidth);
+
+                            // C'est ici qu'on révèle le caractère !
+                            if (!revealedIndices.current.has(index)) {
+                                revealedIndices.current.add(index);
+                            }
+                        }
+                    } else {
+                        // Logique "Projectile" pour la souris
+                        const distToWaveCenter = Math.sqrt(dx * dx + dy * dy);
+                        let isInFront = false;
+                        // Vérification directionnelle si l'onde bouge
+                        if ((ripple.vx !== 0 || ripple.vy !== 0) && distToWaveCenter > 0) {
+                            const ndx = dx / distToWaveCenter;
+                            const ndy = dy / distToWaveCenter;
+                            const dot = ndx * ripple.vx + ndy * ripple.vy;
+                            isInFront = dot > CONFIG.coneThreshold;
+                        }
+                        const radiusOfInterest = CONFIG.initialRadius;
+
+                        if (isInFront && Math.abs(distToWaveCenter - radiusOfInterest) < CONFIG.waveWidth) {
+                            isAffected = true;
+                            const currentIntensity = 1 - Math.abs(distToWaveCenter - radiusOfInterest) / CONFIG.waveWidth;
+                            intensity = Math.max(intensity, currentIntensity);
+                        }
+                    }
+                });
+
+                // B. ENSUITE : Gérer l'opacité (Maintenant qu'on sait si c'est révélé)
+                const isRevealed = revealedIndices.current.has(index);
+                const shouldShow = isRevealed || forceRevealRef.current;
+                const targetOpacity = shouldShow ? "1" : "0";
+
+                // Application optimisée de l'opacité
+                if (span.style.opacity !== targetOpacity) {
+                    span.style.opacity = targetOpacity;
+                }
+
+                // C. ENFIN : Si toujours invisible, on arrête là pour ce caractère (Optimisation)
+                if (!shouldShow) return;
+
+                // D. Application du Glitch visuel
+                if (isAffected && Math.random() < CONFIG.glitchChance) {
+                    charData.isGlitching = true;
+                    span.innerText = randomChar();
+                    span.style.transform = `scale(${1 + intensity * 0.15})`;
+                    span.style.color = CONFIG.colors[Math.floor(Math.random() * CONFIG.colors.length)];
+                    const shadowDist = intensity * 3;
+                    span.style.textShadow = `${shadowDist}px 0 0 ${CONFIG.colors[0]}, -${shadowDist}px 0 0 ${CONFIG.colors[1]}`;
+
+                } else if (charData.isGlitching) {
+                    // Reset propre quand le glitch s'arrête
+                    span.innerText = charData.char;
+                    span.style.transform = "none";
+                    span.style.color = "inherit";
+                    span.style.textShadow = "none";
+                    charData.isGlitching = false;
+                }
+            });
+
+            frameId = requestAnimationFrame(loop);
+        };
+
+        frameId = requestAnimationFrame(loop);
+        return () => cancelAnimationFrame(frameId);
+    }, [text]);
+
+    // --- GESTION SOURIS (Inchangée) ---
+    const releaseActiveRipple = () => {
+        if (activeRippleRef.current) {
+            activeRippleRef.current.released = true;
+            activeRippleRef.current.time = performance.now();
+            activeRippleRef.current = null;
+        }
     };
 
-    frameId = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frameId);
-  }, [text]);
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
 
-  // --- GESTION SOURIS (Identique à la version précédente) ---
-  const releaseActiveRipple = () => {
-      if (activeRippleRef.current) {
-          activeRippleRef.current.released = true;
-          activeRippleRef.current.time = performance.now(); 
-          activeRippleRef.current = null;
-      }
-  };
+        if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
+        stopTimerRef.current = setTimeout(releaseActiveRipple, CONFIG.stopTimeout);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
-    stopTimerRef.current = setTimeout(releaseActiveRipple, CONFIG.stopTimeout);
-
-    if (lastMousePos.current) {
-        const dx = x - lastMousePos.current.x;
-        const dy = y - lastMousePos.current.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-
-        if (dist > 2) {
-            const dirX = dx / dist;
-            const dirY = dy / dist;
-            let shouldCreateNew = false;
-
-            if (lastDirRef.current && activeRippleRef.current) {
-                const dot = dirX * lastDirRef.current.x + dirY * lastDirRef.current.y;
-                // Si virage trop sec (produit scalaire < 0.7 environ 45deg)
-                if (dot < 0.7) shouldCreateNew = true;
+        if (lastMousePos.current) {
+            const dx = x - lastMousePos.current.x;
+            const dy = y - lastMousePos.current.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > 2) {
+                const dirX = dx / dist;
+                const dirY = dy / dist;
+                let shouldCreateNew = false;
+                if (lastDirRef.current && activeRippleRef.current) {
+                    const dot = dirX * lastDirRef.current.x + dirY * lastDirRef.current.y;
+                    if (dot < 0.7) shouldCreateNew = true;
+                }
+                if (shouldCreateNew || !activeRippleRef.current) {
+                    releaseActiveRipple();
+                    const newRipple: Ripple = {
+                        x, y, vx: dirX, vy: dirY,
+                        time: performance.now(), id: Math.random(), released: false
+                    };
+                    ripples.current.push(newRipple);
+                    activeRippleRef.current = newRipple;
+                } else {
+                    activeRippleRef.current.x = x;
+                    activeRippleRef.current.y = y;
+                    activeRippleRef.current.vx = dirX;
+                    activeRippleRef.current.vy = dirY;
+                }
+                lastDirRef.current = { x: dirX, y: dirY };
             }
-
-            if (shouldCreateNew || !activeRippleRef.current) {
-                releaseActiveRipple();
-                const newRipple: Ripple = {
-                    x, y, vx: dirX, vy: dirY,
-                    time: performance.now(), id: Math.random(), released: false
-                };
-                ripples.current.push(newRipple);
-                activeRippleRef.current = newRipple;
-            } else {
-                activeRippleRef.current.x = x;
-                activeRippleRef.current.y = y;
-                activeRippleRef.current.vx = dirX;
-                activeRippleRef.current.vy = dirY;
-            }
-            lastDirRef.current = { x: dirX, y: dirY };
         }
+        lastMousePos.current = { x, y };
+    };
+
+    const handleMouseLeave = () => {
+        releaseActiveRipple();
+        lastMousePos.current = null;
     }
-    lastMousePos.current = { x, y };
-  };
 
-  const handleMouseLeave = () => {
-      releaseActiveRipple();
-      lastMousePos.current = null;
-  }
-
-  return (
-    <div
-      ref={containerRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-    // CORRECTION POINT 1 & 2 : Pas de style de fond, et ajout de white-space: pre-wrap pour retour à la ligne auto
-    className={`relative ${className}`}
-    style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }} 
-    >
-    {text.split("").map((char, index) => (
-        <span
-          key={index}
-          ref={(el) => {spansRef.current[index] = el}}
-          // will-change est important pour la fluidité sur Chrome
-          className="will-change-[transform,text-shadow,color]"
+    return (
+        <div
+            ref={containerRef}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            className={`relative ${className}`}
+            style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
         >
-          {char}
-        </span>
-      ))}
-    </div>
-  );
+            {text.split("").map((char, index) => (
+                <span
+                    key={index}
+                    ref={(el) => { spansRef.current[index] = el }}
+                    className="will-change-[transform,text-shadow,opacity]"
+                    style={{ opacity: 0 }}
+                >
+                    {char}
+                </span>
+            ))}
+        </div>
+    );
 };
 
 
@@ -968,9 +1050,11 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
                 {/* Contenu centré */}
                 <div className="flex flex-col items-center justify-center h-full px-[20dvw] gap-12 relative">
-                    <p className="text-2xl md:text-3xl font-mono text-center leading-snug absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/2">
-                        <GlitchText text="Je m'appelle Clément, créateur de solutions digitales pour aider les entreprises et particuliers à digitaliser leurs outils et marketing. Je vous accompagnerai afin de réaliser les projets de vos rêves, que ce soit d'un simple site web jusqu'à une application complexe." />
-                    </p>
+                    {isMiniaturized && (
+                        <p className="text-2xl md:text-3xl font-mono text-center leading-snug absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/2">
+                            <GlitchText text="Je m'appelle Clément, créateur de solutions digitales pour aider les entreprises et particuliers à digitaliser leurs outils et marketing. Je vous accompagnerai afin de réaliser les projets de vos rêves, que ce soit d'un simple site web jusqu'à une application complexe." />
+                        </p>
+                    )}
                     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-full flex justify-center">
                         <TechCarousel />
                     </div>
