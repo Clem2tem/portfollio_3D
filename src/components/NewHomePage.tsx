@@ -34,6 +34,348 @@ import HouseBox from './BoxedHouse';
 
 gsap.registerPlugin(ScrollTrigger);
 
+/* -------------------------------------------------------------------------- */
+/*                            GLITCH TEXT                                     */
+/* -------------------------------------------------------------------------- */
+
+interface GlitchTextProps {
+  text: string;
+  className?: string; // Permet d'ajouter vos propres classes
+}
+
+const CONFIG = {
+  waveSpeed: 0.5,      // Vitesse du projectile relâché
+  waveWidth: 15,       // Épaisseur de la zone d'impact
+  waveLife: 1000,      // Durée de vie projectile (ms)
+  initialRadius: 15,   // Rayon de la tête chercheuse autour de la souris
+  glitchChance: 0.4,   // Très probable si touché
+  colors: ["#ff00ff", "#00ffff", "#f0f"], // Couleurs cyber
+  chars: "XMW_-/\\:<>[]{}*+=?#", // Caractères de remplacement
+  coneThreshold: 0.5,  // Définit l'angle du cône avant (plus proche de 1 = plus étroit)
+  stopTimeout: 25,    // Temps d'arrêt avant de lâcher le projectile
+};
+
+interface Ripple {
+  x: number; y: number;   // Position actuelle du centre de l'onde
+  vx: number; vy: number; // Direction normalisée
+  time: number;           // Temps de référence pour l'animation
+  id: number;
+  released: boolean;      // État du projectile
+}
+
+const GlitchText: React.FC<GlitchTextProps> = ({ text, className = "" }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const spansRef = useRef<(HTMLSpanElement | null)[]>([]);
+  
+  const ripples = useRef<Ripple[]>([]);
+  const activeRippleRef = useRef<Ripple | null>(null);
+  
+  const lastDirRef = useRef<{ x: number; y: number } | null>(null);
+  const lastMousePos = useRef<{ x: number; y: number } | null>(null);
+  const stopTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const randomChar = () => CONFIG.chars[Math.floor(Math.random() * CONFIG.chars.length)];
+
+  // --- BOUCLE D'ANIMATION PRINCIPALE ---
+  useEffect(() => {
+    let frameId: number;
+
+    const loop = () => {
+      const now = performance.now();
+      const container = containerRef.current;
+      if (!container) return;
+
+      // 1. Nettoyage des projectiles expirés
+      ripples.current = ripples.current.filter((r) => 
+        !r.released || (now - r.time < CONFIG.waveLife)
+      );
+
+      // 2. Calculs physiques et rendu
+      spansRef.current.forEach((span, index) => {
+        if (!span) return;
+
+        // Reset du style par défaut au début de la frame
+        span.innerText = text[index];
+        span.style.transform = "none";
+        span.style.color = "inherit";
+        span.style.textShadow = "none";
+        span.style.opacity = "1";
+
+        const rect = span.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const charX = rect.left - containerRect.left + rect.width / 2;
+        const charY = rect.top - containerRect.top + rect.height / 2;
+
+        let isAffected = false;
+        let intensity = 0;
+
+        ripples.current.forEach((ripple) => {
+          const age = now - ripple.time;
+          let waveCenterX = ripple.x;
+          let waveCenterY = ripple.y;
+
+          // Si relâchée, le centre avance comme un projectile
+          if (ripple.released) {
+            const distanceTraveled = age * CONFIG.waveSpeed;
+            waveCenterX += ripple.vx * distanceTraveled;
+            waveCenterY += ripple.vy * distanceTraveled;
+          }
+
+          // Vecteur entre le centre de l'onde et le caractère
+          const dx = charX - waveCenterX;
+          const dy = charY - waveCenterY;
+          const distToWaveCenter = Math.sqrt(dx * dx + dy * dy);
+
+          // --- LOGIQUE DIRECTIONNELLE STRICTE ---
+          let isInFront = false;
+          // On ne calcule que s'il y a une direction et que le char n'est pas pile au centre
+          if ((ripple.vx !== 0 || ripple.vy !== 0) && distToWaveCenter > 0) {
+             // Normalisation du vecteur vers le caractère
+             const ndx = dx / distToWaveCenter;
+             const ndy = dy / distToWaveCenter;
+             // Produit scalaire normalisé = cosinus de l'angle
+             const dot = ndx * ripple.vx + ndy * ripple.vy;
+             // On vérifie si c'est dans le cône avant défini par le seuil
+             isInFront = dot > CONFIG.coneThreshold;
+          }
+
+          // Le rayon d'intérêt est constant (la taille de la "tête" de l'onde)
+          const radiusOfInterest = CONFIG.initialRadius;
+
+          // Collision : Dans le cône avant ET sur le bord du cercle
+          if (isInFront && Math.abs(distToWaveCenter - radiusOfInterest) < CONFIG.waveWidth) {
+            isAffected = true;
+            const currentIntensity = 1 - Math.abs(distToWaveCenter - radiusOfInterest) / CONFIG.waveWidth;
+            intensity = Math.max(intensity, currentIntensity);
+          }
+        });
+
+        // 3. Application du Glitch (SI affecté)
+        if (isAffected && Math.random() < CONFIG.glitchChance) {
+          span.innerText = randomChar();
+          
+          // CORRECTION POINT 4 : Pas de translate, juste un scale léger
+          span.style.transform = `scale(${1 + intensity * 0.15})`; 
+          
+          span.style.color = CONFIG.colors[Math.floor(Math.random() * CONFIG.colors.length)];
+          
+          // L'effet RGB shift se fait via text-shadow, sans bouger le texte lui-même
+          const shadowDist = intensity * 3;
+          span.style.textShadow = `
+            ${shadowDist}px 0 0 ${CONFIG.colors[0]}, 
+            -${shadowDist}px 0 0 ${CONFIG.colors[1]}
+          `;
+        }
+      });
+
+      frameId = requestAnimationFrame(loop);
+    };
+
+    frameId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(frameId);
+  }, [text]);
+
+  // --- GESTION SOURIS (Identique à la version précédente) ---
+  const releaseActiveRipple = () => {
+      if (activeRippleRef.current) {
+          activeRippleRef.current.released = true;
+          activeRippleRef.current.time = performance.now(); 
+          activeRippleRef.current = null;
+      }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
+    stopTimerRef.current = setTimeout(releaseActiveRipple, CONFIG.stopTimeout);
+
+    if (lastMousePos.current) {
+        const dx = x - lastMousePos.current.x;
+        const dy = y - lastMousePos.current.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+
+        if (dist > 2) {
+            const dirX = dx / dist;
+            const dirY = dy / dist;
+            let shouldCreateNew = false;
+
+            if (lastDirRef.current && activeRippleRef.current) {
+                const dot = dirX * lastDirRef.current.x + dirY * lastDirRef.current.y;
+                // Si virage trop sec (produit scalaire < 0.7 environ 45deg)
+                if (dot < 0.7) shouldCreateNew = true;
+            }
+
+            if (shouldCreateNew || !activeRippleRef.current) {
+                releaseActiveRipple();
+                const newRipple: Ripple = {
+                    x, y, vx: dirX, vy: dirY,
+                    time: performance.now(), id: Math.random(), released: false
+                };
+                ripples.current.push(newRipple);
+                activeRippleRef.current = newRipple;
+            } else {
+                activeRippleRef.current.x = x;
+                activeRippleRef.current.y = y;
+                activeRippleRef.current.vx = dirX;
+                activeRippleRef.current.vy = dirY;
+            }
+            lastDirRef.current = { x: dirX, y: dirY };
+        }
+    }
+    lastMousePos.current = { x, y };
+  };
+
+  const handleMouseLeave = () => {
+      releaseActiveRipple();
+      lastMousePos.current = null;
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    // CORRECTION POINT 1 & 2 : Pas de style de fond, et ajout de white-space: pre-wrap pour retour à la ligne auto
+    className={`relative ${className}`}
+    style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }} 
+    >
+    {text.split("").map((char, index) => (
+        <span
+          key={index}
+          ref={(el) => {spansRef.current[index] = el}}
+          // will-change est important pour la fluidité sur Chrome
+          className="will-change-[transform,text-shadow,color]"
+        >
+          {char}
+        </span>
+      ))}
+    </div>
+  );
+};
+
+
+
+/* -------------------------------------------------------------------------- */
+/*                            TECH CAROUSEL                                   */
+/* -------------------------------------------------------------------------- */
+
+const technologies = [
+    { name: 'React', ext: 'png' },
+    { name: 'Node.js', ext: 'png' },
+    { name: 'Next.js', ext: 'png' },
+    { name: 'TypeScript', ext: 'svg' },
+    { name: 'Firebase', ext: 'png' },
+    { name: 'Supabase', ext: 'png' },
+    { name: 'Vercel', ext: 'svg' },
+    { name: 'Git', ext: 'png' },
+    { name: 'Google_Cloud', ext: 'svg' },
+];
+
+function TechCarousel() {
+    const [currentIndex, setCurrentIndex] = useState(0);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentIndex((prev) => (prev + 1) % technologies.length);
+        }, 2000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const currentTech = technologies[currentIndex];
+
+    const goToPrevious = () => {
+        setCurrentIndex((prev) => (prev - 1 + technologies.length) % technologies.length);
+    };
+
+    const goToNext = () => {
+        setCurrentIndex((prev) => (prev + 1) % technologies.length);
+    };
+
+    return (
+        <div className="relative w-full h-full flex flex-col items-center justify-center gap-4 p-4">
+
+            <div className="relative w-full flex items-center justify-center gap-4">
+                {/* Flèche gauche */}
+                <button
+                    onClick={goToPrevious}
+                    className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                    aria-label="Previous technology"
+                >
+                    <svg
+                        className="w-6 h-6 text-white/70 hover:text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 19l-7-7 7-7"
+                        />
+                    </svg>
+                </button>
+
+                {/* Image */}
+                <div className="relative w-24 h-24 flex items-center justify-center">
+                    <img
+                        key={currentIndex}
+                        src={`/logos/technos/${currentTech.name}.${currentTech.ext}`}
+                        alt={currentTech.name}
+                        className="max-w-full max-h-full object-contain transition-all duration-500 ease-out"
+                        style={{
+                            animation: 'fadeInScale 0.5s ease-out',
+                            filter: 'drop-shadow(0 0 8px rgba(123, 0, 139, 1))',
+                        }}
+                    />
+                </div>
+
+                {/* Flèche droite */}
+                <button
+                    onClick={goToNext}
+                    className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                    aria-label="Next technology"
+                >
+                    <svg
+                        className="w-6 h-6 text-white/70 hover:text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                        />
+                    </svg>
+                </button>
+            </div>
+
+            <p className="text-sm text-white/70 font-mono">
+                {currentTech.name.replace(/_/g, ' ')}
+            </p>
+
+            <div className="flex gap-1.5">
+                {technologies.map((_, idx) => (
+                    <button
+                        key={idx}
+                        onClick={() => setCurrentIndex(idx)}
+                        className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentIndex
+                            ? 'bg-white w-8'
+                            : 'bg-white/30 w-1.5 hover:bg-white/50'
+                            }`}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}
+
 
 interface HomePageProps {
     onEnter3DMode: () => void;
@@ -120,7 +462,7 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCame
         if (isPopZoomed) {
             // Zoom sur POPClem
             gsap.to(camera.position, {
-                x: 1.5,
+                x: 1,
                 y: 2.8,
                 z: 0,
                 duration: 1.2,
@@ -602,17 +944,44 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     return (
         <div className={`relative min-h-screen text-white overflow-x-hidden`}>
             <AnimatedBackground />
+            <div className={`fixed top-0 left-0 z-40 h-[100dvh] w-[100dvw] transition-opacity bg-black/70 duration-1000 ${isMiniaturized ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+                {/* Bouton fermer en haut à droite */}
+                <button
+                    onClick={handleReturnFromBento}
+                    className="absolute top-16 right-8 p-3 z-[9999] rounded-full bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm border border-white/20"
+                    aria-label="Fermer"
+                >
+                    <svg
+                        className="w-6 h-6 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                        />
+                    </svg>
+                </button>
+
+                {/* Contenu centré */}
+                <div className="flex flex-col items-center justify-center h-full px-[20dvw] gap-12 relative">
+                    <p className="text-2xl md:text-3xl font-mono text-center leading-snug absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/2">
+                        <GlitchText text="Je m'appelle Clément, créateur de solutions digitales pour aider les entreprises et particuliers à digitaliser leurs outils et marketing. Je vous accompagnerai afin de réaliser les projets de vos rêves, que ce soit d'un simple site web jusqu'à une application complexe." />
+                    </p>
+                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-full flex justify-center">
+                        <TechCarousel />
+                    </div>
+                </div>
+            </div>
             {/* Canvas plein écran derrière l’UI */}
             <div
                 ref={canvasContainerRef}
-                className={`fixed transition-all duration-1000 ease-in-out z-0 overflow-hidden
-        ${isMiniaturized
-                        ? 'w-[90dvw] h-[40dvh] md:w-[30dvw] md:h-[80dvh] rounded-3xl shadow-2xl border border-white/10 cursor-pointer md:top-[10dvh] md:left-[10dvh] top-[5dvw] left-[5dvw] hover:scale-[1.02]'
-                        : 'top-0 left-0 w-full h-full rounded-none'
-                    }
-    `}
-                onClick={handleReturnFromBento}
+                className={`fixed transition-all duration-1000 ease-in-out z-0 overflow-hidden top-0 left-0 w-full h-full rounded-none`}
             >
+
                 {/** ⬇️ WRAPPER STABLE (ne bouge jamais) */}
                 <div
                     className="
@@ -649,7 +1018,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
                     <div
                         className={`
-                absolute inset-0 rounded-3xl bg-black/40 
+                absolute inset-0 rounded-3xl
                 transition-opacity duration-500 pointer-events-none 
                 ${isMiniaturized ? 'opacity-100' : 'opacity-0'}
             `}
@@ -657,6 +1026,34 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 </div>
             </div>
 
+            {/* Header */}
+            <header className={`fixed top-0 left-0 right-0 z-50 px-6 md:px-12 py-6 flex items-center justify-between ${isMiniaturized ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'} `}>
+                <div className="flex items-center gap-3">
+                    <span className="h-3 w-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" />
+                    <div>
+                        <p className="text-[0.7rem] uppercase tracking-[0.4em] text-white/60">
+                            {t.subtitle}
+                        </p>
+                        <p className="font-semibold text-lg">{t.title}</p>
+                    </div>
+                </div>
+                <div className="flex gap-3">
+                    <button
+                        type="button"
+                        onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
+                        className="px-4 py-2 rounded-full border border-white/20 text-sm font-semibold hover:border-white/60 transition-colors"
+                    >
+                        {lang === 'fr' ? '🇬🇧 EN' : '🇫🇷 FR'}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onEnter3DMode}
+                        className="px-5 py-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-sm font-semibold tracking-[0.2em]"
+                    >
+                        {t.mode3d}
+                    </button>
+                </div>
+            </header>
 
             {/* UI Standard - Fade out */}
             <div className={`transition-opacity duration-500 pointer-events-none ${isPopZoomed ? 'opacity-0 ' : 'opacity-100'}`}>
@@ -665,34 +1062,6 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
                 <HudOverlay hoveredId={hoveredId} />
 
-                {/* Header */}
-                <header className="fixed top-0 left-0 right-0 z-40 px-6 md:px-12 py-6 flex items-center justify-between ">
-                    <div className="flex items-center gap-3">
-                        <span className="h-3 w-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" />
-                        <div>
-                            <p className="text-[0.7rem] uppercase tracking-[0.4em] text-white/60">
-                                {t.subtitle}
-                            </p>
-                            <p className="font-semibold text-lg">{t.title}</p>
-                        </div>
-                    </div>
-                    <div className="flex gap-3">
-                        <button
-                            type="button"
-                            onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
-                            className="px-4 py-2 rounded-full border border-white/20 text-sm font-semibold hover:border-white/60 transition-colors"
-                        >
-                            {lang === 'fr' ? '🇬🇧 EN' : '🇫🇷 FR'}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={onEnter3DMode}
-                            className="px-5 py-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-sm font-semibold tracking-[0.2em]"
-                        >
-                            {t.mode3d}
-                        </button>
-                    </div>
-                </header>
 
                 {/* Stepper latéral */}
                 <SectionNavigation
@@ -795,35 +1164,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 <Preloader isVisible={isPreloaderVisible} />
                 {showContact && <ContactModal onClose={() => setShowContact(false)} />}
 
-                {/* Bento Grid */}
-                <div className={`fixed inset-0 -z-10 p-6 transition-opacity duration-1000 bg-none pointer-events-none ${isMiniaturized ? 'opacity-100' : 'opacity-0'}`}>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full pt-0">
-                        {/* Left Column */}
-                        <div className="lg:col-span-2 flex flex-col gap-6">
-                            {/* Placeholder for 3D View space */}
-                            <div className="h-[300px] w-[400px] shrink-0" /> {/* Spacer */}
 
-                            {/* Large Block */}
-                            <div className="flex-1 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8">
-                                <h2 className="text-2xl font-bold mb-4">À propos du projet</h2>
-                                <p className="text-white/70">Détails et description complète...</p>
-                            </div>
-                        </div>
-
-                        {/* Right Column */}
-                        <div className="flex flex-col gap-6">
-                            <div className="h-1/3 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 flex items-center justify-center">
-                                <h3 className="text-xl font-bold">Technologies</h3>
-                            </div>
-                            <div className="h-1/3 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 flex items-center justify-center">
-                                <h3 className="text-xl font-bold text-center">Fonctionnalités Techniques</h3>
-                            </div>
-                            <div className="h-1/3 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 flex items-center justify-center">
-                                <h3 className="text-xl font-bold">Logo en 3D</h3>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     );
