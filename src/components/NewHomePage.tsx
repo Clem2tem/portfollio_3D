@@ -991,9 +991,10 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 <div className="flex flex-col items-center justify-center h-full px-[20dvw] gap-12 relative">
                     {isMiniaturized && (
                         <p className="text-2xl md:text-3xl font-mono text-center leading-snug absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/2">
-                            <GlitchText text="Je m'appelle Clément. Je conçois des expériences digitales qui transforment une idée en produit réel.
-Qu'il s'agisse d'un site web vitrine, d'un outil métier stratégique ou d'une application complète, j'accompagne mes clients de la vision jusqu'à la livraison.
-Mon objectif est simple : créer des solutions utiles, optimales et durables pour donner vie à des projets que vous n'avez pas encore osé imaginer." />
+                            <GlitchText text={lang === 'fr' 
+                                ? "Je m'appelle Clément. Je conçois des expériences digitales qui transforment une idée en produit réel.\n \nQu'il s'agisse d'un site web vitrine, d'un outil métier stratégique ou d'une application complète, j'accompagne mes clients de la vision jusqu'à la livraison.\n \nMon objectif est simple : créer des solutions utiles, optimales et durables pour donner vie à des projets que vous n'avez pas encore osé imaginer."
+                                : "My name is Clément. I design digital experiences that transform an idea into a real product.\n \nWhether it's a showcase website, a strategic business tool, or a complete application, I support my clients from vision to delivery.\n \nMy goal is simple: create useful, optimal, and sustainable solutions to bring to life projects you haven't dared to imagine yet."
+                            } />
                         </p>
                     )}
                     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-full flex justify-center">
