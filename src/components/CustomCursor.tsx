@@ -14,29 +14,22 @@ const CustomCursor: React.FC = () => {
   const [particles, setParticles] = useState<Particle[]>([])
   const [isMoving, setIsMoving] = useState(false)
   const [isVisible, setIsVisible] = useState(true)
+  const [isPointer, setIsPointer] = useState(false)
   const [isTouchDevice, setIsTouchDevice] = useState<boolean | null>(null)
 
-  // Detect touch device (smartphones and tablets only, not touch-enabled PCs)
+  /* --------------------------- Detect Touch Devices --------------------------- */
   useEffect(() => {
     const checkTouchDevice = () => {
-      // Check if it's a mobile/tablet device based on user agent
-      const userAgent = navigator.userAgent.toLowerCase()
-      const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet/i.test(userAgent)
-      
-      // Check screen size (typical mobile/tablet sizes)
+      const ua = navigator.userAgent.toLowerCase()
+      const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)
       const isMobileScreen = window.innerWidth <= 1024
-      
-      // Check if primary input is touch (not just touch capability)
       const isPrimaryTouch = window.matchMedia('(pointer: coarse)').matches
-      
-      // It's a mobile/tablet if:
-      // 1. Mobile user agent detected, OR
-      // 2. Small screen AND primary input is touch
       return isMobileUA || (isMobileScreen && isPrimaryTouch)
     }
     setIsTouchDevice(checkTouchDevice())
   }, [])
 
+  /* ----------------------- Cursor Movement & Particles ----------------------- */
   useEffect(() => {
     let moveTimeout: NodeJS.Timeout
     let particleCounter = 0
@@ -45,8 +38,7 @@ const CustomCursor: React.FC = () => {
       setMousePosition({ x: e.clientX, y: e.clientY })
       setIsMoving(true)
 
-      // Créer des particules lors du mouvement
-      if (particleCounter % 3 === 0) { // Une particule tous les 3 mouvements pour ne pas surcharger
+      if (particleCounter % 3 === 0) {
         const newParticle: Particle = {
           id: Date.now() + Math.random(),
           x: e.clientX + (Math.random() - 0.5) * 30,
@@ -55,7 +47,6 @@ const CustomCursor: React.FC = () => {
           opacity: Math.random() * 0.8 + 0.2,
           size: Math.random() * 3 + 1
         }
-
         setParticles(prev => [...prev.slice(-12), newParticle])
       }
       particleCounter++
@@ -71,17 +62,17 @@ const CustomCursor: React.FC = () => {
     document.addEventListener('mouseenter', handleMouseEnter)
     document.addEventListener('mouseleave', handleMouseLeave)
 
-    // Animation des particules
+    /* ----------------------------- Particle Drift ----------------------------- */
     const animateParticles = () => {
-      setParticles(prev => 
+      setParticles(prev =>
         prev
-          .map(particle => ({
-            ...particle,
-            life: particle.life - 0.025,
-            opacity: particle.opacity * 0.96,
-            y: particle.y - 0.5 // Les particules montent légèrement
+          .map(p => ({
+            ...p,
+            life: p.life - 0.03,
+            opacity: p.opacity * 0.96,
+            y: p.y - 0.5
           }))
-          .filter(particle => particle.life > 0)
+          .filter(p => p.life > 0)
       )
     }
 
@@ -96,50 +87,98 @@ const CustomCursor: React.FC = () => {
     }
   }, [])
 
-  // Don't render custom cursor on touch devices
+  /* ------------------- Detect "pointer" (clickable elements) ------------------ */
+  useEffect(() => {
+    const detectPointer = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      const clickable =
+        target.closest('[data-cursor="pointer"]') ||
+        target.closest('.cursor-pointer') ||
+        ['A', 'BUTTON'].includes(target.tagName)
+
+      setIsPointer(Boolean(clickable))
+    }
+
+    window.addEventListener('mousemove', detectPointer)
+    return () => window.removeEventListener('mousemove', detectPointer)
+  }, [])
+
+  /* ----------------------------- Click Explosion ----------------------------- */
+  const handleClick = (e: MouseEvent) => {
+    const burstParticles: Particle[] = Array.from({ length: 20 }).map(() => ({
+      id: Date.now() + Math.random(),
+      x: e.clientX + (Math.random() - 0.5) * 10,
+      y: e.clientY + (Math.random() - 0.5) * 10,
+      life: 1,
+      opacity: 1,
+      size: Math.random() * 4 + 2
+    }))
+    setParticles(prev => [...prev, ...burstParticles])
+  }
+
+  useEffect(() => {
+    window.addEventListener('click', handleClick)
+    return () => window.removeEventListener('click', handleClick)
+  }, [])
+
+  /* ------------------------------ No cursor on Mobile ----------------------------- */
   if (isTouchDevice === true) return null
-  
-  // Render cursor (including when isTouchDevice is still null or false)
   if (!isVisible) return null
 
+  /* ---------------------------------- Render ---------------------------------- */
   return (
     <div className="pointer-events-none fixed inset-0 z-[999999999]" style={{ cursor: 'none' }}>
-      {/* Curseur principal */}
+      
+      {/* Main Cursor */}
       <div
-        className={`absolute transform -translate-x-1/2 -translate-y-1/2`}
+        className="absolute -translate-x-1/2 -translate-y-1/2 transition-transform"
         style={{
           left: mousePosition.x,
           top: mousePosition.y,
-          transition: 'width 0.1s, height 0.1s',
-          width: isMoving ? 40 : 32,
-          height: isMoving ? 40 : 32,
+          width: isPointer ? 50 : isMoving ? 40 : 32,
+          height: isPointer ? 50 : isMoving ? 40 : 32,
         }}
       >
-        {/* Cercle extérieur */}
-        <div className="w-full h-full rounded-full border-2 border-purple-500/60 bg-purple-500/10 backdrop-blur-sm relative">
-          {/* Point central */}
-          <div className="w-2 h-2 bg-purple-500 rounded-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 shadow-lg shadow-blue-400/50" />
-          {/* Ring animé */}
-          <div className={`absolute inset-0 rounded-full border border-blue-300/40 ${isMoving ? 'animate-ping' : ''}`} />
+        <div
+          className="w-full h-full rounded-full backdrop-blur-sm border-2 transition-transform flex items-center justify-center"
+          style={{
+            borderColor: isPointer ? '#00eaff' : 'rgba(147,51,234,0.6)',
+            backgroundColor: isPointer ? 'rgba(0,234,255,0.12)' : 'rgba(147,51,234,0.1)',
+            boxShadow: isPointer
+              ? '0 0 12px rgba(0,234,255,0.7)'
+              : '0 0 8px rgba(147,51,234,0.5)'
+          }}
+        >
+          {/* Center dot */}
+          <div
+            className="rounded-full transition-transform"
+            style={{
+              width: isPointer ? 6 : 4,
+              height: isPointer ? 6 : 4,
+              backgroundColor: isPointer ? '#00eaff' : '#a855f7'
+            }}
+          />
         </div>
       </div>
 
-      {/* Particules */}
-      {particles.map(particle => (
+      {/* Particles */}
+      {particles.map(p => (
         <div
-          key={particle.id}
-          className="absolute rounded-full bg-gradient-to-r from-purple-500 to-indigo-300"
+          key={p.id}
+          className="absolute rounded-full"
           style={{
-            left: particle.x,
-            top: particle.y,
-            opacity: particle.opacity,
-            width: particle.size,
-            height: particle.size,
+            left: p.x,
+            top: p.y,
+            width: p.size,
+            height: p.size,
+            opacity: p.opacity,
             transform: 'translate(-50%, -50%)',
-            boxShadow: `0 0 ${particle.size * 2}px rgba(59, 130, 246, ${particle.opacity * 0.5})`
+            background: `radial-gradient(circle, rgba(147,51,234,1), rgba(59,130,246,0.3))`,
+            boxShadow: `0 0 ${p.size * 2}px rgba(59,130,246,${p.opacity * 0.6})`
           }}
         />
       ))}
+
     </div>
   )
 }

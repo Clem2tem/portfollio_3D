@@ -385,6 +385,8 @@ function TechCarousel() {
                 <button
                     onClick={goToPrevious}
                     className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                    data-cursor="pointer"
+
                     aria-label="Previous technology"
                 >
                     <svg
@@ -419,7 +421,8 @@ function TechCarousel() {
                 {/* Flèche droite */}
                 <button
                     onClick={goToNext}
-                    className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                    className="p-2 rounded-full hover:bg-white/10 transition-colors "
+                    data-cursor="pointer"
                     aria-label="Next technology"
                 >
                     <svg
@@ -447,7 +450,7 @@ function TechCarousel() {
                     <button
                         key={idx}
                         onClick={() => setCurrentIndex(idx)}
-                        className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentIndex
+                        className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${idx === currentIndex
                             ? 'bg-white w-8'
                             : 'bg-white/30 w-1.5 hover:bg-white/50'
                             }`}
@@ -662,7 +665,7 @@ interface IslandSceneProps {
     setIsPopZoomed: (v: boolean) => void;
 }
 
-const IslandScene: React.FC<IslandSceneProps> = ({isPopZoomed, setIsPopZoomed }) => {
+const IslandScene: React.FC<IslandSceneProps> = ({ isPopZoomed, setIsPopZoomed }) => {
     const [popBoxReverse, setPopBoxReverse] = useState(false);
     const popClemRef = useRef<THREE.Group>(null);
 
@@ -696,10 +699,16 @@ const IslandScene: React.FC<IslandSceneProps> = ({isPopZoomed, setIsPopZoomed })
                     playAnimation={isPopZoomed || !popBoxReverse}
                     playReverse={!isPopZoomed && popBoxReverse}
                     onPointerOver={() => {
-                        if (!isPopZoomed) setPopBoxReverse(true);
+                        if (!isPopZoomed) {
+                            setPopBoxReverse(true);
+                            document.body.style.cursor = 'pointer';
+                        }
                     }}
                     onPointerOut={() => {
-                        if (!isPopZoomed) setPopBoxReverse(false);
+                        if (!isPopZoomed) {
+                            setPopBoxReverse(false);
+                            document.body.style.cursor = 'default';
+                        }
                     }}
                     onClick={(e) => {
                         e.stopPropagation();
@@ -969,7 +978,8 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 {/* Bouton fermer en haut à droite */}
                 <button
                     onClick={handleReturnFromBento}
-                    className="absolute top-16 right-8 p-3 z-[9999] rounded-full bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm border border-white/20"
+                    className="absolute top-16 right-8 p-3 z-[9999] rounded-full bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm border border-white/20 "
+                    data-cursor="pointer"
                     aria-label="Fermer"
                 >
                     <svg
@@ -991,7 +1001,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 <div className="flex flex-col items-center justify-center h-full px-[20dvw] gap-12 relative">
                     {isMiniaturized && (
                         <p className="text-2xl md:text-3xl font-mono text-center leading-snug absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/2">
-                            <GlitchText text={lang === 'fr' 
+                            <GlitchText text={lang === 'fr'
                                 ? "Je m'appelle Clément. Je conçois des expériences digitales qui transforment une idée en produit réel.\n \nQu'il s'agisse d'un site web vitrine, d'un outil métier stratégique ou d'une application complète, j'accompagne mes clients de la vision jusqu'à la livraison.\n \nMon objectif est simple : créer des solutions utiles, optimales et durables pour donner vie à des projets que vous n'avez pas encore osé imaginer."
                                 : "My name is Clément. I design digital experiences that transform an idea into a real product.\n \nWhether it's a showcase website, a strategic business tool, or a complete application, I support my clients from vision to delivery.\n \nMy goal is simple: create useful, optimal, and sustainable solutions to bring to life projects you haven't dared to imagine yet."
                             } />
@@ -1066,7 +1076,8 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     <button
                         type="button"
                         onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}
-                        className="px-4 py-2 rounded-full border border-white/20 text-sm font-semibold hover:border-white/60 transition-colors"
+                        className="px-4 py-2 rounded-full border border-white/20 text-sm font-semibold hover:border-white/60 transition-colors "
+                        data-cursor="pointer"
                     >
                         {lang === 'fr' ? (
                             <span className="flex items-center gap-2">
@@ -1083,7 +1094,8 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     <button
                         type="button"
                         onClick={onEnter3DMode}
-                        className="px-5 py-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-sm font-semibold tracking-[0.2em]"
+                        className="px-5 py-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-sm font-semibold tracking-[0.2em] "
+                        data-cursor="pointer"
                     >
                         {t.mode3d}
                     </button>
@@ -1142,6 +1154,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                 type="button"
                                 onClick={onEnter3DMode}
                                 className="px-10 py-4 rounded-full bg-white text-black font-semibold uppercase tracking-[0.4em] "
+                                data-cursor="pointer"
                             >
                                 {t.portal.step}
                             </button>

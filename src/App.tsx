@@ -32,6 +32,7 @@ function App() {
   return (
     <>
     <SpeedInsights/>
+    <CustomCursor />
     <LoadingProvider>
       <ProjectViewProvider>
         <PlayerPositionProvider>
@@ -84,7 +85,7 @@ function App() {
               />
             )}
 
-            <CustomCursor />
+            
           </div>
         </PlayerPositionProvider>
       </ProjectViewProvider>
