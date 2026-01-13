@@ -813,7 +813,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             house: {
                 step: 'SAAS ERP - EGS',
                 title: 'Maison & pelleteuse, en diptyque.',
-                description: 'Architecture et mécanique réunies dans une même scène. La caméra glisse latéralement, le HUD réagit au survol du côté gauche de la composition.'
+                description: 'SaaS métier développé pour une entreprise du BTP, visant à centraliser la gestion des chantiers, automatiser la génération de devis et fiabiliser le suivi financier des projets.'
             },
             footer: '© 2025 Clément De Temmerman — Portfolio 3D expérimental'
         },
@@ -932,8 +932,8 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
             const trigger = ScrollTrigger.create({
                 trigger: el,
-                start: 'top 60%',
-                end: 'bottom 40%',
+                start: 'top center',
+                end: 'bottom center',
                 onEnter: () => {
                     setActiveSection(section.id);
                     const idx = SECTION_TO_STOP_INDEX[section.id];
@@ -1049,7 +1049,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             </div>
 
             {/* Header */}
-            <header className={`fixed top-0 left-0 right-0 z-50 px-6 md:px-12 py-6 flex items-center justify-between ${isMiniaturized ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'} `}>
+            <header className={`fixed top-0 left-0 right-0 z-50 px-6 md:px-12 py-6 flex items-center justify-between`}>
                 <div className="flex items-center gap-3">
                     <span className="h-3 w-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 animate-pulse" />
                     <div>
@@ -1110,7 +1110,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 />
 
                 {/* Contenu texte (sections 100vh) */}
-                <main className="relative z-20 pt-32 pb-32 space-y-32 background-none w-1/2">
+                <main className="relative z-20 pt-32 space-y-0 background-none w-1/2">
 
                     {/* POPCLEM */}
                     <section
@@ -1135,7 +1135,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     <section
                         id="hospital"
                         ref={(node) => registerSection('hospital', node as HTMLElement)}
-                        className="h-screen flex items-end w-full px-6 md:px-12 pt-24"
+                        className="h-screen flex items-center w-full px-6 md:px-12"
                     >
                         <div className="flex flex-col items-center justify-center h-full w-full px-8 gap-6 relative">
                             <div className="grid md:grid-cols-2 gap-8 w-full">
@@ -1178,7 +1178,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                                 </svg>
                                                 Private
                                             </div>
-                                            <button className="drop-shadow-[0_0px_12px_rgba(255,255,255,1)] group relative inline-flex h-9 items-center justify-center rounded-md bg-transparent border border-white px-2 font-medium text-neutral-200"><div className="relative h-5 w-5 overflow-hidden"><div className="absolute transition-all duration-200 group-hover:-translate-y-5 group-hover:translate-x-4"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5"><path d="M3.64645 11.3536C3.45118 11.1583 3.45118 10.8417 3.64645 10.6465L10.2929 4L6 4C5.72386 4 5.5 3.77614 5.5 3.5C5.5 3.22386 5.72386 3 6 3L11.5 3C11.6326 3 11.7598 3.05268 11.8536 3.14645C11.9473 3.24022 12 3.36739 12 3.5L12 9.00001C12 9.27615 11.7761 9.50001 11.5 9.50001C11.2239 9.50001 11 9.27615 11 9.00001V4.70711L4.35355 11.3536C4.15829 11.5488 3.84171 11.5488 3.64645 11.3536Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg><svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 -translate-x-4"><path d="M3.64645 11.3536C3.45118 11.1583 3.45118 10.8417 3.64645 10.6465L10.2929 4L6 4C5.72386 4 5.5 3.77614 5.5 3.5C5.5 3.22386 5.72386 3 6 3L11.5 3C11.6326 3 11.7598 3.05268 11.8536 3.14645C11.9473 3.24022 12 3.36739 12 3.5L12 9.00001C12 9.27615 11.7761 9.50001 11.5 9.50001C11.2239 9.50001 11 9.27615 11 9.00001V4.70711L4.35355 11.3536C4.15829 11.5488 3.84171 11.5488 3.64645 11.3536Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg></div></div></button>
+                                            <button className="drop-shadow-[0_0px_12px_rgba(255,255,255,1)] group relative inline-flex h-9 hover:bg-violet-800 transition duration-300 ease-in-out items-center justify-center rounded-md bg-transparent border border-white px-2 font-medium text-neutral-200"><div className="relative h-5 w-5 overflow-hidden"><div className="absolute transition-all duration-200 group-hover:-translate-y-5 group-hover:translate-x-4"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5"><path d="M3.64645 11.3536C3.45118 11.1583 3.45118 10.8417 3.64645 10.6465L10.2929 4L6 4C5.72386 4 5.5 3.77614 5.5 3.5C5.5 3.22386 5.72386 3 6 3L11.5 3C11.6326 3 11.7598 3.05268 11.8536 3.14645C11.9473 3.24022 12 3.36739 12 3.5L12 9.00001C12 9.27615 11.7761 9.50001 11.5 9.50001C11.2239 9.50001 11 9.27615 11 9.00001V4.70711L4.35355 11.3536C4.15829 11.5488 3.84171 11.5488 3.64645 11.3536Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg><svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 -translate-x-4"><path d="M3.64645 11.3536C3.45118 11.1583 3.45118 10.8417 3.64645 10.6465L10.2929 4L6 4C5.72386 4 5.5 3.77614 5.5 3.5C5.5 3.22386 5.72386 3 6 3L11.5 3C11.6326 3 11.7598 3.05268 11.8536 3.14645C11.9473 3.24022 12 3.36739 12 3.5L12 9.00001C12 9.27615 11.7761 9.50001 11.5 9.50001C11.2239 9.50001 11 9.27615 11 9.00001V4.70711L4.35355 11.3536C4.15829 11.5488 3.84171 11.5488 3.64645 11.3536Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg></div></div></button>
                                         </div>
                                     </div>
                                 </div>
@@ -1236,21 +1236,21 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                                 </svg>
                                                 Private
                                             </div>
-                                            <button className="drop-shadow-[0_0px_12px_rgba(255,255,255,1)] group relative inline-flex h-9 items-center justify-center rounded-md bg-transparent border border-white px-2 font-medium text-neutral-200"><div className="relative h-5 w-5 overflow-hidden"><div className="absolute transition-all duration-200 group-hover:-translate-y-5 group-hover:translate-x-4"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5"><path d="M3.64645 11.3536C3.45118 11.1583 3.45118 10.8417 3.64645 10.6465L10.2929 4L6 4C5.72386 4 5.5 3.77614 5.5 3.5C5.5 3.22386 5.72386 3 6 3L11.5 3C11.6326 3 11.7598 3.05268 11.8536 3.14645C11.9473 3.24022 12 3.36739 12 3.5L12 9.00001C12 9.27615 11.7761 9.50001 11.5 9.50001C11.2239 9.50001 11 9.27615 11 9.00001V4.70711L4.35355 11.3536C4.15829 11.5488 3.84171 11.5488 3.64645 11.3536Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg><svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 -translate-x-4"><path d="M3.64645 11.3536C3.45118 11.1583 3.45118 10.8417 3.64645 10.6465L10.2929 4L6 4C5.72386 4 5.5 3.77614 5.5 3.5C5.5 3.22386 5.72386 3 6 3L11.5 3C11.6326 3 11.7598 3.05268 11.8536 3.14645C11.9473 3.24022 12 3.36739 12 3.5L12 9.00001C12 9.27615 11.7761 9.50001 11.5 9.50001C11.2239 9.50001 11 9.27615 11 9.00001V4.70711L4.35355 11.3536C4.15829 11.5488 3.84171 11.5488 3.64645 11.3536Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg></div></div></button>
+                                            <button className="drop-shadow-[0_0px_12px_rgba(255,255,255,1)] group relative inline-flex h-9 hover:bg-violet-800 transition duration-300 ease-in-out items-center justify-center rounded-md bg-transparent border border-white px-2 font-medium text-neutral-200"><div className="relative h-5 w-5 overflow-hidden"><div className="absolute transition-all duration-200 group-hover:-translate-y-5 group-hover:translate-x-4"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5"><path d="M3.64645 11.3536C3.45118 11.1583 3.45118 10.8417 3.64645 10.6465L10.2929 4L6 4C5.72386 4 5.5 3.77614 5.5 3.5C5.5 3.22386 5.72386 3 6 3L11.5 3C11.6326 3 11.7598 3.05268 11.8536 3.14645C11.9473 3.24022 12 3.36739 12 3.5L12 9.00001C12 9.27615 11.7761 9.50001 11.5 9.50001C11.2239 9.50001 11 9.27615 11 9.00001V4.70711L4.35355 11.3536C4.15829 11.5488 3.84171 11.5488 3.64645 11.3536Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg><svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 -translate-x-4"><path d="M3.64645 11.3536C3.45118 11.1583 3.45118 10.8417 3.64645 10.6465L10.2929 4L6 4C5.72386 4 5.5 3.77614 5.5 3.5C5.5 3.22386 5.72386 3 6 3L11.5 3C11.6326 3 11.7598 3.05268 11.8536 3.14645C11.9473 3.24022 12 3.36739 12 3.5L12 9.00001C12 9.27615 11.7761 9.50001 11.5 9.50001C11.2239 9.50001 11 9.27615 11 9.00001V4.70711L4.35355 11.3536C4.15829 11.5488 3.84171 11.5488 3.64645 11.3536Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg></div></div></button>
                                         </div>
                                     </div>
                                 </div>
                                 <ProjectDetailsPanel project={"SAAS-ERP-EGS"} className='w-full h-[350px]' />
                             </div>
-                            <Carousel className='w-full h-[400px]' images={["/images/medchem/main.webp", "/images/medchem/quiz.webp", "/images/medchem/backoffice.webp"]} />
+                            <Carousel className='w-full h-[400px]' images={["/images/egs/client.png", "/images/egs/chantier.png", "/images/egs/devis.png", "/images/egs/factures.png", "/images/egs/technique.png" , "/images/egs/confidentiel.png"]} />
                         </div>
                     </section>
-
                 </main>
 
-                <footer className="relative z-10 px-6 md:px-12 pb-10 text-white/50 text-sm uppercase tracking-[0.4em]">
+                <footer className="relative z-10 px-6 md:px-12 -mt-10 pb-10 text-white/50 text-sm uppercase tracking-[0.4em]">
                     {t.footer}
                 </footer>
+
 
                 <Preloader isVisible={isPreloaderVisible} />
 
