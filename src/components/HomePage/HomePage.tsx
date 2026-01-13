@@ -1110,7 +1110,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 />
 
                 {/* Contenu texte (sections 100vh) */}
-                <main className="relative z-20 pt-32 space-y-0 background-none w-1/2">
+                <main className="relative z-20 space-y-0 background-none w-1/2">
 
                     {/* POPCLEM */}
                     <section
@@ -1118,15 +1118,25 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                         ref={(node) => registerSection('popclem', node as HTMLElement)}
                         className="h-screen flex items-center w-full px-6 md:px-12"
                     >
-                        <div className="flex flex-col items-start justify-center h-full w-full px-8 gap-12 relative">
+                        <div className="flex flex-col items-start justify-end h-full w-full px-8 pb-12 gap-12 relative">
                             <p className="text-2xl md:text-3xl font-mono text-left leading-snug relative max-w-full">
-                                <GlitchText text={lang === 'fr'
-                                    ? "Bonjour ! Je m'appelle Clément. Je conçois des expériences digitales qui transforment une idée en produit réel.\n \nQu'il s'agisse d'un site web vitrine, d'un outil métier stratégique ou d'une application complète, j'accompagne mes clients de la vision jusqu'à la livraison.\n \nMon objectif est simple : créer des solutions utiles, optimales et durables pour donner vie à des projets que vous n'avez pas encore osé imaginer."
-                                    : "My name is Clément. I design digital experiences that transform an idea into a real product.\n \nWhether it's a showcase website, a strategic business tool, or a complete application, I support my clients from vision to delivery.\n \nMy goal is simple: create useful, optimal, and sustainable solutions to bring to life projects you haven't dared to imagine yet."
-                                } />
+                                <GlitchText
+                                    text={lang === 'fr'
+                                        ? "Bonjour, je m'appelle Clément. Je conçois et développe des produits numériques concrets, pensés pour être utilisés en conditions réelles.\n\nDu site web à l’application métier, j’interviens sur l’ensemble du cycle produit : compréhension du besoin, conception technique, développement et mise en production.\n\nMon objectif est simple : créer des solutions fiables, performantes et durables, qui répondent à de vrais enjeux métier et apportent une valeur mesurable."
+                                        : "Hello, my name is Clément. I design and build concrete digital products, made to be used in real-world conditions.\n\nFrom websites to business applications, I work across the entire product lifecycle: understanding the need, technical design, development, and production deployment.\n\nMy goal is simple: to create reliable, performant, and sustainable solutions that address real business challenges and deliver measurable value."
+                                    }
+                                />
                             </p>
+
                             <div className="w-full flex justify-center">
                                 <TechCarousel />
+                            </div>
+
+                            <div className="absolute bottom-[8px] left-[50dvw] -translate-x-1/2 flex flex-col items-center gap-2 text-white/50 animate-bounce pointer-events-none">
+                                <span className="text-[10px] text-center uppercase tracking-[0.2em]">{lang === 'fr' ? 'Découvrez mes projets' : 'Discover my projects'}</span>
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                                </svg>
                             </div>
                         </div>
                     </section>
@@ -1236,12 +1246,12 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                                 </svg>
                                                 Private
                                             </div>
-                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <ProjectDetailsPanel project={"SAAS-ERP-EGS"} className='w-full h-[350px]' />
                             </div>
-                            <Carousel className='w-full h-[400px]' images={["/images/egs/client.png", "/images/egs/chantier.png", "/images/egs/devis.png", "/images/egs/factures.png", "/images/egs/technique.png" , "/images/egs/confidentiel.png"]} />
+                            <Carousel className='w-full h-[400px]' images={["/images/egs/client.png", "/images/egs/chantier.png", "/images/egs/devis.png", "/images/egs/factures.png", "/images/egs/technique.png", "/images/egs/confidentiel.png"]} />
                         </div>
                     </section>
                 </main>

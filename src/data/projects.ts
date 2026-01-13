@@ -95,8 +95,8 @@ export const projects: Project[] = [
     position: [6, 0, -1],
     buildingType: 'factory',
     details: {
-      challenge: "Remplacer un ERP Excel peu fiable par une solution moderne, collaborative et évolutive adaptée aux besoins d'une PME du BTP.",
-      solution: "Développement d'une plateforme SaaS avec Next.js et Firebase, intégrée à Google Workspace, permettant la gestion complète des devis, factures et chantiers.",
+      challenge: "Les processus étaient majoritairement manuels : devis longs à produire, forte dépendance aux fichiers Excel, manque de visibilité globale sur l'avancement et les marges, risques d'erreurs lors des calculs et mises à jour.",
+      solution: "Développement d'une plateforme SaaS avec Next.js et Firebase, intégrée à Google Workspace, permettant la gestion complète des devis, factures et chantiers. Centralisation des données clients, projets et documents. Interface web claire, orientée efficacité opérationnelle",
       features: [
         "Module devis automatisé avec import de nomenclatures Revit",
         "Authentification sécurisée (Firebase + OAuth Google) avec rôles",
@@ -113,8 +113,8 @@ export const projects: Project[] = [
         "Optimisation des performances frontend (virtualisation, lazy loading)"
       ],
     },
-    liveUrl: 'https://iot-dashboard-demo.example.com',
-    githubUrl: 'https://github.com/user/iot-dashboard',
+    liveUrl: 'private',
+    githubUrl: 'private',
     radius: 4
   }
 ]
