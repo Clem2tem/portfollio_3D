@@ -37,7 +37,7 @@ const Carousel: React.FC<CarouselProps> = ({
     if (!images?.length) return null;
 
     return (
-        <div className={`group relative overflow-hidden bg-gray-900 shadow-2xl rounded-[24px] ${className}`}
+        <div className={`group relative overflow-hidden bg-gray-900 shadow-2xl rounded-md ${className}`}
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)} >
 
