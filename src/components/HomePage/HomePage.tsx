@@ -520,13 +520,14 @@ const SECTION_TO_STOP_INDEX: Record<string, number | null> = {
 
 interface CameraRigProps {
     activeStopIndex: number;
-    mouseRef: React.MutableRefObject<{ x: number; y: number }>;
+    dragOffset: { x: number; y: number };
+    dragAccumulated: { x: number; y: number };
     onCameraPositionChange?: (position: Vec3) => void;
     isPopZoomed?: boolean;
     isMiniaturized?: boolean;
 }
 
-const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCameraPositionChange, isPopZoomed, isMiniaturized }) => {
+const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, dragOffset, dragAccumulated, onCameraPositionChange, isPopZoomed, isMiniaturized }) => {
     const { camera } = useThree();
     const lookAtRef = useRef(new THREE.Vector3(0, 1.2, 0));
     const hasInitialised = useRef(false);
@@ -582,49 +583,33 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCame
         });
     }, [activeStopIndex, camera, isPopZoomed]);
 
-    // 3. parallax + légère rotation subtile (Option A)
+    // 3. Drag camera movement - Orbite circulaire
     useFrame(() => {
-        if (isMiniaturized) return; // Pause parallax when miniaturized
+        if (isMiniaturized) return;
 
-        const mouse = mouseRef.current;
-        const parallaxStrength = 0.10;
-
-        // Calcule l'offset parallax
-        const offsetX = mouse.x * parallaxStrength;
-        const offsetY = -mouse.y * parallaxStrength;
-
-        let targetPos = new THREE.Vector3();
+        // Combiner drag actuel + drag accumulé
+        const totalDragX = dragOffset.x + dragAccumulated.x;
 
         // Position cible du stop actif
         const stop = MODEL_STOPS[activeStopIndex];
-
-        const stopOffsets = {
-            popclem: 1.5,
-            hospital: 1.5,
-            house: 1.5,
-            portal: 0,
-        }
         if (!stop) return;
-        if (mouse.x < -0.5 && !isPopZoomed) {
-            targetPos = new THREE.Vector3(
-                stop.position[0] * (1 - Math.abs(mouse.x)),
-                stop.position[1] - offsetY,
-                stopOffsets[stop.id]
-            );
-        } else if (mouse.x > 0.5 && !isPopZoomed) {
-            targetPos = new THREE.Vector3(
-                stop.position[0] * (1 - Math.abs(mouse.x)),
-                stop.position[1],
-                -stopOffsets[stop.id]
-            );
-        } else {
-            // Nouvelle position avec parallax
-            targetPos = new THREE.Vector3(
-                stop.position[0],
-                isPopZoomed ? 2.8 + offsetY : stop.position[1] + offsetY,
-                stop.position[2] + offsetX,
-            );
-        }
+
+        // Calcul de l'angle basé sur le drag horizontal
+        const angle = totalDragX * Math.PI; // Rotation complète sur 2 unités de drag
+        
+        // Rayon de l'orbite (distance au centre sur le plan XZ)
+        const radius = 1.5;
+        
+        // Calcul de la position circulaire autour de l'origine
+        const circleX = Math.cos(angle) * radius;
+        const circleZ = Math.sin(angle) * radius; // Limité à ±0.1 de variation
+
+        
+        // Clamper X et Y entre -1.5 et 1.5
+        const clampedX = THREE.MathUtils.clamp(circleX, -1.5, 1.5);
+        
+        const targetPos = new THREE.Vector3(clampedX, stop.position[1], circleZ);
+        
         // Interpolation douce vers la nouvelle position
         camera.position.lerp(targetPos, 0.08);
 
@@ -633,14 +618,8 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCame
             onCameraPositionChange([camera.position.x, camera.position.y, camera.position.z]);
         }
 
-        // LookAt inchangé
+        // LookAt vers le centre de la scène
         camera.lookAt(lookAtRef.current);
-        // const targetRoll = mouse.x * 0.04;
-        // camera.rotation.z = THREE.MathUtils.lerp(
-        //     camera.rotation.z,
-        //     targetRoll,
-        //     0.08,
-        // );
 
     });
 
@@ -659,13 +638,10 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, mouseRef, onCame
 /* -------------------------------------------------------------------------- */
 
 interface IslandSceneProps {
-    mouseRef: React.MutableRefObject<{ x: number; y: number }>;
     isPopZoomed: boolean;
-    setIsPopZoomed: (v: boolean) => void;
 }
 
-const IslandScene: React.FC<IslandSceneProps> = ({ isPopZoomed, setIsPopZoomed }) => {
-    const [popBoxReverse, setPopBoxReverse] = useState(false);
+const IslandScene: React.FC<IslandSceneProps> = ({ isPopZoomed }) => {
     const popClemRef = useRef<THREE.Group>(null);
 
     useEffect(() => {
@@ -695,22 +671,8 @@ const IslandScene: React.FC<IslandSceneProps> = ({ isPopZoomed, setIsPopZoomed }
                     position={[0, 0, 0]}
                     scale={0.05}
                     rotation={[0, Math.PI / 3, 0]}
-                    playAnimation={isPopZoomed || !popBoxReverse}
-                    playReverse={!isPopZoomed && popBoxReverse}
-                    onPointerOver={() => {
-                        if (!isPopZoomed) {
-                            setPopBoxReverse(true);
-                        }
-                    }}
-                    onPointerOut={() => {
-                        if (!isPopZoomed) {
-                            setPopBoxReverse(false);
-                        }
-                    }}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setIsPopZoomed(!isPopZoomed);
-                    }}
+                    playAnimation={true}
+                    playReverse={false}
                 />
             </group>
 
@@ -853,7 +815,10 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     const { scrollTo } = useSmoothScroll();
     useSplitText('[data-split]', { stagger: 0.03, duration: 1 });
 
-    const mouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+    const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+    const [dragAccumulated, setDragAccumulated] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+    const isDraggingRef = useRef(false);
+    const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
     const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
     const [activeSection, setActiveSection] = useState<string>('popclem');
@@ -887,16 +852,35 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
         return () => window.clearTimeout(timer);
     }, []);
 
-    // parallax souris global
-    useEffect(() => {
-        const handleMouseMove = (event: MouseEvent) => {
-            const x = (event.clientX / window.innerWidth - 0.5) * 2;
-            const y = (event.clientY / window.innerHeight - 0.5) * 2;
-            mouseRef.current = { x, y };
-        };
-        window.addEventListener('mousemove', handleMouseMove);
-        return () => window.removeEventListener('mousemove', handleMouseMove);
+    // Handlers de drag pour le canvas
+    const handlePointerDown = useCallback((e: React.PointerEvent) => {
+        isDraggingRef.current = true;
+        dragStartRef.current = { x: e.clientX, y: e.clientY };
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
     }, []);
+
+    const handlePointerMove = useCallback((e: React.PointerEvent) => {
+        if (!isDraggingRef.current) return;
+        
+        const deltaX = (e.clientX - dragStartRef.current.x) / window.innerWidth;
+        const deltaY = (e.clientY - dragStartRef.current.y) / window.innerHeight;
+        
+        setDragOffset({ x: deltaX * 2, y: deltaY * 2 });
+    }, []);
+
+    const handlePointerUp = useCallback((e: React.PointerEvent) => {
+        if (isDraggingRef.current) {
+            // Accumuler le drag actuel
+            setDragAccumulated(prev => ({
+                x: prev.x + dragOffset.x,
+                y: prev.y + dragOffset.y
+            }));
+        }
+        isDraggingRef.current = false;
+        (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+        // Reset le drag temporaire
+        setDragOffset({ x: 0, y: 0 });
+    }, [dragOffset]);
 
     // ScrollTrigger : activeSection + caméra
     useEffect(() => {
@@ -985,7 +969,11 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             {/* Canvas plein écran derrière l'UI */}
             <div
                 ref={canvasContainerRef}
-                className={`fixed transition-all duration-1000 ease-in-out z-0 overflow-hidden top-0 right-0 w-1/2 h-full rounded-none`}
+                className={`fixed transition-all duration-1000 ease-in-out z-0 overflow-hidden top-0 right-0 w-1/2 h-full rounded-none cursor-grab active:cursor-grabbing`}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerLeave={handlePointerUp}
             >
                     <Canvas
                         camera={{ position: [0, 2, 10], fov: 45 }}
@@ -996,14 +984,13 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                             <FixCameraAspect />
                             <CameraRig
                                 activeStopIndex={activeStopIndex}
-                                mouseRef={mouseRef}
+                                dragOffset={dragOffset}
+                                dragAccumulated={dragAccumulated}
                                 isPopZoomed={isPopZoomed}
                                 isMiniaturized={isMiniaturized}
                             />
                             <IslandScene
-                                mouseRef={mouseRef}
                                 isPopZoomed={isPopZoomed}
-                                setIsPopZoomed={setIsPopZoomed}
                             />
                         </Suspense>
                     </Canvas>
@@ -1087,10 +1074,10 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                         ref={(node) => registerSection('popclem', node as HTMLElement)}
                         className="h-screen flex items-center w-full px-6 md:px-12"
                     >
-                        <div className="flex flex-col items-start justify-center h-full w-full px-8 gap-8 relative">
+                        <div className="flex flex-col items-start justify-center h-full w-full px-8 gap-12 relative">
                             <p className="text-2xl md:text-3xl font-mono text-left leading-snug relative max-w-full">
                                 <GlitchText text={lang === 'fr'
-                                    ? "Je m'appelle Clément. Je conçois des expériences digitales qui transforment une idée en produit réel.\n \nQu'il s'agisse d'un site web vitrine, d'un outil métier stratégique ou d'une application complète, j'accompagne mes clients de la vision jusqu'à la livraison.\n \nMon objectif est simple : créer des solutions utiles, optimales et durables pour donner vie à des projets que vous n'avez pas encore osé imaginer."
+                                    ? "Bonjour ! Je m'appelle Clément. Je conçois des expériences digitales qui transforment une idée en produit réel.\n \nQu'il s'agisse d'un site web vitrine, d'un outil métier stratégique ou d'une application complète, j'accompagne mes clients de la vision jusqu'à la livraison.\n \nMon objectif est simple : créer des solutions utiles, optimales et durables pour donner vie à des projets que vous n'avez pas encore osé imaginer."
                                     : "My name is Clément. I design digital experiences that transform an idea into a real product.\n \nWhether it's a showcase website, a strategic business tool, or a complete application, I support my clients from vision to delivery.\n \nMy goal is simple: create useful, optimal, and sustainable solutions to bring to life projects you haven't dared to imagine yet."
                                 } />
                             </p>
