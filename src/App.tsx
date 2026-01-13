@@ -4,7 +4,7 @@ import { Suspense } from 'react'
 import Scene from './components/Scene'
 import UI from './components/UI'
 import CustomCursor from './components/CustomCursor'
-import NewHomePage from './components/NewHomePage'
+import HomePage from './components/HomePage/HomePage'
 import { LoadingProvider, ProgressBridge } from './contexts/LoadingContext'
 import { PlayerPositionProvider } from './contexts/PlayerPositionContext'
 import { ProjectViewProvider } from './contexts/ProjectViewContext'
@@ -44,7 +44,7 @@ function App() {
 
             {/* HomePage */}
             {currentView === 'home' && (
-              <NewHomePage onEnter3DMode={handleEnter3DMode} />
+              <HomePage onEnter3DMode={handleEnter3DMode} />
             )}
 
             {/* 3D World */}
