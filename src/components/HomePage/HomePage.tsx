@@ -1179,7 +1179,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                                 Private
                                             </div>
                                             <button className="drop-shadow-[0_0px_12px_rgba(255,255,255,1)] group relative inline-flex h-9 items-center justify-center rounded-md bg-transparent border border-white px-2 font-medium text-neutral-200"><div className="relative h-5 w-5 overflow-hidden"><div className="absolute transition-all duration-200 group-hover:-translate-y-5 group-hover:translate-x-4"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5"><path d="M3.64645 11.3536C3.45118 11.1583 3.45118 10.8417 3.64645 10.6465L10.2929 4L6 4C5.72386 4 5.5 3.77614 5.5 3.5C5.5 3.22386 5.72386 3 6 3L11.5 3C11.6326 3 11.7598 3.05268 11.8536 3.14645C11.9473 3.24022 12 3.36739 12 3.5L12 9.00001C12 9.27615 11.7761 9.50001 11.5 9.50001C11.2239 9.50001 11 9.27615 11 9.00001V4.70711L4.35355 11.3536C4.15829 11.5488 3.84171 11.5488 3.64645 11.3536Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg><svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 -translate-x-4"><path d="M3.64645 11.3536C3.45118 11.1583 3.45118 10.8417 3.64645 10.6465L10.2929 4L6 4C5.72386 4 5.5 3.77614 5.5 3.5C5.5 3.22386 5.72386 3 6 3L11.5 3C11.6326 3 11.7598 3.05268 11.8536 3.14645C11.9473 3.24022 12 3.36739 12 3.5L12 9.00001C12 9.27615 11.7761 9.50001 11.5 9.50001C11.2239 9.50001 11 9.27615 11 9.00001V4.70711L4.35355 11.3536C4.15829 11.5488 3.84171 11.5488 3.64645 11.3536Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg></div></div></button>
-                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <ProjectDetailsPanel project={"hospital-project"} className='w-full h-[350px]' />
@@ -1195,7 +1195,55 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                         ref={(node) => registerSection('house', node as HTMLElement)}
                         className="h-screen flex items-center w-full px-6 md:px-12"
                     >
+                        <div className="flex flex-col items-center justify-center h-full w-full px-8 gap-6 relative">
+                            <div className="grid md:grid-cols-2 gap-8 w-full">
+                                <div
+                                    className="grid grid-rows-2 gap-4"
+                                >
+                                    <div className='bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-white shadow-lg py-2 text-xl'>
+                                        {t.house.description}
+                                    </div>
+                                    <div className='grid grid-cols-3 gap-4'>
+                                        <div className="w-full rounded-lg flex flex-col items-center justify-center gap-2">
+                                            <div
+                                                className="text-[80px] leading-[0.9] text-center font-bold text-transparent drop-shadow-[0_0px_12px_rgba(255,0,255,1)]"
+                                                style={{ WebkitTextStroke: "3px purple" }}
+                                            >
+                                                11
+                                            </div>
+                                            <div className="text-[20px] leading-none text-center font-semibold text-white drop-shadow-[0_0px_12px_rgba(255,0,255,1)]">
+                                                mois
+                                            </div>
+                                        </div>
 
+                                        <div className="w-full rounded-lg flex flex-col items-center justify-center gap-3 pt-3">
+                                            <div
+                                                className="text-[40px] leading-[0.9] text-center font-bold text-transparent drop-shadow-[0_0px_12px_rgba(0,255,255,1)]"
+                                                style={{ WebkitTextStroke: "2px green" }}
+                                            >
+                                                Role :
+                                            </div>
+                                            <div className="text-[20px] leading-none text-center font-semibold text-white drop-shadow-[0_0px_12px_rgba(255,0,255,1)]">
+                                                Fullstack Engineer
+                                            </div>
+                                        </div>
+                                        <div className="w-full rounded-lg flex flex-col items-center justify-center gap-1 pt-5">
+                                            <div
+                                                className="text-[10px] leading-[1] text-center font-semibold text-white drop-shadow-[0_0px_12px_rgba(255,255,255,1)]"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" className="stroke-white size-6 mx-auto w-10 h-10">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                                                </svg>
+                                                Private
+                                            </div>
+                                            <button className="drop-shadow-[0_0px_12px_rgba(255,255,255,1)] group relative inline-flex h-9 items-center justify-center rounded-md bg-transparent border border-white px-2 font-medium text-neutral-200"><div className="relative h-5 w-5 overflow-hidden"><div className="absolute transition-all duration-200 group-hover:-translate-y-5 group-hover:translate-x-4"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5"><path d="M3.64645 11.3536C3.45118 11.1583 3.45118 10.8417 3.64645 10.6465L10.2929 4L6 4C5.72386 4 5.5 3.77614 5.5 3.5C5.5 3.22386 5.72386 3 6 3L11.5 3C11.6326 3 11.7598 3.05268 11.8536 3.14645C11.9473 3.24022 12 3.36739 12 3.5L12 9.00001C12 9.27615 11.7761 9.50001 11.5 9.50001C11.2239 9.50001 11 9.27615 11 9.00001V4.70711L4.35355 11.3536C4.15829 11.5488 3.84171 11.5488 3.64645 11.3536Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg><svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 -translate-x-4"><path d="M3.64645 11.3536C3.45118 11.1583 3.45118 10.8417 3.64645 10.6465L10.2929 4L6 4C5.72386 4 5.5 3.77614 5.5 3.5C5.5 3.22386 5.72386 3 6 3L11.5 3C11.6326 3 11.7598 3.05268 11.8536 3.14645C11.9473 3.24022 12 3.36739 12 3.5L12 9.00001C12 9.27615 11.7761 9.50001 11.5 9.50001C11.2239 9.50001 11 9.27615 11 9.00001V4.70711L4.35355 11.3536C4.15829 11.5488 3.84171 11.5488 3.64645 11.3536Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg></div></div></button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <ProjectDetailsPanel project={"SAAS-ERP-EGS"} className='w-full h-[350px]' />
+                            </div>
+                            <Carousel className='w-full h-[400px]' images={["/images/medchem/main.webp", "/images/medchem/quiz.webp", "/images/medchem/backoffice.webp"]} />
+                        </div>
                     </section>
 
                 </main>
