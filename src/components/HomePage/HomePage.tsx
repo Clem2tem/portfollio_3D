@@ -30,6 +30,8 @@ import { Environment } from '@react-three/drei';
 import POPBoxed from '../BoxedPOP';
 import BoxedHospital from '../BoxedHospital';
 import HouseBox from '../BoxedHouse';
+import Carousel from './Carousel';
+import ProjectDetailsPanel from './ProjectInfos';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -596,20 +598,20 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, dragOffset, drag
 
         // Calcul de l'angle basé sur le drag horizontal
         const angle = totalDragX * Math.PI; // Rotation complète sur 2 unités de drag
-        
+
         // Rayon de l'orbite (distance au centre sur le plan XZ)
         const radius = 1.5;
-        
+
         // Calcul de la position circulaire autour de l'origine
         const circleX = Math.cos(angle) * radius;
         const circleZ = Math.sin(angle) * radius; // Limité à ±0.1 de variation
 
-        
+
         // Clamper X et Y entre -1.5 et 1.5
         const clampedX = THREE.MathUtils.clamp(circleX, -1.5, 1.5);
-        
+
         const targetPos = new THREE.Vector3(clampedX, stop.position[1], circleZ);
-        
+
         // Interpolation douce vers la nouvelle position
         camera.position.lerp(targetPos, 0.08);
 
@@ -777,7 +779,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             hospital: {
                 step: 'MEDCHEM STRUCTURE GENIUS',
                 title: 'E-Learning app',
-                description: 'Ce projet marque le début de ma carrière professionnelle. Une application de e-learning pour les chercheurs en pharmacologie et les étudiants de l\'IUT de Lille. Vous découvrirez ensuite les détails des projets auquels j\'ai contribué dans une navigation intéractive.'
+                description: "MedChem Structure Genius est une application d’e-learning destinée aux étudiants de la Faculté de Pharmacie de l'Université de Lille pour les aider à étudier les molécules et leurs relations."
             },
             house: {
                 step: 'SAAS ERP - EGS',
@@ -861,10 +863,10 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
     const handlePointerMove = useCallback((e: React.PointerEvent) => {
         if (!isDraggingRef.current) return;
-        
+
         const deltaX = (e.clientX - dragStartRef.current.x) / window.innerWidth;
         const deltaY = (e.clientY - dragStartRef.current.y) / window.innerHeight;
-        
+
         setDragOffset({ x: deltaX * 2, y: deltaY * 2 });
     }, []);
 
@@ -975,33 +977,33 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                 onPointerUp={handlePointerUp}
                 onPointerLeave={handlePointerUp}
             >
-                    <Canvas
-                        camera={{ position: [0, 2, 10], fov: 45 }}
-                        gl={{ antialias: true, alpha: true }}
-                        className="w-full h-full"
-                    >
-                        <Suspense fallback={null}>
-                            <FixCameraAspect />
-                            <CameraRig
-                                activeStopIndex={activeStopIndex}
-                                dragOffset={dragOffset}
-                                dragAccumulated={dragAccumulated}
-                                isPopZoomed={isPopZoomed}
-                                isMiniaturized={isMiniaturized}
-                            />
-                            <IslandScene
-                                isPopZoomed={isPopZoomed}
-                            />
-                        </Suspense>
-                    </Canvas>
+                <Canvas
+                    camera={{ position: [0, 2, 10], fov: 45 }}
+                    gl={{ antialias: true, alpha: true }}
+                    className="w-full h-full"
+                >
+                    <Suspense fallback={null}>
+                        <FixCameraAspect />
+                        <CameraRig
+                            activeStopIndex={activeStopIndex}
+                            dragOffset={dragOffset}
+                            dragAccumulated={dragAccumulated}
+                            isPopZoomed={isPopZoomed}
+                            isMiniaturized={isMiniaturized}
+                        />
+                        <IslandScene
+                            isPopZoomed={isPopZoomed}
+                        />
+                    </Suspense>
+                </Canvas>
 
-                    <div
-                        className={`
+                <div
+                    className={`
                 absolute inset-0 rounded-3xl
                 transition-opacity duration-500 pointer-events-none 
                 ${isMiniaturized ? 'opacity-100' : 'opacity-0'}
             `}
-                    />
+                />
             </div>
 
             {/* Header */}
@@ -1091,8 +1093,15 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     <section
                         id="hospital"
                         ref={(node) => registerSection('hospital', node as HTMLElement)}
-                        className="h-screen flex items-end w-full px-6 md:px-12 pb-20"
+                        className="h-screen flex items-end w-full px-6 md:px-12 pt-24"
                     >
+                        <div className="flex flex-col items-center justify-center h-full w-full px-8 gap-6 relative">
+                            <div className="grid md:grid-cols-2 gap-8 w-full">
+                                <ProjectDetailsPanel project={"hospital-project"} className='w-full h-[350px]' />
+                            </div>
+                            <Carousel className='w-full h-[400px]' images={["/images/medchem/main.webp", "/images/medchem/quiz.webp", "/images/medchem/backoffice.webp"]} />
+                        </div>
+
                     </section>
 
                     {/* MAISON + PELLETEUSE */}
