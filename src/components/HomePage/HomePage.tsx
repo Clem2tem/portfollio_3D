@@ -348,8 +348,9 @@ const GlitchText: React.FC<GlitchTextProps> = ({ text, className = "" }) => {
 
 const technologies = [
     { name: 'React', ext: 'png' },
-    { name: 'Node.js', ext: 'png' },
+    { name: 'Vue', ext: 'png' },
     { name: 'Next.js', ext: 'png' },
+    { name: 'Node.js', ext: 'png' },
     { name: 'TypeScript', ext: 'svg' },
     { name: 'Firebase', ext: 'png' },
     { name: 'Supabase', ext: 'png' },
@@ -525,14 +526,19 @@ interface CameraRigProps {
     dragOffset: { x: number; y: number };
     dragAccumulated: { x: number; y: number };
     onCameraPositionChange?: (position: Vec3) => void;
+    onAutoRotate?: (rotation: number) => void;
     isPopZoomed?: boolean;
     isMiniaturized?: boolean;
+    isDragging: boolean;
 }
 
-const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, dragOffset, dragAccumulated, onCameraPositionChange, isPopZoomed, isMiniaturized }) => {
+const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, dragOffset, dragAccumulated, onCameraPositionChange, onAutoRotate, isPopZoomed, isMiniaturized, isDragging }) => {
     const { camera } = useThree();
     const lookAtRef = useRef(new THREE.Vector3(0, 1.2, 0));
     const hasInitialised = useRef(false);
+    const autoRotateRef = useRef(0);
+    const lastDragTimeRef = useRef(Date.now());
+    const wasAutoRotatingRef = useRef(false);
 
     // 1. position initiale
     useEffect(() => {
@@ -585,29 +591,52 @@ const CameraRig: React.FC<CameraRigProps> = ({ activeStopIndex, dragOffset, drag
         });
     }, [activeStopIndex, camera, isPopZoomed]);
 
-    // 3. Drag camera movement - Orbite circulaire
-    useFrame(() => {
+    // 3. Drag camera movement - Orbite circulaire avec auto-rotation
+    useFrame((_state, delta) => {
         if (isMiniaturized) return;
 
-        // Combiner drag actuel + drag accumulé
-        const totalDragX = dragOffset.x + dragAccumulated.x;
+        // Mettre à jour le timestamp si on drag
+        if (isDragging) {
+            lastDragTimeRef.current = Date.now();
+        }
+
+        // Vérifier si on doit activer l'auto-rotation (3 secondes d'inactivité)
+        const timeSinceLastDrag = Date.now() - lastDragTimeRef.current;
+        const shouldAutoRotate = timeSinceLastDrag > 3000 && !isDragging;
+
+        // Combiner drag manuel + auto-rotation
+        let totalDragX = dragOffset.x + dragAccumulated.x;
+
+        if (shouldAutoRotate) {
+            // Rotation automatique lente (0.1 radians par seconde)
+            autoRotateRef.current += delta * 0.1;
+            totalDragX += autoRotateRef.current / Math.PI;
+            wasAutoRotatingRef.current = true;
+            // Communiquer la rotation au parent
+            if (onAutoRotate) {
+                onAutoRotate(autoRotateRef.current / Math.PI);
+            }
+        } else if (wasAutoRotatingRef.current) {
+            // On vient de sortir de l'auto-rotation, reset
+            autoRotateRef.current = 0;
+            wasAutoRotatingRef.current = false;
+        }
 
         // Position cible du stop actif
         const stop = MODEL_STOPS[activeStopIndex];
         if (!stop) return;
 
         // Calcul de l'angle basé sur le drag horizontal
-        const angle = totalDragX * Math.PI; // Rotation complète sur 2 unités de drag
+        const angle = totalDragX * Math.PI;
 
         // Rayon de l'orbite (distance au centre sur le plan XZ)
         const radius = 1.5;
 
         // Calcul de la position circulaire autour de l'origine
         const circleX = Math.cos(angle) * radius;
-        const circleZ = Math.sin(angle) * radius; // Limité à ±0.1 de variation
+        const circleZ = Math.sin(angle) * radius;
 
-
-        // Clamper X et Y entre -1.5 et 1.5
+        // Clamper X entre -1.5 et 1.5
         const clampedX = THREE.MathUtils.clamp(circleX, -1.5, 1.5);
 
         const targetPos = new THREE.Vector3(clampedX, stop.position[1], circleZ);
@@ -818,6 +847,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
     useSplitText('[data-split]', { stagger: 0.03, duration: 1 });
 
     const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+    const autoRotationAccumulatedRef = useRef(0);
     const [dragAccumulated, setDragAccumulated] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
     const isDraggingRef = useRef(false);
     const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -856,6 +886,14 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
     // Handlers de drag pour le canvas
     const handlePointerDown = useCallback((e: React.PointerEvent) => {
+        // Si on était en auto-rotation, figer la position actuelle
+        if (autoRotationAccumulatedRef.current !== 0) {
+            setDragAccumulated(prev => ({
+                x: prev.x + autoRotationAccumulatedRef.current,
+                y: prev.y
+            }));
+            autoRotationAccumulatedRef.current = 0;
+        }
         isDraggingRef.current = true;
         dragStartRef.current = { x: e.clientX, y: e.clientY };
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -872,7 +910,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
 
     const handlePointerUp = useCallback((e: React.PointerEvent) => {
         if (isDraggingRef.current) {
-            // Accumuler le drag actuel
+            // Accumuler le drag actuel + la rotation auto si elle existait
             setDragAccumulated(prev => ({
                 x: prev.x + dragOffset.x,
                 y: prev.y + dragOffset.y
@@ -988,8 +1026,12 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                             activeStopIndex={activeStopIndex}
                             dragOffset={dragOffset}
                             dragAccumulated={dragAccumulated}
+                            onAutoRotate={(rotation) => {
+                                autoRotationAccumulatedRef.current = rotation;
+                            }}
                             isPopZoomed={isPopZoomed}
                             isMiniaturized={isMiniaturized}
+                            isDragging={isDraggingRef.current}
                         />
                         <IslandScene
                             isPopZoomed={isPopZoomed}
@@ -1097,6 +1139,49 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                     >
                         <div className="flex flex-col items-center justify-center h-full w-full px-8 gap-6 relative">
                             <div className="grid md:grid-cols-2 gap-8 w-full">
+                                <div
+                                    className="grid grid-rows-2 gap-4"
+                                >
+                                    <div className='bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-white shadow-lg py-2 text-xl'>
+                                        {t.hospital.description}
+                                    </div>
+                                    <div className='grid grid-cols-3 gap-4'>
+                                        <div className="w-full rounded-lg flex flex-col items-center justify-center gap-2">
+                                            <div
+                                                className="text-[80px] leading-[0.9] text-center font-bold text-transparent drop-shadow-[0_0px_12px_rgba(255,0,255,1)]"
+                                                style={{ WebkitTextStroke: "3px purple" }}
+                                            >
+                                                3
+                                            </div>
+                                            <div className="text-[20px] leading-none text-center font-semibold text-white drop-shadow-[0_0px_12px_rgba(255,0,255,1)]">
+                                                mois
+                                            </div>
+                                        </div>
+
+                                        <div className="w-full rounded-lg flex flex-col items-center justify-center gap-3 pt-3">
+                                            <div
+                                                className="text-[40px] leading-[0.9] text-center font-bold text-transparent drop-shadow-[0_0px_12px_rgba(0,255,255,1)]"
+                                                style={{ WebkitTextStroke: "2px green" }}
+                                            >
+                                                Role :
+                                            </div>
+                                            <div className="text-[20px] leading-none text-center font-semibold text-white drop-shadow-[0_0px_12px_rgba(255,0,255,1)]">
+                                                Lead Developer
+                                            </div>
+                                        </div>
+                                        <div className="w-full rounded-lg flex flex-col items-center justify-center gap-1 pt-5">
+                                            <div
+                                                className="text-[10px] leading-[1] text-center font-semibold text-white drop-shadow-[0_0px_12px_rgba(255,255,255,1)]"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" className="stroke-white size-6 mx-auto w-10 h-10">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                                                </svg>
+                                                Private
+                                            </div>
+                                            <button className="drop-shadow-[0_0px_12px_rgba(255,255,255,1)] group relative inline-flex h-9 items-center justify-center rounded-md bg-transparent border border-white px-2 font-medium text-neutral-200"><div className="relative h-5 w-5 overflow-hidden"><div className="absolute transition-all duration-200 group-hover:-translate-y-5 group-hover:translate-x-4"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5"><path d="M3.64645 11.3536C3.45118 11.1583 3.45118 10.8417 3.64645 10.6465L10.2929 4L6 4C5.72386 4 5.5 3.77614 5.5 3.5C5.5 3.22386 5.72386 3 6 3L11.5 3C11.6326 3 11.7598 3.05268 11.8536 3.14645C11.9473 3.24022 12 3.36739 12 3.5L12 9.00001C12 9.27615 11.7761 9.50001 11.5 9.50001C11.2239 9.50001 11 9.27615 11 9.00001V4.70711L4.35355 11.3536C4.15829 11.5488 3.84171 11.5488 3.64645 11.3536Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg><svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 -translate-x-4"><path d="M3.64645 11.3536C3.45118 11.1583 3.45118 10.8417 3.64645 10.6465L10.2929 4L6 4C5.72386 4 5.5 3.77614 5.5 3.5C5.5 3.22386 5.72386 3 6 3L11.5 3C11.6326 3 11.7598 3.05268 11.8536 3.14645C11.9473 3.24022 12 3.36739 12 3.5L12 9.00001C12 9.27615 11.7761 9.50001 11.5 9.50001C11.2239 9.50001 11 9.27615 11 9.00001V4.70711L4.35355 11.3536C4.15829 11.5488 3.84171 11.5488 3.64645 11.3536Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg></div></div></button>
+                                            </div>
+                                    </div>
+                                </div>
                                 <ProjectDetailsPanel project={"hospital-project"} className='w-full h-[350px]' />
                             </div>
                             <Carousel className='w-full h-[400px]' images={["/images/medchem/main.webp", "/images/medchem/quiz.webp", "/images/medchem/backoffice.webp"]} />
