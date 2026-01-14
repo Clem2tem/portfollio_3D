@@ -824,20 +824,20 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
             mode3d: '3D Mode',
             popclem: {
                 step: 'ME',
-                title: 'POPClem leads the way.',
-                description: 'First stop of the journey: the avatar. The camera moves closer, slightly from above, while the HUD displays character info on the side.'
+                title: 'Hello!',
+                description: 'That\'s me! Through this interactive portfolio, discover my journey and skills.'
             },
             hospital: {
                 step: 'MEDCHEM STRUCTURE GENIUS',
-                title: 'Zoom out to the hospital.',
-                description: 'Scaling up: the camera pulls back, shifts, and the HUD displays the building context like a frozen archive artifact.'
+                title: 'E-Learning App',
+                description: 'MedChem Structure Genius is an e-learning application designed for students at the Faculty of Pharmacy, University of Lille, to help them study molecules and their relationships.'
             },
             house: {
                 step: 'SAAS ERP - EGS',
                 title: 'House & excavator, in diptych.',
-                description: 'Architecture and mechanics united in a single scene. The camera glides laterally, the HUD reacts on hover over the left side of the composition.'
+                description: 'Business SaaS developed for a construction company, aimed at centralizing site management, automating quote generation, and ensuring reliable financial tracking of projects.'
             },
-            footer: '© 2024 Clément De Temmerman — Experimental 3D Portfolio'
+            footer: '© 2025 Clément De Temmerman — Experimental 3D Portfolio'
         }
     }), []);
 
