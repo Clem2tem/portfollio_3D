@@ -9,7 +9,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ onClose }) => {
 
   return (
     <div 
-      className='fixed bg-black/60 backdrop-blur-md z-[99999] flex items-center justify-center p-4'
+      className='fixed bg-black/80 backdrop-blur-md z-[99999] flex items-center justify-center p-4'
       style={{
         top: 'env(safe-area-inset-top)',
         left: 'env(safe-area-inset-left)',
@@ -17,7 +17,13 @@ const ContactModal: React.FC<ContactModalProps> = ({ onClose }) => {
         bottom: 'env(safe-area-inset-bottom)',
       }}
     > 
-    <div className="relative w-full max-w-[90vw] md:max-w-[1200px] max-h-[85vh] bg-gradient-to-br from-purple-900/90 via-blue-900/90 to-indigo-900/90 backdrop-blur-sm rounded-3xl border border-white/60 overflow-hidden">
+    <button
+            onClick={onClose}
+            className="absolute text-white/70 hover:text-white text-3xl font-bold transition-colors duration-300  right-4 md:right-8 top-4 md:top-6 z-[9999]"
+          >
+            ×
+          </button>
+    <div className="relative w-full max-w-[90vw] md:max-w-[1200px] max-h-[85vh] overflow-hidden">
       {/* Fond animé avec particules */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {Array.from({ length: 20 }).map((_, i) => (
@@ -33,12 +39,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ onClose }) => {
           />
         ))}
       </div>
-      <button
-            onClick={onClose}
-            className="absolute text-white/70 hover:text-white text-3xl font-bold transition-colors duration-300  right-4 md:right-8 top-4 md:top-6 z-[9999]"
-          >
-            ×
-          </button>
+      
 
       {/* Contenu principal avec scroll */}
       <div className="relative z-10 w-full h-full overflow-y-auto p-4 md:p-8">

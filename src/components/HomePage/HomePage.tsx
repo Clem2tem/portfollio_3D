@@ -1171,7 +1171,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                         <div className="w-full rounded-lg flex flex-col items-center justify-center gap-3 pt-3">
                                             <div
                                                 className="text-[40px] leading-[0.9] text-center font-bold text-transparent drop-shadow-[0_0px_12px_rgba(0,255,255,1)]"
-                                                style={{ WebkitTextStroke: "2px green" }}
+                                                style={{ WebkitTextStroke: "1px cyan" }}
                                             >
                                                 Role :
                                             </div>
@@ -1229,7 +1229,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                         <div className="w-full rounded-lg flex flex-col items-center justify-center gap-3 pt-3">
                                             <div
                                                 className="text-[40px] leading-[0.9] text-center font-bold text-transparent drop-shadow-[0_0px_12px_rgba(0,255,255,1)]"
-                                                style={{ WebkitTextStroke: "2px green" }}
+                                                style={{ WebkitTextStroke: "1px cyan" }}
                                             >
                                                 Role :
                                             </div>
