@@ -1152,9 +1152,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                 <div
                                     className="grid grid-rows-2 gap-4"
                                 >
-                                    <div className='bg-black backdrop-blur-md rounded-lg border border-white/5 text-white shadow-lg py-2 px-4 text-xl drop-shadow-[0_0px_2px_rgba(255,255,255,0.4)]'>
-                                        {t.hospital.description}
-                                    </div>
+                                    <Carousel className='w-full h-[200px] drop-shadow-[0_0px_2px_rgba(255,255,255,0.4)]' images={["/images/medchem/main.webp", "/images/medchem/quiz.webp", "/images/medchem/backoffice.webp"]} />
                                     <div className='grid grid-cols-3 gap-4'>
                                         <div className="w-full rounded-lg flex flex-col items-center justify-center gap-2">
                                             <div
@@ -1192,11 +1190,10 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                         </div>
                                     </div>
                                 </div>
-                                <ProjectDetailsPanel project={"hospital-project"} className='w-full h-[350px]' />
+                                <ProjectDetailsPanel project={"hospital-project"} className='w-full h-[400px]' />
                             </div>
-                            <Carousel className='w-full h-[350px] drop-shadow-[0_0px_2px_rgba(255,255,255,0.4)]' images={["/images/medchem/main.webp", "/images/medchem/quiz.webp", "/images/medchem/backoffice.webp"]} />
+                            <GlitchText text={t.hospital.description} />
                         </div>
-
                     </section>
 
                     {/* MAISON + PELLETEUSE */}
@@ -1210,9 +1207,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                 <div
                                     className="grid grid-rows-2 gap-4"
                                 >
-                                    <div className='bg-black backdrop-blur-md rounded-lg border border-white/5 text-white shadow-lg py-2 px-4 text-xl drop-shadow-[0_0px_2px_rgba(255,255,255,0.4)]'>
-                                        {t.house.description}
-                                    </div>
+                                    <Carousel className='w-full h-[200px] drop-shadow-[0_0px_2px_rgba(255,255,255,0.4)]' images={["/images/egs/client.png", "/images/egs/chantier.png", "/images/egs/devis.png", "/images/egs/factures.png", "/images/egs/technique.png", "/images/egs/confidentiel.png"]} />
                                     <div className='grid grid-cols-3 gap-4'>
                                         <div className="w-full rounded-lg flex flex-col items-center justify-center gap-2">
                                             <div
@@ -1251,7 +1246,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                 </div>
                                 <ProjectDetailsPanel project={"SAAS-ERP-EGS"} className='w-full h-[350px]' />
                             </div>
-                            <Carousel className='w-full h-[350px] drop-shadow-[0_0px_2px_rgba(255,255,255,0.4)]' images={["/images/egs/client.png", "/images/egs/chantier.png", "/images/egs/devis.png", "/images/egs/factures.png", "/images/egs/technique.png", "/images/egs/confidentiel.png"]} />
+                            <GlitchText text={t.house.description} />
                         </div>
                     </section>
                 </main>

@@ -14,7 +14,7 @@ const ProjectDetailsPanel: React.FC<{ project: string, className?: string }> = (
         <div className={`${className}`}>
             <div
               id="controls-panel"
-              className=" p-3 bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-white shadow-lg w-s h-[350px] overflow-y-auto"
+              className=" p-3 bg-black/50 backdrop-blur-md rounded-lg border border-white/5 text-white shadow-lg w-s h-[400px] overflow-y-auto"
             >
               {/* Tabs header */}
               <div className="flex gap-2 mb-3">

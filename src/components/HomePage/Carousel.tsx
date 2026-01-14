@@ -85,7 +85,7 @@ const Carousel: React.FC<CarouselProps> = ({
             )}
 
             {/* Pagination & Barre de progression */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-2 rounded-full bg-black/20 backdrop-blur-md border border-white/10 z-20">
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-2 rounded-full bg-black/20 backdrop-blur-md border border-white/10 z-20">
                 {images.map((_, index) => (
                     <button
                         key={index}
