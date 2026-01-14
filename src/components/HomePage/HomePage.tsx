@@ -1175,7 +1175,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                             >
                                                 Role :
                                             </div>
-                                            <div className="text-[20px] leading-none text-center font-semibold text-white drop-shadow-[0_0px_12px_rgba(255,0,255,1)]">
+                                            <div className="text-[20px] leading-none text-center font-semibold text-white drop-shadow-[0_0px_12px_rgba(0,255,255,1)]">
                                                 Lead Developer
                                             </div>
                                         </div>
@@ -1233,7 +1233,7 @@ const NewHomePage: React.FC<HomePageProps> = ({ onEnter3DMode }) => {
                                             >
                                                 Role :
                                             </div>
-                                            <div className="text-[20px] leading-none text-center font-semibold text-white drop-shadow-[0_0px_12px_rgba(255,0,255,1)]">
+                                            <div className="text-[20px] leading-none text-center font-semibold text-white drop-shadow-[0_0px_12px_rgba(0,255,255,1)]">
                                                 Fullstack Engineer
                                             </div>
                                         </div>
